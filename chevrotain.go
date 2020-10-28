@@ -4,22 +4,29 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 var db *mongo.Collection
 
-// Post is
-type Post struct {
-	Title string `json:”title,omitempty”`
-	Body  string `json:”body,omitempty”`
+// KVPair is a key-value pair
+type KVPair struct {
+	Key   string   `json:"key"`
+	Value []string `json:"value"`
 }
 
 func main() {
-	client, err := mongo.NewClient(options.Client().ApplyURI("mongodb://localhost:27017/"))
+	/* Connect to MongoDB, reading port number from the command line
+	As per https://www.mongodb.com/golang */
+	port := os.Args[1]
+	urlString := "mongodb://localhost:" + port + "/"
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(urlString))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -30,21 +37,39 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	db = client.Database("chev").Collection("kvs")
 
-	db = client.Database("chevrotain").Collection("kvs")
-	InsertPost("1", "Hello")
-	InsertPost("2", "Hello")
+	InsertKey("1")
+	InsertKey("2")
+	InsertValue("1", "Hello")
 	defer client.Disconnect(ctx)
 }
 
-// InsertPost is https://www.mongodb.com/golang
-func InsertPost(title string, body string) {
-	post := Post{title, body}
-	insertResult, err := db.InsertOne(context.TODO(), post)
+// InsertKey inserts key with an empty array for values
+func InsertKey(key string) {
+	insertResult, err := db.InsertOne(context.TODO(), KVPair{key, []string{}})
 
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	fmt.Println("Inserted post with ID:", insertResult.InsertedID)
+	fmt.Println("Inserted key with ID:", insertResult.InsertedID)
+}
+
+// InsertValue inserts value into the given key
+func InsertValue(key string, value string) {
+	filter := bson.D{{Key: key}}
+	update := bson.D{
+		{"$push", bson.D{
+			{"value", value},
+		}},
+	}
+	updateResult, err := db.UpdateOne(context.TODO(), filter, update)
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Printf("Matched %v documents and updated %v documents.\n",
+		updateResult.MatchedCount, updateResult.ModifiedCount)
 }
