@@ -6,6 +6,8 @@ import (
 	"log"
 	"os"
 
+	"../util"
+
 	"github.com/DistributedClocks/GoVector/govec"
 	"github.com/DistributedClocks/GoVector/govec/vclock"
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,7 +15,7 @@ import (
 )
 
 var db *mongo.Database
-var Logger *govec.GoLog
+var logger *govec.GoLog
 var posCollection = "kvsp"
 var negCollection = "kvsn"
 
@@ -33,26 +35,26 @@ type ValueEntry struct {
 func main() {
 	/* Connect to MongoDB, reading port number from the command line */
 	port := os.Args[1]
-	client, ctx := connect(port)
+	client, ctx := util.Connect(port)
 	db = client.Database("chev")
 	defer client.Disconnect(ctx)
 
 	/* Initialize GoVector logger */
-	Logger = govec.InitGoVector("MyProcess", "LogFile", govec.GetDefaultConfig())
+	logger = govec.InitGoVector("Local", "LogFile", govec.GetDefaultConfig())
 
-	/* Pre-allocate Keys entry */
-	newRecord := Record{"Keys", Logger.GetCurrentVC(), []ValueEntry{}}
+	/* Pre-allocate global keys entries */
+	newRecord := Record{"Keys", logger.GetCurrentVC(), []ValueEntry{}}
 	_, err := db.Collection(posCollection).InsertOne(context.TODO(), newRecord)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Inserted keys record into positive table")
+	fmt.Println("Inserted global keys record into positive table")
 
 	_, err = db.Collection(negCollection).InsertOne(context.TODO(), newRecord)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("Inserted keys record into negative table")
+	fmt.Println("Inserted global keys record into negative table")
 
 	InsertKey("1")
 	InsertKey("2")
@@ -76,8 +78,9 @@ func RemoveKey(key string) {
 
 // InsertKeyHelper inserts the key in either positive collection (add) or negative collection (remove)
 func InsertKeyHelper(key string, collection string) {
-	Logger.LogLocalEvent("Inserting Key"+key, govec.GetDefaultLogOptions())
-	valueEntry := ValueEntry{key, Logger.GetCurrentVC()}
+	/* Update global keys entry */
+	logger.LogLocalEvent("Inserting Key"+key, govec.GetDefaultLogOptions())
+	valueEntry := ValueEntry{key, logger.GetCurrentVC()}
 	filter := bson.D{{Key: "name", Value: "Keys"}}
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: valueEntry}}}}
@@ -89,7 +92,8 @@ func InsertKeyHelper(key string, collection string) {
 	fmt.Printf("Matched %v documents and updated %v documents.\n",
 		updateResult.MatchedCount, updateResult.ModifiedCount)
 
-	newRecord := Record{key, Logger.GetCurrentVC(), []ValueEntry{}}
+	/* Setup a record for the current key */
+	newRecord := Record{key, logger.GetCurrentVC(), []ValueEntry{}}
 	_, err = db.Collection(collection).InsertOne(context.TODO(), newRecord)
 	if err != nil {
 		log.Fatal(err)
@@ -113,9 +117,8 @@ func RemoveValue(key string, value string) {
 
 // InsertValueHelper inserts the value in either positive collection (add) or negative collection (remove)
 func InsertValueHelper(key string, value string, collection string) {
-	Logger.LogLocalEvent("Inserting value"+value, govec.GetDefaultLogOptions())
-	valueEntry := ValueEntry{value, Logger.GetCurrentVC()}
-
+	logger.LogLocalEvent("Inserting value"+value, govec.GetDefaultLogOptions())
+	valueEntry := ValueEntry{value, logger.GetCurrentVC()}
 	filter := bson.D{{Key: "name", Value: key}}
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: valueEntry}}}}

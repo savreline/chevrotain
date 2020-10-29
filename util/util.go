@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 )
 
 /* Connect to MongoDB on the given port, as per https://www.mongodb.com/golang */
-func connect(port string) (*mongo.Client, context.Context) {
+func Connect(port string) (*mongo.Client, context.Context) {
 	urlString := "mongodb://localhost:" + port + "/"
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(urlString))
