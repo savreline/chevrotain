@@ -14,10 +14,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const (
+	posCollection = "kvsp"
+	negCollection = "kvsn"
+)
+
 var db *mongo.Database
 var logger *govec.GoLog
-var posCollection = "kvsp"
-var negCollection = "kvsn"
 
 // Record is a DB Record
 type Record struct {
@@ -46,13 +49,13 @@ func main() {
 	newRecord := Record{"Keys", logger.GetCurrentVC(), []ValueEntry{}}
 	_, err := db.Collection(posCollection).InsertOne(context.TODO(), newRecord)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Println("Inserted global keys record into positive table")
 
 	_, err = db.Collection(negCollection).InsertOne(context.TODO(), newRecord)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Println("Inserted global keys record into negative table")
 
@@ -87,7 +90,7 @@ func InsertKeyHelper(key string, collection string) {
 
 	updateResult, err := db.Collection(collection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Printf("Matched %v documents and updated %v documents.\n",
 		updateResult.MatchedCount, updateResult.ModifiedCount)
@@ -96,7 +99,7 @@ func InsertKeyHelper(key string, collection string) {
 	newRecord := Record{key, logger.GetCurrentVC(), []ValueEntry{}}
 	_, err = db.Collection(collection).InsertOne(context.TODO(), newRecord)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Println("Inserted key", key)
 }

@@ -4,8 +4,11 @@
 ### Connecting to MondoDB:
 https://www.mongodb.com/golang
 https://github.com/mongodb/mongo-go-driver
-https://www.mongodb.com/blog/post/mongodb-go-driver-tutorial-part-1-connecting-using-bson-and-crud-operations
 https://stackoverflow.com/questions/56970867/how-to-use-mongo-driver-connection-into-other-packages
+https://www.mongodb.com/blog/post/mongodb-go-driver-tutorial-part-1-connecting-using-bson-and-crud-operations
+
+### Go Net Package
+https://golang.org/pkg/net/
 
 ### Go Scope Rules:
 https://www.tutorialspoint.com/go/go_scope_rules.htm
@@ -26,7 +29,7 @@ db.dropDatabase()
 https://docs.mongodb.com/manual/reference/mongo-shell/
 https://docs.mongodb.com/manual/reference/method/db.createCollection/
 
-Save versus Insert versus Update
+Save versus Insert versus Update \
 https://stackoverflow.com/questions/16209681/what-is-the-difference-between-save-and-insert-in-mongo-db
 
 ### MongoD commands:
@@ -41,3 +44,6 @@ https://godoc.org/github.com/DistributedClocks/GoVector/govec
 
 ### Markdown Syntax
 https://www.markdownguide.org/cheat-sheet/
+
+### Git
+`git reset --soft HEAD~1`

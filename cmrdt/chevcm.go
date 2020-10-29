@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"net"
 	"os"
 
 	"../util"
@@ -15,6 +15,10 @@ import (
 
 var db *mongo.Database
 var logger *govec.GoLog
+var clPort string
+var srvPort string
+var clConn []*net.UDPConn
+var srvConn net.PacketConn
 
 // Record is a DB Record
 type Record struct {
@@ -24,8 +28,10 @@ type Record struct {
 
 func main() {
 	/* Connect to MongoDB, reading port number from the command line */
-	port := os.Args[1]
-	client, ctx := util.Connect(port)
+	dbPort := os.Args[1]
+	clPort = os.Args[2]
+	srvPort = os.Args[3]
+	client, ctx := util.Connect(dbPort)
 	db = client.Database("chev")
 	defer client.Disconnect(ctx)
 
@@ -36,14 +42,25 @@ func main() {
 	newRecord := Record{"Keys", []string{}}
 	_, err := db.Collection("kvs").InsertOne(context.TODO(), newRecord)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Println("Pre-allocated keys")
 
-	InsertKey("1")
-	InsertKey("2")
-	InsertValue("1", "Hello")
-	InsertValue("2", "Bye")
+	/* Parse Group Members */
+	ports, err := util.ParseGroupMembers("ports.csv", clPort, srvPort)
+	if err != nil {
+		util.PrintErr(err)
+	}
+	fmt.Println(ports)
+
+	/* Setup Connection */
+	setupConnection(ports)
+
+	// /* Tests */
+	// InsertKey("1")
+	// InsertKey("2")
+	// InsertValue("1", "Hello")
+	// InsertValue("2", "Bye")
 }
 
 /****************************/
@@ -53,6 +70,7 @@ func main() {
 // InsertKey inserts the given key with an empty array for values
 func InsertKey(key string) {
 	InsertKeyLocal(key)
+	InsertKeyGlobal(key)
 }
 
 // RemoveKey removes the given key
@@ -69,7 +87,7 @@ func InsertKeyLocal(key string) {
 
 	updateResult, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Printf("Matched %v documents and updated %v documents.\n",
 		updateResult.MatchedCount, updateResult.ModifiedCount)
@@ -77,18 +95,24 @@ func InsertKeyLocal(key string) {
 	newRecord := Record{key, []string{}}
 	_, err = db.Collection("kvs").InsertOne(context.TODO(), newRecord)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Println("Inserted key", key)
 }
 
-/********************************************/
-/*** 2: INSERT/REMOVE VALUE LOCAL METHODS ***/
-/********************************************/
+// InsertKeyGlobal broadcasts the insertKey operation to other replicas
+func InsertKeyGlobal(key string) {
+
+}
+
+/******************************/
+/*** 2: INSERT/REMOVE VALUE ***/
+/******************************/
 
 // InsertValue inserts value into the given key
 func InsertValue(key string, value string) {
 	InsertValueLocal(key, value)
+	InsertValueGlobal(key, value)
 }
 
 // RemoveValue removes value from the given key
@@ -105,8 +129,42 @@ func InsertValueLocal(key string, value string) {
 
 	updateResult, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		log.Fatal(err)
+		util.PrintErr(err)
 	}
 	fmt.Printf("Matched %v documents and updated %v documents.\n",
 		updateResult.MatchedCount, updateResult.ModifiedCount)
+}
+
+// InsertValueGlobal broadcasts the insertValue operation to other replicas
+func InsertValueGlobal(key string, value string) {
+
+}
+
+/*************************/
+/*** 3: UDP CONNECTION ***/
+/*************************/
+
+// from https://github.com/DistributedClocks/GoVector/blob/master/example/ClientServer/ClientServer.go
+func setupConnection(ports map[string]string) {
+	// set up server
+	// fmt.Println("Listening on server....")
+	// srvConn, err := net.ListenPacket("udp", ":"+srvPort)
+	// if err != nil {
+	// 	util.PrintErr(err)
+	// }
+
+	for aClPort, aSrvPort := range ports {
+		// resolve addresses
+		rAddr, errR := net.ResolveUDPAddr("udp4", ":"+aClPort)
+		fmt.Println(rAddr)
+		util.PrintErr(errR)
+		lAddr, errL := net.ResolveUDPAddr("udp4", ":"+aSrvPort)
+		fmt.Println(lAddr)
+		util.PrintErr(errL)
+
+		// make connection
+		// aClConn, errDial := net.DialUDP("udp", lAddr, rAddr)
+		// clConn = append(clConn, aClConn)
+		// util.PrintErr(errDial)
+	}
 }
