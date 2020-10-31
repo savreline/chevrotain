@@ -6,8 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
@@ -34,8 +36,8 @@ func Connect(port string) (*mongo.Client, context.Context) {
 	return client, ctx
 }
 
-// ParseGroupMembers parses the supplied group member file
-func ParseGroupMembers(file string, clPort string, srvPort string) (map[string]string, error) {
+// ParseGroupMembersCVS parses the supplied CVS group member file
+func ParseGroupMembersCVS(file string, clPort string, srvPort string) (map[string]string, error) {
 	// from https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
 	f, err := os.Open(file)
 	if err != nil {
@@ -61,6 +63,23 @@ func ParseGroupMembers(file string, clPort string, srvPort string) (map[string]s
 
 		ports[row[0]] = row[1]
 	}
+}
+
+// ParseGroupMembersText parses the supplied text group member file
+// https://stackoverflow.com/questions/36111777/how-to-read-a-text-file
+func ParseGroupMembersText(file string, port string) ([]string, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() {
+		if err = f.Close(); err != nil {
+			log.Fatal(err)
+		}
+	}()
+
+	res, err := ioutil.ReadAll(f)
+	return strings.Split(string(res), ","), nil
 }
 
 // PrintErr prints error

@@ -1,4 +1,4 @@
-package main
+package cmrdt
 
 import (
 	"context"
@@ -6,7 +6,6 @@ import (
 	"log"
 	"net"
 	"net/rpc"
-	"os"
 
 	"../util"
 
@@ -17,9 +16,10 @@ import (
 )
 
 var no string
-var clPort string
 var srvPort string
 var db *mongo.Database
+var ctx context.Context
+var dbClient *mongo.Client
 var client *rpc.Client
 var clLogger *govec.GoLog
 var srvLogger *govec.GoLog
@@ -30,15 +30,16 @@ type Record struct {
 	Values []string `json:"values"`
 }
 
-func main() {
-	/* Read port numbers from the command line, connect to MongoDB */
-	dbPort := os.Args[1]
-	clPort = os.Args[2]
-	srvPort = os.Args[3]
-	no = os.Args[4]
-	client, ctx := util.Connect(dbPort)
-	db = client.Database("chev")
-	defer client.Disconnect(ctx)
+/********************************/
+/*** 0: INIT, CONNECT REPLICA ***/
+/********************************/
+
+// InitReplica makes connection to the database, starts up the RPC server
+func InitReplica(flag bool, dbPort string, port string, no string) {
+	/* Connect to MongoDB */
+	srvPort = port
+	dbClient, ctx = util.Connect(dbPort)
+	db = dbClient.Database("chev")
 	fmt.Println("STATUS: Connected to DB")
 
 	/* Pre-allocate Keys entry */
@@ -48,27 +49,26 @@ func main() {
 		util.PrintErr(err)
 	}
 
-	/* Parse Group Members */
-	// ports, err := util.ParseGroupMembers("ports.csv", clPort, srvPort)
-	// if err != nil {
-	// 	util.PrintErr(err)
-	// }
-
-	/* Setup Connection */
+	/* Start Server */
 	go rpcserver()
-	go rpcclient()
-	for {
+}
+
+// ConnectReplica connects this replica to others
+func ConnectReplica() {
+	/* Parse Group Members */
+	ports, err := util.ParseGroupMembersText("ports.txt", srvPort)
+	if err != nil {
+		util.PrintErr(err)
 	}
+	fmt.Println(ports)
 
-	// setupConnection(ports)
-	// fmt.Println(ports)
-	// fmt.Println("STATUS: Parsed Group Membership and Initiated RPC")
+	/* Make RPC Connections */
+	go rpcclient()
+}
 
-	/* Tests */
-	// InsertKey("1")
-	// InsertKey("2")
-	// InsertValue("1", "Hello")
-	// InsertValue("2", "Bye")
+// TerminateReplica closes the db connection
+func TerminateReplica() {
+	dbClient.Disconnect(ctx)
 }
 
 /**********************/
@@ -211,10 +211,9 @@ func rpcclient() {
 	options := govec.GetDefaultLogOptions()
 	fmt.Println("STATUS: Client Clocks")
 	var err error
-	client, err = vrpc.RPCDial("tcp", "127.0.0.1:"+clPort, clLogger, options)
+	client, err = vrpc.RPCDial("tcp", "127.0.0.1:"+srvPort, clLogger, options)
 	if err != nil {
 		log.Fatal(err)
 	}
 	fmt.Println("STATUS: Client Started")
-	InsertKey("1")
 }
