@@ -8,6 +8,7 @@ https://stackoverflow.com/questions/56970867/how-to-use-mongo-driver-connection-
 https://www.mongodb.com/blog/post/mongodb-go-driver-tutorial-part-1-connecting-using-bson-and-crud-operations
 
 ### Go Net Package
+`time.Sleep(5 * time.Second)` \
 https://golang.org/pkg/net/
 
 ### Go Scope Rules:
@@ -25,6 +26,10 @@ chevrotain.createCollection("kvs")
 db.kvs.find()
 db.kvs.count()
 db.dropDatabase()
+```
+```
+git ls-files | xargs wc -l
+wc -l $(git ls-files | grep '.*\.cs')
 ```
 https://docs.mongodb.com/manual/reference/mongo-shell/
 https://docs.mongodb.com/manual/reference/method/db.createCollection/
