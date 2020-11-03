@@ -14,9 +14,10 @@ import (
 /**********************/
 
 // InsertKey inserts the given key with an empty array for values
-func InsertKey(key string) {
-	InsertKeyLocal(key)
-	InsertKeyGlobal(key)
+func (t *RPCCmd) InsertKey(args *KeyArgs, reply *int) error {
+	InsertKeyLocal(args.Key)
+	InsertKeyGlobal(args.Key)
+	return nil
 }
 
 // InsertKeyLocal inserts the key into the local db
@@ -44,7 +45,7 @@ func InsertKeyLocal(key string) {
 // InsertKeyGlobal broadcasts the insertKey operation to other replicas
 func InsertKeyGlobal(key string) {
 	var result int
-	err := client.Call("RPCObj.InsertKeyRPC", KeyArgs{key}, &result)
+	err := clients[0].Call("RPCObj.InsertKeyRPC", KeyArgs{key}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}

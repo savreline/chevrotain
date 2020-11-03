@@ -37,7 +37,7 @@ func InsertValueLocal(key string, value string) {
 // InsertValueGlobal broadcasts the insertValue operation to other replicas
 func InsertValueGlobal(key string, value string) {
 	var result int
-	err := client.Call("InsertValueRPC", ValueArgs{key, value}, &result)
+	err := clients[0].Call("InsertValueRPC", ValueArgs{key, value}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}

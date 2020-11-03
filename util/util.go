@@ -8,10 +8,13 @@ import (
 	"io"
 	"io/ioutil"
 	"log"
+	"net/rpc"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/DistributedClocks/GoVector/govec"
+	"github.com/DistributedClocks/GoVector/govec/vrpc"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -80,21 +83,49 @@ func ParseGroupMembersText(file string, myPort string) ([]string, error) {
 
 	res, err := ioutil.ReadAll(f)
 	ports := strings.Split(string(res), ",")
-	fmt.Println(ports)
+	// fmt.Println(ports)
 
 	var j int
+	flag := false
 	for i, port := range ports {
 		if port == myPort {
+			flag = true
 			j = i
 			break
 		}
 	}
 
 	// https://stackoverflow.com/questions/25025409/delete-element-in-a-slice
-	ports[j] = ports[len(ports)-1] // Replace it with the last one. CAREFUL only works if you have enough elements.
-	ports = ports[:len(ports)-1]   // Chop off the last one.
+	if flag {
+		ports[j] = ports[len(ports)-1] // Replace it with the last one. CAREFUL only works if you have enough elements.
+		ports = ports[:len(ports)-1]   // Chop off the last one.
+	}
 
 	return ports, nil
+}
+
+// RPCClient makes an RPC connection
+func RPCClient(rpcChan chan *rpc.Client, logChan chan *govec.GoLog, port string, who string) {
+	fmt.Println(who + "Starting RPC Connection to " + port)
+	logger := govec.InitGoVector("nss", "nnss", govec.GetDefaultConfig())
+	options := govec.GetDefaultLogOptions()
+	fmt.Println(who + "Starting Clocks to " + port)
+
+	var err error
+	client, err := vrpc.RPCDial("tcp", "127.0.0.1:"+port, logger, options)
+	if err != nil {
+		log.Fatal(err)
+	}
+	fmt.Println(who + "Connection made to " + port)
+	// fmt.Println("in util ", client)
+
+	rpcChan <- client
+	logChan <- logger
+}
+
+// PrintMsg prints message to console from a replica
+func PrintMsg(no string, msg string) {
+	fmt.Println("REPLICA " + no + ": " + msg)
 }
 
 // PrintErr prints error

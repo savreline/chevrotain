@@ -9,15 +9,20 @@ import "fmt"
 // RPCObj is the RPC Object
 type RPCObj int
 
+// ConnectArgs are the arguments to the ConnectReplica call (a dummy struct)
+type ConnectArgs struct {
+	Val string
+}
+
 // KeyArgs are the arguments to the InsertKeyRPC call
 type KeyArgs struct {
-	key string
+	Key string
 }
 
 // ValueArgs are the arguments to the InsertValueRPC call
 type ValueArgs struct {
-	key   string
-	value string
+	Key   string
+	Value string
 }
 
 // InsertKeyRPC receives incoming insert key call
