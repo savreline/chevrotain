@@ -14,19 +14,20 @@ import (
 /************************/
 
 // InsertValue inserts value into the given key
-func InsertValue(key string, value string) {
-	InsertValueLocal(key, value)
-	InsertValueGlobal(key, value)
+func (t *RPCCmd) InsertValue(args *ValueArgs, reply *int) error {
+	InsertValueLocal(args.Key, args.Value, args.No)
+	InsertValueGlobal(args.Key, args.Value, args.No)
+	return nil
 }
 
 // InsertValueLocal inserts the value into the local db
-func InsertValueLocal(key string, value string) {
-	srvLogger.LogLocalEvent("Inserting value"+value, govec.GetDefaultLogOptions())
+func InsertValueLocal(key string, value string, no int) {
+	replicas[no].logger.LogLocalEvent("Inserting value"+value, govec.GetDefaultLogOptions())
 	filter := bson.D{{Key: "name", Value: key}}
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: value}}}}
 
-	updateResult, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
+	updateResult, err := replicas[no].db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -35,9 +36,9 @@ func InsertValueLocal(key string, value string) {
 }
 
 // InsertValueGlobal broadcasts the insertValue operation to other replicas
-func InsertValueGlobal(key string, value string) {
+func InsertValueGlobal(key string, value string, no int) {
 	var result int
-	err := clients[0].Call("InsertValueRPC", ValueArgs{key, value}, &result)
+	err := replicas[no].clients[0].Call("InsertValueRPC", ValueArgs{no, key, value}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}
