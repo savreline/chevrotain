@@ -67,7 +67,7 @@ func ParseGroupMembersCVS(file string, clPort string, srvPort string) (map[strin
 
 // ParseGroupMembersText parses the supplied text group member file
 // https://stackoverflow.com/questions/36111777/how-to-read-a-text-file
-func ParseGroupMembersText(file string, port string) ([]string, error) {
+func ParseGroupMembersText(file string, myPort string) ([]string, error) {
 	f, err := os.Open(file)
 	if err != nil {
 		log.Fatal(err)
@@ -79,7 +79,22 @@ func ParseGroupMembersText(file string, port string) ([]string, error) {
 	}()
 
 	res, err := ioutil.ReadAll(f)
-	return strings.Split(string(res), ","), nil
+	ports := strings.Split(string(res), ",")
+	fmt.Println(ports)
+
+	var j int
+	for i, port := range ports {
+		if port == myPort {
+			j = i
+			break
+		}
+	}
+
+	// https://stackoverflow.com/questions/25025409/delete-element-in-a-slice
+	ports[j] = ports[len(ports)-1] // Replace it with the last one. CAREFUL only works if you have enough elements.
+	ports = ports[:len(ports)-1]   // Chop off the last one.
+
+	return ports, nil
 }
 
 // PrintErr prints error

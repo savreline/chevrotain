@@ -34,7 +34,7 @@ type Record struct {
 /********************************/
 
 // InitReplica makes connection to the database, starts up the RPC server
-func InitReplica(flag bool, dbPort string, port string, no string) {
+func InitReplica(flag bool, no string, port string, dbPort string) {
 	/* Connect to MongoDB */
 	srvPort = port
 	dbClient, ctx = util.Connect(dbPort)
@@ -64,9 +64,11 @@ func ConnectReplica() {
 	fmt.Println(ports)
 
 	/* Make RPC Connections */
-	clChanel := make(chan bool)
-	go rpcclient(clChanel)
-	<-clChanel
+	for _, port := range ports {
+		clChanel := make(chan bool)
+		go rpcclient(clChanel, port)
+		<-clChanel
+	}
 }
 
 // TerminateReplica closes the db connection
@@ -91,7 +93,7 @@ func rpcserver(srvChanel chan bool) {
 	fmt.Println("STATUS: Listening on " + srvPort)
 
 	/* Init and Use Vector Clocks */
-	srvLogger = govec.InitGoVector("Server"+no, "LogFile"+no, govec.GetDefaultConfig())
+	srvLogger = govec.InitGoVector("server"+no, "server"+no, govec.GetDefaultConfig())
 	options := govec.GetDefaultLogOptions()
 	fmt.Println("STATUS: RPC Ready")
 	srvChanel <- true
@@ -102,17 +104,17 @@ func rpcserver(srvChanel chan bool) {
 /*** 2: RPC CLIENT ***/
 /*********************/
 
-func rpcclient(clChanel chan bool) {
-	fmt.Println("STATUS: Staring Client")
-	clLogger = govec.InitGoVector("client", "clientlogfile", govec.GetDefaultConfig())
+func rpcclient(clChanel chan bool, port string) {
+	fmt.Println("STATUS: Staring Client: " + no)
+	clLogger = govec.InitGoVector("client"+no, "client"+no, govec.GetDefaultConfig())
 	options := govec.GetDefaultLogOptions()
-	fmt.Println("STATUS: Client Clocks")
+	fmt.Println("STATUS: Client Clocks: " + no)
 
 	var err error
-	client, err = vrpc.RPCDial("tcp", "127.0.0.1:"+srvPort, clLogger, options)
+	client, err = vrpc.RPCDial("tcp", "127.0.0.1:"+port, clLogger, options)
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println("STATUS: Client Started")
+	fmt.Println("STATUS: Client Started: " + no)
 	clChanel <- true
 }
