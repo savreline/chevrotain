@@ -1,6 +1,10 @@
 package cmrdt
 
-import "fmt"
+import (
+	"fmt"
+
+	"../util"
+)
 
 /**********************/
 /*** 3: RPC METHODS ***/
@@ -28,8 +32,8 @@ type ValueArgs struct {
 
 // InsertKeyRPC receives incoming insert key call
 func (t *RPCObj) InsertKeyRPC(args *KeyArgs, reply *int) error {
-	fmt.Println("RPC Insert Key")
-	*reply = 200
+	util.PrintMsg(args.No, "Recv RPC Call to Insert "+args.Key)
+	InsertKeyLocal(args.Key, args.No)
 	return nil
 }
 

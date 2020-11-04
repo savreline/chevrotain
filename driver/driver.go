@@ -24,8 +24,9 @@ func main() {
 
 	/* Init Replicas */
 	cmrdt.Init(noReplicas)
-	cmrdt.InitReplica(true, 1, "8001", "27018")
-	cmrdt.InitReplica(true, 2, "8002", "27019")
+	cmrdt.InitReplica(true, 0, "8001", "27018")
+	cmrdt.InitReplica(true, 1, "8002", "27019")
+	cmrdt.InitReplica(true, 2, "8003", "27020")
 
 	/* Parse Ports */
 	ports, err := util.ParseGroupMembersText("ports.txt", "")
@@ -45,19 +46,27 @@ func main() {
 
 	/* A few sample RPC Commands */
 	var result int
-	err = clients[0].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 1}, &result)
+	err = clients[0].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 0}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}
-	err = clients[1].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 2}, &result)
+	err = clients[1].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 1}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}
-	err = clients[0].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 1, Key: "1"}, &result)
+	err = clients[2].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 2}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}
-	err = clients[1].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 2, Key: "2"}, &result)
+	err = clients[0].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 0, Key: "1"}, &result)
+	if err != nil {
+		util.PrintErr(err)
+	}
+	err = clients[1].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 1, Key: "2"}, &result)
+	if err != nil {
+		util.PrintErr(err)
+	}
+	err = clients[2].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 2, Key: "3"}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}

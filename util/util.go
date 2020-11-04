@@ -10,6 +10,7 @@ import (
 	"log"
 	"net/rpc"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -109,7 +110,8 @@ func RPCClient(rpcChan chan *rpc.Client, logChan chan *govec.GoLog, port string,
 	fmt.Println(who + "Starting RPC Connection to " + port)
 
 	/* Init clocks */
-	name := strings.ToTitle(who[:len(who)-2]) + " to " + port
+	name := strings.Title(strings.ToLower(who[:2])) + strings.ToLower(who[len(who)-3:len(who)-2]) +
+		"To" + port[len(port)-1:len(port)]
 	logger := govec.InitGoVector(name, name, govec.GetDefaultConfig())
 	options := govec.GetDefaultLogOptions()
 
@@ -126,8 +128,8 @@ func RPCClient(rpcChan chan *rpc.Client, logChan chan *govec.GoLog, port string,
 }
 
 // PrintMsg prints message to console from a replica
-func PrintMsg(no string, msg string) {
-	fmt.Println("REPLICA " + no + ": " + msg)
+func PrintMsg(no int, msg string) {
+	fmt.Println("REPLICA " + strconv.Itoa(no+1) + ": " + msg)
 }
 
 // PrintErr prints error

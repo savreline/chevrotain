@@ -49,15 +49,15 @@ func Init(iNoReplicas int) {
 func InitReplica(flag bool, no int, port string, dbPort string) {
 	clients := make([]*rpc.Client, noReplicas)
 	loggers := make([]*govec.GoLog, noReplicas)
-	noStr := strconv.Itoa(no)
+	noStr := strconv.Itoa(no + 1)
 
 	/* Connect to MongoDB */
 	dbClient, ctx := util.Connect(dbPort)
 	db := dbClient.Database("chev")
-	util.PrintMsg(noStr, "Connected to DB")
+	util.PrintMsg(no, "Connected to DB")
 
 	/* Init vector clocks */
-	logger := govec.InitGoVector("server"+noStr, "server"+noStr, govec.GetDefaultConfig())
+	logger := govec.InitGoVector("Srv"+noStr, "Srv"+noStr, govec.GetDefaultConfig())
 
 	/* Pre-allocate Keys entry */
 	newRecord := Record{"Keys", []string{}}
@@ -68,7 +68,7 @@ func InitReplica(flag bool, no int, port string, dbPort string) {
 
 	/* Start Server */
 	channel := make(chan bool)
-	go rpcserver(channel, logger, noStr, port)
+	go rpcserver(channel, logger, no, port)
 	<-channel
 
 	replicas[no] = Replica{port, db, ctx, dbClient, clients, loggers, logger}
@@ -80,14 +80,14 @@ type RPCCmd int
 // ConnectReplica connects this replica to others
 func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
 	no := args.No
-	noStr := strconv.Itoa(no)
+	noStr := strconv.Itoa(no + 1)
 
 	/* Parse Group Members */
 	ports, err := util.ParseGroupMembersText("ports.txt", replicas[no].port)
 	if err != nil {
 		util.PrintErr(err)
 	}
-	fmt.Println("REPLICA "+noStr+": Being Connected to, ports", ports)
+	fmt.Println("REPLICA "+noStr+": Being Connected to ports", ports)
 
 	/* Make RPC Connections */
 	for i, port := range ports {
@@ -112,7 +112,7 @@ func (t *RPCCmd) TerminateReplica(args *ConnectArgs, reply *int) error {
 /*** 1: RPC SERVER ***/
 /*********************/
 
-func rpcserver(srvChanel chan bool, logger *govec.GoLog, no string, port string) {
+func rpcserver(srvChanel chan bool, logger *govec.GoLog, no int, port string) {
 	/* Init RPC */
 	util.PrintMsg(no, "Staring Server")
 	server := rpc.NewServer()

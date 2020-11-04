@@ -33,7 +33,7 @@ func InsertKeyLocal(key string, no int) {
 	if err != nil {
 		util.PrintErr(err)
 	}
-	fmt.Printf("Matched %v documents and updated %v documents.\n",
+	fmt.Printf("REPLICA "+strconv.Itoa(no+1)+": Matched %v documents and updated %v documents.\n",
 		updateResult.MatchedCount, updateResult.ModifiedCount)
 
 	// Insert entry for the given key
@@ -42,15 +42,33 @@ func InsertKeyLocal(key string, no int) {
 	if err != nil {
 		util.PrintErr(err)
 	}
-	util.PrintMsg(strconv.Itoa(no), "Inserted Key "+key)
+	util.PrintMsg(no, "Inserted Key "+key)
 }
 
 // InsertKeyGlobal broadcasts the insertKey operation to other replicas
 func InsertKeyGlobal(key string, no int) {
 	var result int
-	err := replicas[no].clients[0].Call("RPCObj.InsertKeyRPC", KeyArgs{no, key}, &result)
-	if err != nil {
-		util.PrintErr(err)
+	var destNo int
+	var flag = false
+
+	for i, client := range replicas[no].clients {
+		if i == no {
+			flag = true
+		}
+
+		if client != nil {
+			if flag {
+				destNo = i + 1
+			} else {
+				destNo = i
+			}
+			fmt.Println("Replica no: " + strconv.Itoa(no+1) + " sending to i: " + strconv.Itoa(destNo+1))
+			err := client.Call("RPCObj.InsertKeyRPC", KeyArgs{destNo, key}, &result)
+			if err != nil {
+				util.PrintErr(err)
+			}
+		}
 	}
-	fmt.Println("Result from RPC", result)
+
+	util.PrintMsg(no, "Done Sending RPC Calls")
 }
