@@ -2,10 +2,11 @@
 `go run chevrotain.go`
 
 ### Connecting to MondoDB:
-https://www.mongodb.com/golang
-https://github.com/mongodb/mongo-go-driver
+https://www.mongodb.com/golang \
+https://github.com/mongodb/mongo-go-driver \
 https://stackoverflow.com/questions/56970867/how-to-use-mongo-driver-connection-into-other-packages
 https://www.mongodb.com/blog/post/mongodb-go-driver-tutorial-part-1-connecting-using-bson-and-crud-operations
+https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
 
 ### Go Net Package
 `time.Sleep(5 * time.Second)` \

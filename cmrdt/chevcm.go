@@ -55,7 +55,7 @@ func InitReplica(flag bool, no int, port string, dbPort string) {
 	util.PrintMsg(no, "Connected to DB")
 
 	/* Init vector clocks */
-	logger := govec.InitGoVector("Repl"+noStr, "Repl"+noStr, govec.GetDefaultConfig())
+	logger := govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
 	/* Pre-allocate Keys entry */
 	newRecord := Record{"Keys", []string{}}
@@ -81,7 +81,7 @@ func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
 	noStr := strconv.Itoa(no + 1)
 
 	/* Parse Group Members */
-	ports, err := util.ParseGroupMembersText("_ports.txt", replicas[no].port)
+	ports, _, err := util.ParseGroupMembersCVS("ports.csv", replicas[no].port)
 	if err != nil {
 		util.PrintErr(err)
 	}

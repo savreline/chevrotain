@@ -1,10 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"net/rpc"
-	"os"
-	"strconv"
 
 	"../cmrdt"
 	"../util"
@@ -14,10 +11,12 @@ import (
 var clients []*rpc.Client
 
 func main() {
-	noReplicas, err := strconv.Atoi(os.Args[1])
+	/* Parse Group Membership */
+	clPorts, dbPorts, err := util.ParseGroupMembersCVS("ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}
+	noReplicas := len(clPorts)
 	clients = make([]*rpc.Client, noReplicas)
 
 	/* Init Cloks */
@@ -25,19 +24,12 @@ func main() {
 
 	/* Init Replicas */
 	cmrdt.Init(noReplicas)
-	cmrdt.InitReplica(true, 0, "8001", "27018")
-	cmrdt.InitReplica(true, 1, "8002", "27019")
-	cmrdt.InitReplica(true, 2, "8003", "27020")
-
-	/* Parse Ports */
-	ports, err := util.ParseGroupMembersText("_ports.txt", "")
-	if err != nil {
-		util.PrintErr(err)
+	for i := 0; i < noReplicas; i++ {
+		cmrdt.InitReplica(true, i, clPorts[i], dbPorts[i])
 	}
-	fmt.Println("DRIVER: Connecting to ports", ports)
 
 	/* Make RPC Connections */
-	for i, port := range ports {
+	for i, port := range clPorts {
 		channel := make(chan *rpc.Client)
 		go util.RPCClient(channel, logger, port, "DRIVER: ")
 		clients[i] = <-channel
@@ -45,30 +37,36 @@ func main() {
 
 	/* A few sample RPC Commands */
 	var result int
-	err = clients[0].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 0}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	err = clients[1].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 1}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	err = clients[2].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 2}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	err = clients[0].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 0, Key: "1"}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	err = clients[1].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 1, Key: "2"}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	err = clients[2].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 2, Key: "3"}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
+	go func() {
+		err = clients[0].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 0}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+		err = clients[0].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 0, Key: "1"}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+	}()
+	go func() {
+		err = clients[1].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 1}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+		err = clients[1].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 1, Key: "2"}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+	}()
+	go func() {
+		err = clients[2].Call("RPCCmd.ConnectReplica", cmrdt.ConnectArgs{No: 2}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+		err = clients[2].Call("RPCCmd.InsertKey", cmrdt.KeyArgs{No: 2, Key: "3"}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+	}()
 
 	// cmrdt.TerminateReplica()
 	for {

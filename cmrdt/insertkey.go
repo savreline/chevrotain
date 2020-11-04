@@ -62,7 +62,7 @@ func InsertKeyGlobal(key string, no int) {
 			} else {
 				destNo = i
 			}
-			fmt.Println("Replica no: " + strconv.Itoa(no+1) + " sending to i: " + strconv.Itoa(destNo+1))
+			fmt.Println("Sending RPC", no+1, "->", destNo+1)
 			err := client.Call("RPCObj.InsertKeyRPC", KeyArgs{destNo, key}, &result)
 			if err != nil {
 				util.PrintErr(err)

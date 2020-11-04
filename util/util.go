@@ -3,7 +3,6 @@ package util
 import (
 	"context"
 	"encoding/csv"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -41,16 +40,17 @@ func Connect(port string) (*mongo.Client, context.Context) {
 }
 
 // ParseGroupMembersCVS parses the supplied CVS group member file
-func ParseGroupMembersCVS(file string, clPort string, srvPort string) (map[string]string, error) {
+func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) {
 	// from https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer f.Close()
 
 	csvr := csv.NewReader(f)
-	ports := map[string]string{}
+	clPorts := []string{}
+	dbPorts := []string{}
 
 	for {
 		row, err := csvr.Read()
@@ -58,14 +58,13 @@ func ParseGroupMembersCVS(file string, clPort string, srvPort string) (map[strin
 			if err == io.EOF {
 				err = nil
 			}
-			if ports[clPort] != srvPort {
-				PrintErr(errors.New("Local client and server ports don't match"))
-			}
-			delete(ports, clPort)
-			return ports, err
+			return clPorts, dbPorts, nil
 		}
 
-		ports[row[0]] = row[1]
+		if row[0] != port {
+			clPorts = append(clPorts, row[0])
+			dbPorts = append(dbPorts, row[1])
+		}
 	}
 }
 
