@@ -22,7 +22,6 @@ type Replica struct {
 	ctx      context.Context
 	dbClient *mongo.Client
 	clients  []*rpc.Client
-	loggers  []*govec.GoLog
 	logger   *govec.GoLog
 }
 
@@ -48,7 +47,6 @@ func Init(iNoReplicas int) {
 // InitReplica makes connection to the database, starts up the RPC server
 func InitReplica(flag bool, no int, port string, dbPort string) {
 	clients := make([]*rpc.Client, noReplicas)
-	loggers := make([]*govec.GoLog, noReplicas)
 	noStr := strconv.Itoa(no + 1)
 
 	/* Connect to MongoDB */
@@ -57,7 +55,7 @@ func InitReplica(flag bool, no int, port string, dbPort string) {
 	util.PrintMsg(no, "Connected to DB")
 
 	/* Init vector clocks */
-	logger := govec.InitGoVector("Srv"+noStr, "Srv"+noStr, govec.GetDefaultConfig())
+	logger := govec.InitGoVector("Repl"+noStr, "Repl"+noStr, govec.GetDefaultConfig())
 
 	/* Pre-allocate Keys entry */
 	newRecord := Record{"Keys", []string{}}
@@ -71,7 +69,7 @@ func InitReplica(flag bool, no int, port string, dbPort string) {
 	go rpcserver(channel, logger, no, port)
 	<-channel
 
-	replicas[no] = Replica{port, db, ctx, dbClient, clients, loggers, logger}
+	replicas[no] = Replica{port, db, ctx, dbClient, clients, logger}
 }
 
 // RPCCmd is the RPC object that receives commands from the test application
@@ -83,7 +81,7 @@ func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
 	noStr := strconv.Itoa(no + 1)
 
 	/* Parse Group Members */
-	ports, err := util.ParseGroupMembersText("ports.txt", replicas[no].port)
+	ports, err := util.ParseGroupMembersText("_ports.txt", replicas[no].port)
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -91,11 +89,9 @@ func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
 
 	/* Make RPC Connections */
 	for i, port := range ports {
-		rpcChan := make(chan *rpc.Client)
-		logChan := make(chan *govec.GoLog)
-		go util.RPCClient(rpcChan, logChan, port, "REPLICA "+noStr+": ")
-		replicas[no].clients[i] = <-rpcChan
-		replicas[no].loggers[i] = <-logChan
+		channel := make(chan *rpc.Client)
+		go util.RPCClient(channel, replicas[no].logger, port, "REPLICA "+noStr+": ")
+		replicas[no].clients[i] = <-channel
 	}
 
 	return nil

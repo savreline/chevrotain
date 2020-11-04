@@ -12,7 +12,6 @@ import (
 )
 
 var clients []*rpc.Client
-var logs []*govec.GoLog
 
 func main() {
 	noReplicas, err := strconv.Atoi(os.Args[1])
@@ -20,7 +19,9 @@ func main() {
 		util.PrintErr(err)
 	}
 	clients = make([]*rpc.Client, noReplicas)
-	logs = make([]*govec.GoLog, noReplicas)
+
+	/* Init Cloks */
+	logger := govec.InitGoVector("Drv", "Drv", govec.GetDefaultConfig())
 
 	/* Init Replicas */
 	cmrdt.Init(noReplicas)
@@ -29,7 +30,7 @@ func main() {
 	cmrdt.InitReplica(true, 2, "8003", "27020")
 
 	/* Parse Ports */
-	ports, err := util.ParseGroupMembersText("ports.txt", "")
+	ports, err := util.ParseGroupMembersText("_ports.txt", "")
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -37,11 +38,9 @@ func main() {
 
 	/* Make RPC Connections */
 	for i, port := range ports {
-		rpcChan := make(chan *rpc.Client)
-		logChan := make(chan *govec.GoLog)
-		go util.RPCClient(rpcChan, logChan, port, "DRIVER: ")
-		clients[i] = <-rpcChan
-		logs[i] = <-logChan
+		channel := make(chan *rpc.Client)
+		go util.RPCClient(channel, logger, port, "DRIVER: ")
+		clients[i] = <-channel
 	}
 
 	/* A few sample RPC Commands */
