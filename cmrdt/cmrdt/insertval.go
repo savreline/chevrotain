@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"../util"
+	"../../util"
 	"github.com/DistributedClocks/GoVector/govec"
 	"go.mongodb.org/mongo-driver/bson"
 )

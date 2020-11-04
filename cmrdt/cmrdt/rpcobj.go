@@ -3,7 +3,7 @@ package cmrdt
 import (
 	"fmt"
 
-	"../util"
+	"../../util"
 )
 
 /**********************/

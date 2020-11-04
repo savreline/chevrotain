@@ -3,8 +3,8 @@ package main
 import (
 	"net/rpc"
 
+	"../../util"
 	"../cmrdt"
-	"../util"
 	"github.com/DistributedClocks/GoVector/govec"
 )
 

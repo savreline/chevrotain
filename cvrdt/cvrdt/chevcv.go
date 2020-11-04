@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"../util"
+	"../../util"
 
 	"github.com/DistributedClocks/GoVector/govec"
 	"github.com/DistributedClocks/GoVector/govec/vclock"

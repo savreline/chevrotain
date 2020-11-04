@@ -8,7 +8,7 @@ import (
 	"net/rpc"
 	"strconv"
 
-	"../util"
+	"../../util"
 
 	"github.com/DistributedClocks/GoVector/govec"
 	"github.com/DistributedClocks/GoVector/govec/vrpc"
