@@ -1,5 +1,13 @@
 package cvrdt
 
+/* In this file:
+0. Definitions of Replica, Record, ValueEntry structs
+	Definitions of ConnectArgs, RPCExt
+1. Init, InitReplica (connets to Db, initializes keys entry, starts up RPC server)
+2. ConnectReplica (makes connections to other replicas)
+3. TerminateReplica (disconnect from Db)
+*/
+
 import (
 	"context"
 	"fmt"
@@ -90,11 +98,11 @@ func InitReplica(no int, port string, dbPort string) {
 	replicas[no] = Replica{port, db, ctx, dbClient, clients, logger}
 }
 
-// RPCCmd is the RPC object that receives commands from the test application
-type RPCCmd int
+// RPCExt is the RPC object that receives commands from the test application
+type RPCExt int
 
 // ConnectReplica connects this replica to others
-func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
+func (t *RPCExt) ConnectReplica(args *ConnectArgs, reply *int) error {
 	no := args.No
 	noStr := strconv.Itoa(no + 1)
 
@@ -116,7 +124,7 @@ func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
 }
 
 // TerminateReplica closes the db connection
-func (t *RPCCmd) TerminateReplica(args *ConnectArgs, reply *int) error {
+func (t *RPCExt) TerminateReplica(args *ConnectArgs, reply *int) error {
 	no := args.No
 	replicas[no].dbClient.Disconnect(replicas[no].ctx)
 	return nil
@@ -127,10 +135,10 @@ func rpcserver(srvChanel chan bool, logger *govec.GoLog, no int, port string) {
 	/* Init RPC */
 	util.PrintMsg(no, "Staring Server")
 	server := rpc.NewServer()
-	rpcobj := new(RPCObj)
-	rpccmd := new(RPCCmd)
-	server.Register(rpcobj)
-	server.Register(rpccmd)
+	rpcint := new(RPCInt)
+	rpcext := new(RPCExt)
+	server.Register(rpcint)
+	server.Register(rpcext)
 	l, e := net.Listen("tcp", ":"+port)
 	if e != nil {
 		log.Fatal("listen error:", e)

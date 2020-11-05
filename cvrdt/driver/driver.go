@@ -38,31 +38,31 @@ func main() {
 	/* A few sample RPC Commands */
 	var result int
 	go func() {
-		err = clients[0].Call("RPCCmd.ConnectReplica", cvrdt.ConnectArgs{No: 0}, &result)
+		err = clients[0].Call("RPCExt.ConnectReplica", cvrdt.ConnectArgs{No: 0}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
-		err = clients[0].Call("RPCCmd.InsertKey", cvrdt.KeyArgs{No: 0, Key: "1"}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-	}()
-	go func() {
-		err = clients[1].Call("RPCCmd.ConnectReplica", cvrdt.ConnectArgs{No: 1}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-		err = clients[1].Call("RPCCmd.InsertKey", cvrdt.KeyArgs{No: 1, Key: "2"}, &result)
+		err = clients[0].Call("RPCExt.InsertKey", cvrdt.KeyArgs{No: 0, Key: "1"}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
 	}()
 	go func() {
-		err = clients[2].Call("RPCCmd.ConnectReplica", cvrdt.ConnectArgs{No: 2}, &result)
+		err = clients[1].Call("RPCExt.ConnectReplica", cvrdt.ConnectArgs{No: 1}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
-		err = clients[2].Call("RPCCmd.InsertKey", cvrdt.KeyArgs{No: 2, Key: "3"}, &result)
+		err = clients[1].Call("RPCExt.InsertKey", cvrdt.KeyArgs{No: 1, Key: "2"}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+	}()
+	go func() {
+		err = clients[2].Call("RPCExt.ConnectReplica", cvrdt.ConnectArgs{No: 2}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+		err = clients[2].Call("RPCExt.InsertKey", cvrdt.KeyArgs{No: 2, Key: "3"}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}

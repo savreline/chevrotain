@@ -1,5 +1,11 @@
 package cvrdt
 
+/* In this file
+0. Definitions of ValueArgs
+1. InsertValue, RemoveValue RPC methods
+2. InsertValueHelper local method that works with db
+*/
+
 import (
 	"context"
 	"fmt"
@@ -18,13 +24,13 @@ type ValueArgs struct {
 }
 
 // InsertValue inserts value into the given key
-func (t *RPCCmd) InsertValue(args *ValueArgs, reply *int) error {
+func (t *RPCExt) InsertValue(args *ValueArgs, reply *int) error {
 	InsertValueHelper(args.Key, args.Value, args.No, posCollection)
 	return nil
 }
 
 // RemoveValue removes value from the given key
-func (t *RPCCmd) RemoveValue(args *ValueArgs, reply *int) error {
+func (t *RPCExt) RemoveValue(args *ValueArgs, reply *int) error {
 	InsertValueHelper(args.Key, args.Value, args.No, negCollection)
 	return nil
 }

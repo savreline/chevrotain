@@ -1,5 +1,11 @@
 package cvrdt
 
+/* In this file
+0. Definitions of KeyArgs
+1. InsertKey, RemoveKey RPC methods
+2. InsertKeyHelper local method that works with db
+*/
+
 import (
 	"context"
 	"fmt"
@@ -17,13 +23,13 @@ type KeyArgs struct {
 }
 
 // InsertKey inserts the given key with an empty array for values
-func (t *RPCCmd) InsertKey(args *KeyArgs, reply *int) error {
+func (t *RPCExt) InsertKey(args *KeyArgs, reply *int) error {
 	InsertKeyHelper(args.Key, args.No, posCollection)
 	return nil
 }
 
 // RemoveKey removes the given key
-func (t *RPCCmd) RemoveKey(args *KeyArgs, reply *int) error {
+func (t *RPCExt) RemoveKey(args *KeyArgs, reply *int) error {
 	InsertKeyHelper(args.Key, args.No, negCollection)
 	return nil
 }

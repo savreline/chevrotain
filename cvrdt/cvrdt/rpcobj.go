@@ -1,7 +1,12 @@
 package cvrdt
 
-// RPCObj is the RPC Object
-type RPCObj int
+/* In this file
+0. Definitions of StateArgs and RPCInt
+1. MergeState RPC method
+*/
+
+// RPCInt is the RPC Object
+type RPCInt int
 
 // StateArgs are the arguments to the MergeState RPC
 type StateArgs struct {
@@ -10,6 +15,6 @@ type StateArgs struct {
 }
 
 // MergeState is
-func (t *RPCObj) MergeState(args *StateArgs, reply *int) error {
+func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 	return nil
 }
