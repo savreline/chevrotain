@@ -21,7 +21,7 @@ func main() {
 	if err != nil {
 		util.PrintErr(err)
 	}
-	dbPorts := [3]string{"27018", "27019", "27020"}
+	dbPorts := [2]string{"27018", "27019"}
 	ctx := make([]context.Context, noReplicas)
 	cols := make([]*mongo.Collection, noReplicas)
 	dbClients := make([]*mongo.Client, noReplicas)

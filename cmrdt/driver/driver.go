@@ -1,7 +1,10 @@
 package main
 
 import (
+	"io/ioutil"
 	"net/rpc"
+	"strconv"
+	"strings"
 
 	"../../util"
 	"../cmrdt"
@@ -9,14 +12,16 @@ import (
 )
 
 var clients []*rpc.Client
+var noReplicas int
 
 func main() {
 	/* Parse Group Membership */
+	// clPorts, _, err := util.ParseGroupMembersCVS("ports.csv", "")
 	clPorts, dbPorts, err := util.ParseGroupMembersCVS("ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}
-	noReplicas := len(clPorts)
+	noReplicas = len(clPorts)
 	clients = make([]*rpc.Client, noReplicas)
 
 	/* Init Cloks */
@@ -35,40 +40,78 @@ func main() {
 		clients[i] = <-channel
 	}
 
-	/* A few sample RPC Commands */
-	var result int
-	go func() {
-		err = clients[0].Call("RPCExt.ConnectReplica", cmrdt.ConnectArgs{No: 0}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-		err = clients[0].Call("RPCExt.InsertKey", cmrdt.KeyArgs{No: 0, Key: "1"}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-	}()
-	go func() {
-		err = clients[1].Call("RPCExt.ConnectReplica", cmrdt.ConnectArgs{No: 1}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-		err = clients[1].Call("RPCExt.InsertKey", cmrdt.KeyArgs{No: 1, Key: "2"}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-	}()
-	go func() {
-		err = clients[2].Call("RPCExt.ConnectReplica", cmrdt.ConnectArgs{No: 2}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-		err = clients[2].Call("RPCExt.InsertKey", cmrdt.KeyArgs{No: 2, Key: "3"}, &result)
-		if err != nil {
-			util.PrintErr(err)
-		}
-	}()
+	// simpleTest()
+	wikiTest()
 
 	// cmrdt.TerminateReplica()
 	for {
+	}
+}
+
+// wikiTest
+func wikiTest() {
+	go loadPages("Java", 0)
+	go loadPages("C--", 1)
+	// go loadPages("C++", 2)
+}
+
+func loadPages(startPage string, no int) {
+	/* Connect to Replica */
+	var result int
+	err := clients[no].Call("RPCExt.ConnectReplica", cmrdt.ConnectArgs{No: no}, &result)
+	if err != nil {
+		util.PrintErr(err)
+	}
+
+	/* Init Queue */
+	var queue []string
+	queue = append(queue, startPage)
+
+	/* BFS */
+	for len(queue) > 0 {
+		/* Pop off queue */
+		curPage := queue[0]
+		queue = queue[1:]
+
+		/* Insert Key */
+		err := clients[no].Call("RPCExt.InsertKey", cmrdt.KeyArgs{No: no, Key: curPage}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
+
+		/* Read the file */
+		curPage = strings.Replace(curPage, "_", " ", -1)
+		body, err := ioutil.ReadFile("../../crawler/" + startPage + "/" + curPage + ".link")
+		if err != nil {
+			break
+		}
+
+		/* Add the linked files to queue */
+		linkedPages := strings.Split(string(body[:]), "\n")
+		for _, page := range linkedPages {
+			if page != "" {
+				queue = append(queue, page)
+			}
+		}
+	}
+}
+
+/* A few sample RPC Commands */
+func simpleTest() {
+	for i := 0; i < noReplicas; i++ {
+		go initInsert(i)
+	}
+}
+
+func initInsert(no int) {
+	str := strconv.Itoa(no + 1)
+	var result int
+	err := clients[no].Call("RPCExt.ConnectReplica", cmrdt.ConnectArgs{No: no}, &result)
+	if err != nil {
+		util.PrintErr(err)
+	}
+	err = clients[no].Call("RPCExt.InsertKey", cmrdt.KeyArgs{No: no, Key: str}, &result)
+	if err != nil {
+		util.PrintErr(err)
 	}
 }
