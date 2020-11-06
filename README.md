@@ -59,3 +59,6 @@ https://www.markdownguide.org/cheat-sheet/
 
 ### Git
 `git reset --soft HEAD~1`
+
+### BFS
+https://stackoverflow.com/questions/10258305/how-to-implement-a-breadth-first-search-to-a-certain-depth

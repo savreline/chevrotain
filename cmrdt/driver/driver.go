@@ -2,61 +2,67 @@ package main
 
 import (
 	"io/ioutil"
-	"net/rpc"
 	"strconv"
 	"strings"
 
 	"../../util"
-	"../cmrdt"
 	"github.com/DistributedClocks/GoVector/govec"
 )
 
-var clients []*rpc.Client
-var noReplicas int
+var ports []string
+var logger *govec.GoLog
 
 func main() {
 	/* Parse Group Membership */
-	// clPorts, _, err := util.ParseGroupMembersCVS("ports.csv", "")
-	clPorts, dbPorts, err := util.ParseGroupMembersCVS("ports.csv", "")
+	var err error
+	ports, _, err = util.ParseGroupMembersCVS("ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}
-	noReplicas = len(clPorts)
-	clients = make([]*rpc.Client, noReplicas)
+	noReplicas := len(ports)
 
 	/* Init Cloks */
-	logger := govec.InitGoVector("Drv", "Drv", govec.GetDefaultConfig())
+	logger = govec.InitGoVector("Drv", "Drv", govec.GetDefaultConfig())
 
-	/* Init Replicas */
-	cmrdt.Init(noReplicas)
+	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		cmrdt.InitReplica(true, i, clPorts[i], dbPorts[i])
+		// go simpleTest(i)
 	}
-
-	/* Make RPC Connections */
-	for i, port := range clPorts {
-		clients[i] = util.RPCClient(logger, port, "DRIVER: ")
-	}
-
-	// simpleTest()
 	wikiTest()
 
-	// cmrdt.TerminateReplica()
 	for {
+	}
+}
+
+// simpleTest
+func simpleTest(no int) {
+	/* Connect to the Replica and Connect the Replica */
+	var result int
+	conn := util.RPCClient(logger, ports[no], "DRIVER: ")
+	err := conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
+	if err != nil {
+		util.PrintErr(err)
+	}
+
+	/* Inserts */
+	for i := 0; i < 10; i++ {
+		num := (i + 1) * (no + 1)
+		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(num)}, &result)
 	}
 }
 
 // wikiTest
 func wikiTest() {
-	loadPages("Java", 0)
-	loadPages("C--", 1)
-	loadPages("C++", 2)
+	go loadPages("Java", 0)
+	go loadPages("C--", 1)
+	go loadPages("C++", 2)
 }
 
 func loadPages(startPage string, no int) {
-	/* Connect to Replica */
+	/* Connect to the Replica and Connect the Replica */
 	var result int
-	err := clients[no].Call("RPCExt.ConnectReplica", cmrdt.ConnectArgs{No: no}, &result)
+	conn := util.RPCClient(logger, ports[no], "DRIVER: ")
+	err := conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -72,7 +78,7 @@ func loadPages(startPage string, no int) {
 		queue = queue[1:]
 
 		/* Insert Key */
-		err := clients[no].Call("RPCExt.InsertKey", cmrdt.KeyArgs{No: no, Key: curPage}, &result)
+		err := conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: curPage}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
@@ -91,25 +97,5 @@ func loadPages(startPage string, no int) {
 				queue = append(queue, page)
 			}
 		}
-	}
-}
-
-/* A few sample RPC Commands */
-func simpleTest() {
-	for i := 0; i < noReplicas; i++ {
-		go initInsert(i)
-	}
-}
-
-func initInsert(no int) {
-	str := strconv.Itoa(no + 1)
-	var result int
-	err := clients[no].Call("RPCExt.ConnectReplica", cmrdt.ConnectArgs{No: no}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	err = clients[no].Call("RPCExt.InsertKey", cmrdt.KeyArgs{No: no, Key: str}, &result)
-	if err != nil {
-		util.PrintErr(err)
 	}
 }

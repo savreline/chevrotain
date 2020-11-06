@@ -1,9 +1,9 @@
-package cmrdt
+package main
 
 /* In this file
-0. Definitions of KeyArgs
 1. InsertKey Ext RPC method
-2. InsertKeyLocal (that works with the local db), InsertKeyGlobal (that broadcats the event) methods
+2. InsertKeyLocal (that works with the local db)
+3. InsertKeyGlobal (that broadcats the event) methods
 */
 
 import (
@@ -16,37 +16,31 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// KeyArgs are the arguments to the InsertKeyRPC call
-type KeyArgs struct {
-	No  int
-	Key string
-}
-
 // InsertKey inserts the given key with an empty array for values
-func (t *RPCExt) InsertKey(args *KeyArgs, reply *int) error {
-	InsertKeyLocal(args.Key, args.No)
-	InsertKeyGlobal(args.Key, args.No)
+func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
+	InsertKeyLocal(args.Key)
+	InsertKeyGlobal(args.Key)
 	return nil
 }
 
 // InsertKeyLocal inserts the key into the local db
-func InsertKeyLocal(key string, no int) {
-	replicas[no].logger.LogLocalEvent("Inserting Key"+key, govec.GetDefaultLogOptions())
+func InsertKeyLocal(key string) {
+	logger.LogLocalEvent("Inserting Key"+key, govec.GetDefaultLogOptions())
 	filter := bson.D{{Key: "name", Value: "Keys"}}
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: key}}}}
 
 	/* Update global keys entry */
-	updateResult, err := replicas[no].db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
+	updateResult, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		util.PrintErr(err)
 	}
-	fmt.Printf("REPLICA "+strconv.Itoa(no+1)+": Matched %v documents and updated %v documents.\n",
+	fmt.Printf("REPLICA "+strconv.Itoa(no)+": Matched %v documents and updated %v documents.\n",
 		updateResult.MatchedCount, updateResult.ModifiedCount)
 
 	/* Insert entry for the given key */
 	newRecord := Record{key, []string{}}
-	_, err = replicas[no].db.Collection("kvs").InsertOne(context.TODO(), newRecord)
+	_, err = db.Collection("kvs").InsertOne(context.TODO(), newRecord)
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -54,12 +48,12 @@ func InsertKeyLocal(key string, no int) {
 }
 
 // InsertKeyGlobal broadcasts the insertKey operation to other replicas
-func InsertKeyGlobal(key string, no int) {
+func InsertKeyGlobal(key string) {
 	var result int
 	var destNo int
 	var flag = false
 
-	for i, client := range replicas[no].clients {
+	for i, client := range conns {
 		if i == no {
 			flag = true
 		}
@@ -70,13 +64,11 @@ func InsertKeyGlobal(key string, no int) {
 			} else {
 				destNo = i
 			}
-			fmt.Println("Sending RPC", no+1, "->", destNo+1)
-			err := client.Call("RPCInt.InsertKeyRPC", KeyArgs{destNo, key}, &result)
+			fmt.Println("Sending RPC", no, "->", destNo)
+			err := client.Call("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result)
 			if err != nil {
 				util.PrintErr(err)
 			}
 		}
 	}
-
-	util.PrintMsg(no, "Done Sending RPC Calls")
 }

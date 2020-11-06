@@ -5,12 +5,10 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/rpc"
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/DistributedClocks/GoVector/govec"
@@ -18,6 +16,20 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// ConnectArgs are the arguments to the ConnectReplica call (a dummy structure)
+type ConnectArgs struct {
+}
+
+// KeyArgs are the arguments to the InsertKeyRPC call
+type KeyArgs struct {
+	Key string
+}
+
+// ValueArgs are the arguments to the InsertValueRPC call
+type ValueArgs struct {
+	Key, Value string
+}
 
 // Connect to MongoDB on the given port, as per https://www.mongodb.com/golang
 func Connect(port string) (*mongo.Client, context.Context) {
@@ -68,42 +80,6 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) 
 	}
 }
 
-// ParseGroupMembersText parses the supplied text group member file
-// https://stackoverflow.com/questions/36111777/how-to-read-a-text-file
-func ParseGroupMembersText(file string, myPort string) ([]string, error) {
-	f, err := os.Open(file)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer func() {
-		if err = f.Close(); err != nil {
-			log.Fatal(err)
-		}
-	}()
-
-	res, err := ioutil.ReadAll(f)
-	ports := strings.Split(string(res), ",")
-	// fmt.Println(ports)
-
-	var j int
-	flag := false
-	for i, port := range ports {
-		if port == myPort {
-			flag = true
-			j = i
-			break
-		}
-	}
-
-	// https://stackoverflow.com/questions/25025409/delete-element-in-a-slice
-	if flag {
-		ports[j] = ports[len(ports)-1] // Replace it with the last one. CAREFUL only works if you have enough elements.
-		ports = ports[:len(ports)-1]   // Chop off the last one.
-	}
-
-	return ports, nil
-}
-
 // RPCClient makes an RPC connection
 func RPCClient(logger *govec.GoLog, port string, who string) *rpc.Client {
 	options := govec.GetDefaultLogOptions()
@@ -118,7 +94,7 @@ func RPCClient(logger *govec.GoLog, port string, who string) *rpc.Client {
 
 // PrintMsg prints message to console from a replica
 func PrintMsg(no int, msg string) {
-	fmt.Println("REPLICA " + strconv.Itoa(no+1) + ": " + msg)
+	fmt.Println("REPLICA " + strconv.Itoa(no) + ": " + msg)
 }
 
 // PrintErr prints error

@@ -8,11 +8,16 @@ import (
 	"sort"
 
 	"../../util"
-	"../cmrdt"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// Record is a DB Record
+type Record struct {
+	Name   string   `json:"name"`
+	Values []string `json:"values"`
+}
 
 func main() {
 	_, dbPorts, err := util.ParseGroupMembersCVS("../driver/ports.csv", "")
@@ -23,7 +28,7 @@ func main() {
 	ctx := make([]context.Context, noReplicas)
 	cols := make([]*mongo.Collection, noReplicas)
 	dbClients := make([]*mongo.Client, noReplicas)
-	results := make([][]cmrdt.Record, noReplicas)
+	results := make([][]Record, noReplicas)
 
 	/* Connect */
 	for i, dbPort := range dbPorts {
@@ -59,7 +64,7 @@ func main() {
 }
 
 // https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
-func testEq(a, b []cmrdt.Record) bool {
+func testEq(a, b []Record) bool {
 	if (a == nil) != (b == nil) {
 		return false
 	}

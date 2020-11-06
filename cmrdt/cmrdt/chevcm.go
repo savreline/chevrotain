@@ -1,40 +1,33 @@
-package cmrdt
+package main
 
 /* In this file:
-0. Definitions of Replica, Record, structs
-	Definitions of ConnectArgs, RPCExt
-1. Init, InitReplica (connets to Db, initializes keys entry, starts up RPC server)
-2. ConnectReplica (makes connections to other replicas)
-3. TerminateReplica (disconnect from Db)
+0. Globals: conns, logger, db, no, port
+	Definitions: Record, RPCExt, RPCInt
+1. Main (connet to db, init clocks, init keys entry, start up RPC server)
+2. ConnectReplica (make conns to other replicas)
 */
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net"
 	"net/rpc"
+	"os"
 	"strconv"
 
 	"../../util"
+	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/DistributedClocks/GoVector/govec"
 	"github.com/DistributedClocks/GoVector/govec/vrpc"
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// Replica holds parameters associated with a replica
-type Replica struct {
-	port     string
-	db       *mongo.Database
-	ctx      context.Context
-	dbClient *mongo.Client
-	clients  []*rpc.Client
-	logger   *govec.GoLog
-}
-
-var noReplicas int
-var replicas []Replica
+// Global variables
+var no int
+var port string
+var conns []*rpc.Client
+var logger *govec.GoLog
+var db *mongo.Database
 
 // Record is a DB Record
 type Record struct {
@@ -42,29 +35,30 @@ type Record struct {
 	Values []string `json:"values"`
 }
 
-// ConnectArgs are the arguments to the ConnectReplica call
-type ConnectArgs struct {
-	No int
-}
+// RPCExt is the RPC object that receives commands from the driver
+type RPCExt int
 
-// Init initializes chevcm
-func Init(iNoReplicas int) {
-	replicas = make([]Replica, iNoReplicas)
-	noReplicas = iNoReplicas
-}
+// RPCInt is the RPC Object for internal replica-to-replica communication
+type RPCInt int
 
-// InitReplica makes connection to the database, starts up the RPC server
-func InitReplica(flag bool, no int, port string, dbPort string) {
-	clients := make([]*rpc.Client, noReplicas)
-	noStr := strconv.Itoa(no + 1)
+// Makes connection to the database, starts up the RPC server
+func main() {
+	/* Parse args, initialize data structures */
+	noReplicas, _ := strconv.Atoi(os.Args[1])
+	no, _ = strconv.Atoi(os.Args[2])
+	noStr := os.Args[2]
+	port = os.Args[3]
+	dbPort := os.Args[4]
+	conns = make([]*rpc.Client, noReplicas)
 
 	/* Connect to MongoDB */
-	dbClient, ctx := util.Connect(dbPort)
-	db := dbClient.Database("chev")
-	util.PrintMsg(no, "Connected to DB")
+	dbClient, _ := util.Connect(dbPort)
+	db = dbClient.Database("chev")
+	util.PrintMsg(no, "Connected to DB on "+dbPort)
 
 	/* Init vector clocks */
-	logger := govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
+	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
+	options := govec.GetDefaultLogOptions()
 
 	/* Pre-allocate Keys entry */
 	newRecord := Record{"Keys", []string{}}
@@ -73,48 +67,7 @@ func InitReplica(flag bool, no int, port string, dbPort string) {
 		util.PrintErr(err)
 	}
 
-	/* Start Server */
-	channel := make(chan bool)
-	go rpcserver(channel, logger, no, port)
-	<-channel
-
-	replicas[no] = Replica{port, db, ctx, dbClient, clients, logger}
-}
-
-// RPCExt is the RPC object that receives commands from the driver
-type RPCExt int
-
-// ConnectReplica connects this replica to others
-func (t *RPCExt) ConnectReplica(args *ConnectArgs, reply *int) error {
-	no := args.No
-	noStr := strconv.Itoa(no + 1)
-
-	/* Parse Group Members */
-	ports, _, err := util.ParseGroupMembersCVS("ports.csv", replicas[no].port)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	fmt.Println("REPLICA "+noStr+": Being Connected to ports", ports)
-
-	/* Make RPC Connections */
-	for i, port := range ports {
-		replicas[no].clients[i] = util.RPCClient(replicas[no].logger, port, "REPLICA "+noStr+": ")
-	}
-
-	return nil
-}
-
-// TerminateReplica closes the db connection
-func (t *RPCExt) TerminateReplica(args *ConnectArgs, reply *int) error {
-	no := args.No
-	replicas[no].dbClient.Disconnect(replicas[no].ctx)
-	return nil
-}
-
-// RPC Server
-func rpcserver(srvChanel chan bool, logger *govec.GoLog, no int, port string) {
 	/* Init RPC */
-	util.PrintMsg(no, "Staring Server")
 	server := rpc.NewServer()
 	rpcint := new(RPCInt)
 	rpcext := new(RPCExt)
@@ -124,12 +77,26 @@ func rpcserver(srvChanel chan bool, logger *govec.GoLog, no int, port string) {
 	if e != nil {
 		log.Fatal("listen error:", e)
 	}
-	util.PrintMsg(no, "Listening on "+port)
 
-	/* Acknowledge Readiness */
-	options := govec.GetDefaultLogOptions()
-	util.PrintMsg(no, "RPC Server Ready")
-	srvChanel <- true
+	/* Start Server */
+	util.PrintMsg(no, "RPC Server Listening on "+port)
+	go vrpc.ServeRPCConn(server, l, logger, options)
+	for {
+	}
+}
 
-	vrpc.ServeRPCConn(server, l, logger, options)
+// ConnectReplica connects this replica to others
+func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
+	/* Parse Group Members */
+	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
+	if err != nil {
+		util.PrintErr(err)
+	}
+
+	/* Make RPC Connections */
+	for i, port := range ports {
+		conns[i] = util.RPCClient(logger, port, "REPLICA "+strconv.Itoa(no)+": ")
+	}
+
+	return nil
 }
