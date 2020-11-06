@@ -98,9 +98,7 @@ func (t *RPCExt) ConnectReplica(args *ConnectArgs, reply *int) error {
 
 	/* Make RPC Connections */
 	for i, port := range ports {
-		channel := make(chan *rpc.Client)
-		go util.RPCClient(channel, replicas[no].logger, port, "REPLICA "+noStr+": ")
-		replicas[no].clients[i] = <-channel
+		replicas[no].clients[i] = util.RPCClient(replicas[no].logger, port, "REPLICA "+noStr+": ")
 	}
 
 	return nil

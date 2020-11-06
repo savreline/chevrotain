@@ -4,10 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 	"reflect"
 	"sort"
-	"strconv"
 
 	"../../util"
 	"../cmrdt"
@@ -17,11 +15,11 @@ import (
 )
 
 func main() {
-	noReplicas, err := strconv.Atoi(os.Args[1])
+	_, dbPorts, err := util.ParseGroupMembersCVS("../driver/ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}
-	dbPorts := [2]string{"27018", "27019"}
+	noReplicas := len(dbPorts)
 	ctx := make([]context.Context, noReplicas)
 	cols := make([]*mongo.Collection, noReplicas)
 	dbClients := make([]*mongo.Client, noReplicas)

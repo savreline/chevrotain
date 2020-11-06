@@ -105,17 +105,15 @@ func ParseGroupMembersText(file string, myPort string) ([]string, error) {
 }
 
 // RPCClient makes an RPC connection
-func RPCClient(channel chan *rpc.Client, logger *govec.GoLog, port string, who string) {
+func RPCClient(logger *govec.GoLog, port string, who string) *rpc.Client {
 	options := govec.GetDefaultLogOptions()
-
-	fmt.Println(who + "Starting RPC Connection to " + port)
 	client, err := vrpc.RPCDial("tcp", "127.0.0.1:"+port, logger, options)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	fmt.Println(who + "Connection made to " + port)
-	channel <- client
+	return client
 }
 
 // PrintMsg prints message to console from a replica

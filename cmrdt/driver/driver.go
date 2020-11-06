@@ -35,9 +35,7 @@ func main() {
 
 	/* Make RPC Connections */
 	for i, port := range clPorts {
-		channel := make(chan *rpc.Client)
-		go util.RPCClient(channel, logger, port, "DRIVER: ")
-		clients[i] = <-channel
+		clients[i] = util.RPCClient(logger, port, "DRIVER: ")
 	}
 
 	// simpleTest()
@@ -50,9 +48,9 @@ func main() {
 
 // wikiTest
 func wikiTest() {
-	go loadPages("Java", 0)
-	go loadPages("C--", 1)
-	// go loadPages("C++", 2)
+	loadPages("Java", 0)
+	loadPages("C--", 1)
+	loadPages("C++", 2)
 }
 
 func loadPages(startPage string, no int) {
