@@ -1,5 +1,13 @@
 package cmrdt
 
+/* In this file:
+0. Definitions of Replica, Record, structs
+	Definitions of ConnectArgs, RPCExt
+1. Init, InitReplica (connets to Db, initializes keys entry, starts up RPC server)
+2. ConnectReplica (makes connections to other replicas)
+3. TerminateReplica (disconnect from Db)
+*/
+
 import (
 	"context"
 	"fmt"
@@ -25,18 +33,19 @@ type Replica struct {
 	logger   *govec.GoLog
 }
 
+var noReplicas int
+var replicas []Replica
+
 // Record is a DB Record
 type Record struct {
 	Name   string   `json:"name"`
 	Values []string `json:"values"`
 }
 
-var noReplicas int
-var replicas []Replica
-
-/********************************/
-/*** 0: INIT, CONNECT REPLICA ***/
-/********************************/
+// ConnectArgs are the arguments to the ConnectReplica call
+type ConnectArgs struct {
+	No int
+}
 
 // Init initializes chevcm
 func Init(iNoReplicas int) {
@@ -72,11 +81,11 @@ func InitReplica(flag bool, no int, port string, dbPort string) {
 	replicas[no] = Replica{port, db, ctx, dbClient, clients, logger}
 }
 
-// RPCCmd is the RPC object that receives commands from the test application
-type RPCCmd int
+// RPCExt is the RPC object that receives commands from the driver
+type RPCExt int
 
 // ConnectReplica connects this replica to others
-func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
+func (t *RPCExt) ConnectReplica(args *ConnectArgs, reply *int) error {
 	no := args.No
 	noStr := strconv.Itoa(no + 1)
 
@@ -98,24 +107,21 @@ func (t *RPCCmd) ConnectReplica(args *ConnectArgs, reply *int) error {
 }
 
 // TerminateReplica closes the db connection
-func (t *RPCCmd) TerminateReplica(args *ConnectArgs, reply *int) error {
+func (t *RPCExt) TerminateReplica(args *ConnectArgs, reply *int) error {
 	no := args.No
 	replicas[no].dbClient.Disconnect(replicas[no].ctx)
 	return nil
 }
 
-/*********************/
-/*** 1: RPC SERVER ***/
-/*********************/
-
+// RPC Server
 func rpcserver(srvChanel chan bool, logger *govec.GoLog, no int, port string) {
 	/* Init RPC */
 	util.PrintMsg(no, "Staring Server")
 	server := rpc.NewServer()
-	rpcobj := new(RPCObj)
-	rpccmd := new(RPCCmd)
-	server.Register(rpcobj)
-	server.Register(rpccmd)
+	rpcint := new(RPCInt)
+	rpcext := new(RPCExt)
+	server.Register(rpcint)
+	server.Register(rpcext)
 	l, e := net.Listen("tcp", ":"+port)
 	if e != nil {
 		log.Fatal("listen error:", e)

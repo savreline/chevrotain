@@ -5,7 +5,7 @@ package cvrdt
 1. MergeState RPC method
 */
 
-// RPCInt is the RPC Object
+// RPCInt is the RPC Object for internal replica-to-replica communication
 type RPCInt int
 
 // StateArgs are the arguments to the MergeState RPC

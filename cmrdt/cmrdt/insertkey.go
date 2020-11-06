@@ -1,5 +1,11 @@
 package cmrdt
 
+/* In this file
+0. Definitions of KeyArgs
+1. InsertKey Ext RPC method
+2. InsertKeyLocal (that works with the local db), InsertKeyGlobal (that broadcats the event) methods
+*/
+
 import (
 	"context"
 	"fmt"
@@ -10,12 +16,14 @@ import (
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-/**********************/
-/*** 1A: INSERT KEY ***/
-/**********************/
+// KeyArgs are the arguments to the InsertKeyRPC call
+type KeyArgs struct {
+	No  int
+	Key string
+}
 
 // InsertKey inserts the given key with an empty array for values
-func (t *RPCCmd) InsertKey(args *KeyArgs, reply *int) error {
+func (t *RPCExt) InsertKey(args *KeyArgs, reply *int) error {
 	InsertKeyLocal(args.Key, args.No)
 	InsertKeyGlobal(args.Key, args.No)
 	return nil
@@ -28,7 +36,7 @@ func InsertKeyLocal(key string, no int) {
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: key}}}}
 
-	// Update global keys entry
+	/* Update global keys entry */
 	updateResult, err := replicas[no].db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		util.PrintErr(err)
@@ -36,7 +44,7 @@ func InsertKeyLocal(key string, no int) {
 	fmt.Printf("REPLICA "+strconv.Itoa(no+1)+": Matched %v documents and updated %v documents.\n",
 		updateResult.MatchedCount, updateResult.ModifiedCount)
 
-	// Insert entry for the given key
+	/* Insert entry for the given key */
 	newRecord := Record{key, []string{}}
 	_, err = replicas[no].db.Collection("kvs").InsertOne(context.TODO(), newRecord)
 	if err != nil {
@@ -63,7 +71,7 @@ func InsertKeyGlobal(key string, no int) {
 				destNo = i
 			}
 			fmt.Println("Sending RPC", no+1, "->", destNo+1)
-			err := client.Call("RPCObj.InsertKeyRPC", KeyArgs{destNo, key}, &result)
+			err := client.Call("RPCInt.InsertKeyRPC", KeyArgs{destNo, key}, &result)
 			if err != nil {
 				util.PrintErr(err)
 			}

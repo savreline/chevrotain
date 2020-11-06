@@ -55,7 +55,7 @@ type ValueEntry struct {
 	Time  vclock.VClock `json:"time"`
 }
 
-// ConnectArgs are the arguments to the ConnectReplica call (a dummy struct)
+// ConnectArgs are the arguments to the ConnectReplica call
 type ConnectArgs struct {
 	No int
 }
@@ -98,7 +98,7 @@ func InitReplica(no int, port string, dbPort string) {
 	replicas[no] = Replica{port, db, ctx, dbClient, clients, logger}
 }
 
-// RPCExt is the RPC object that receives commands from the test application
+// RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
 
 // ConnectReplica connects this replica to others
