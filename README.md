@@ -12,6 +12,12 @@ https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
 `time.Sleep(5 * time.Second)` \
 https://golang.org/pkg/net/
 
+### Go IO
+https://golang.org/pkg/io/ioutil/#WriteFile
+
+### Go HTML
+https://godoc.org/golang.org/x/net/html
+
 ### Go Scope Rules:
 https://www.tutorialspoint.com/go/go_scope_rules.htm
 
