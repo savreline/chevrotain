@@ -1,7 +1,8 @@
 package main
 
 /* In this file
-Definition and methods of RPC Int object
+1. Definition and methods of RPC Int object
+2. broadcastInsert method
 */
 
 import (
@@ -18,6 +19,37 @@ func (t *RPCInt) InsertKeyRPC(args *util.KeyArgs, reply *int) error {
 
 // InsertValueRPC receives incoming insert value call
 func (t *RPCInt) InsertValueRPC(args *util.ValueArgs, reply *int) error {
-	fmt.Println("RPC Insert Value")
+	InsertValueLocal(args.Key, args.Value)
 	return nil
+}
+
+func broadcastInsert(key string, value string) {
+	var result int
+	var destNo int
+	var err error
+	var flag = false
+
+	for i, client := range conns {
+		if i == no {
+			flag = true
+		}
+
+		if client != nil {
+			if flag {
+				destNo = i + 2
+			} else {
+				destNo = i + 1
+			}
+			if value == "" {
+				fmt.Println("InsertKey RPC", no, "->", destNo)
+				err = client.Call("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result)
+			} else {
+				fmt.Println("InsertValue RPC", no, "->", destNo)
+				err = client.Call("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result)
+			}
+			if err != nil {
+				util.PrintErr(err)
+			}
+		}
+	}
 }

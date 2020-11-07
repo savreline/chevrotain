@@ -57,8 +57,8 @@ func main() {
 					linkHead := a.Val[:6]
 					linkTail := a.Val[6:]
 					if linkHead == "/wiki/" && !strings.Contains(a.Val, ":") &&
-						linkTail != "Main_Page" && linkTail != curPage &&
-						!setOfLinks[linkTail] {
+						!strings.Contains(a.Val, "#") && linkTail != "Main_Page" &&
+						linkTail != curPage && !setOfLinks[linkTail] {
 						strOfLinks = strOfLinks + linkTail + "\n"
 						queue = append(queue, linkTail)
 						setOfLinks[linkTail] = true
