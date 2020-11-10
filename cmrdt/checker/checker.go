@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"reflect"
 	"sort"
 	"strconv"
@@ -22,6 +23,7 @@ type Record struct {
 }
 
 func main() {
+	drop := os.Args[1]
 	_, dbPorts, err := util.ParseGroupMembersCVS("../driver/ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
@@ -48,7 +50,9 @@ func main() {
 		if err = cursor.All(context.TODO(), &results[i]); err != nil {
 			log.Fatal(err)
 		}
-		// col.Drop(context.TODO())
+		if drop == "1" {
+			col.Drop(context.TODO())
+		}
 	}
 
 	var result = true
@@ -66,12 +70,13 @@ func main() {
 // https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
 func testEq(a, b []Record, no int) bool {
 	var str1, str2 string
-	// if (a == nil) != (b == nil) {
-	// 	return false
-	// }
-	// if len(a) != len(b) {
-	// 	return false
-	// }
+	result := true
+	if (a == nil) != (b == nil) {
+		result = false
+	}
+	if len(a) != len(b) {
+		result = false
+	}
 	for i := range a {
 		sort.Strings(a[i].Values)
 		sort.Strings(b[i].Values)
@@ -84,7 +89,7 @@ func testEq(a, b []Record, no int) bool {
 			str2 = str2 + "," + val
 		}
 		if !reflect.DeepEqual(a[i], b[i]) {
-			// return false
+			result = false
 		}
 		str1 = str1 + "\n"
 		str2 = str2 + "\n"
@@ -97,5 +102,5 @@ func testEq(a, b []Record, no int) bool {
 	if err != nil {
 		panic(err)
 	}
-	return true
+	return result
 }

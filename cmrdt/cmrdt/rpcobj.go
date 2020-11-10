@@ -42,10 +42,10 @@ func broadcastInsert(key string, value string) {
 			}
 			if value == "" {
 				fmt.Println("InsertKey RPC", no, "->", destNo)
-				go client.Call("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result)
+				client.Call("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result)
 			} else {
 				fmt.Println("InsertValue RPC", no, "->", destNo)
-				go client.Call("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result)
+				client.Call("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result)
 			}
 			if err != nil {
 				util.PrintErr(err)

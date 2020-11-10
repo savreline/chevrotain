@@ -27,9 +27,9 @@ func main() {
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		go simpleTest(i)
+		// go simpleTest(i)
 	}
-	// wikiTest()
+	wikiTest()
 
 	for {
 	}
@@ -47,8 +47,13 @@ func simpleTest(no int) {
 
 	/* Inserts */
 	for i := 0; i < 10; i++ {
-		num := no*100 + i
-		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(num)}, &result)
+		key := (no+1)*1000 + i
+		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
+		for j := 0; j < 10; j++ {
+			val := (no+1)*100 + j
+			conn.Call("RPCExt.InsertValue",
+				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
+		}
 	}
 }
 
@@ -110,7 +115,7 @@ func loadPages(startPage string, no int) {
 		}
 
 		/* Insert Key */
-		go conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: curPage}, &result)
+		err = conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: curPage}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
@@ -120,7 +125,7 @@ func loadPages(startPage string, no int) {
 			queue = append(queue, linkedPages[j])
 
 			/* Insert Value */
-			go conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: curPage, Value: linkedPages[j]}, &result)
+			err = conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: curPage, Value: linkedPages[j]}, &result)
 			if err != nil {
 				util.PrintErr(err)
 			}

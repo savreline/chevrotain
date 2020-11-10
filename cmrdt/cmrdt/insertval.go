@@ -16,7 +16,7 @@ import (
 // InsertValue inserts value into the given key
 func (t *RPCExt) InsertValue(args *util.ValueArgs, reply *int) error {
 	InsertValueLocal(args.Key, args.Value)
-	// broadcastInsert(args.Key, args.Value)
+	broadcastInsert(args.Key, args.Value)
 	return nil
 }
 
