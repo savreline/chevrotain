@@ -16,7 +16,7 @@ import (
 // InsertKey inserts the given key with an empty array for values
 func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
 	InsertKeyLocal(args.Key)
-	// broadcastInsert(args.Key, "")
+	broadcastInsert(args.Key, "")
 	return nil
 }
 

@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"reflect"
 	"sort"
+	"strconv"
 
 	"../../util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -25,15 +27,13 @@ func main() {
 		util.PrintErr(err)
 	}
 	noReplicas := len(dbPorts)
-	ctx := make([]context.Context, noReplicas)
 	cols := make([]*mongo.Collection, noReplicas)
-	dbClients := make([]*mongo.Client, noReplicas)
 	results := make([][]Record, noReplicas)
 
 	/* Connect */
 	for i, dbPort := range dbPorts {
-		dbClients[i], ctx[i] = util.Connect(dbPort)
-		cols[i] = dbClients[i].Database("chev").Collection("kvs")
+		dbClient, _ := util.Connect(dbPort)
+		cols[i] = dbClient.Database("chev").Collection("kvs")
 		fmt.Println("Connected to DB on port " + dbPort)
 	}
 
@@ -48,12 +48,12 @@ func main() {
 		if err = cursor.All(context.TODO(), &results[i]); err != nil {
 			log.Fatal(err)
 		}
-		col.Drop(context.TODO())
+		// col.Drop(context.TODO())
 	}
 
 	var result = true
 	for i := 0; i < noReplicas-1; i++ {
-		eqResult := testEq(results[i], results[i+1])
+		eqResult := testEq(results[i], results[i+1], i)
 		fmt.Println("Comparison of", i+1, "to", i+2, "is", eqResult)
 		if eqResult == false {
 			result = false
@@ -64,19 +64,38 @@ func main() {
 }
 
 // https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
-func testEq(a, b []Record) bool {
-	if (a == nil) != (b == nil) {
-		return false
-	}
-	if len(a) != len(b) {
-		return false
-	}
+func testEq(a, b []Record, no int) bool {
+	var str1, str2 string
+	// if (a == nil) != (b == nil) {
+	// 	return false
+	// }
+	// if len(a) != len(b) {
+	// 	return false
+	// }
 	for i := range a {
 		sort.Strings(a[i].Values)
 		sort.Strings(b[i].Values)
-		if !reflect.DeepEqual(a[i], b[i]) {
-			return false
+		str1 = str1 + a[i].Name
+		str2 = str2 + b[i].Name
+		for _, val := range a[i].Values {
+			str1 = str1 + "," + val
 		}
+		for _, val := range b[i].Values {
+			str2 = str2 + "," + val
+		}
+		if !reflect.DeepEqual(a[i], b[i]) {
+			// return false
+		}
+		str1 = str1 + "\n"
+		str2 = str2 + "\n"
+	}
+	err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str1), 0644)
+	if err != nil {
+		panic(err)
+	}
+	err = ioutil.WriteFile("Repl"+strconv.Itoa(no+1)+".csv", []byte(str2), 0644)
+	if err != nil {
+		panic(err)
 	}
 	return true
 }

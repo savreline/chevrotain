@@ -27,9 +27,9 @@ func main() {
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		// go simpleTest(i)
+		go simpleTest(i)
 	}
-	wikiTest()
+	// wikiTest()
 
 	for {
 	}
@@ -47,16 +47,16 @@ func simpleTest(no int) {
 
 	/* Inserts */
 	for i := 0; i < 10; i++ {
-		num := (i + 1) * (no + 1)
+		num := no*100 + i
 		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(num)}, &result)
 	}
 }
 
 // wikiTest
 func wikiTest() {
-	loadPages("Java", 0)
-	loadPages("C--", 1)
-	loadPages("C++", 2)
+	go loadPages("Java", 0)
+	go loadPages("C--", 1)
+	go loadPages("C++", 2)
 }
 
 // https://stackoverflow.com/questions/12518876/how-to-check-if-a-file-exists-in-go
@@ -110,7 +110,7 @@ func loadPages(startPage string, no int) {
 		}
 
 		/* Insert Key */
-		err = conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: curPage}, &result)
+		go conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: curPage}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
@@ -120,7 +120,7 @@ func loadPages(startPage string, no int) {
 			queue = append(queue, linkedPages[j])
 
 			/* Insert Value */
-			err = conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: curPage, Value: linkedPages[j]}, &result)
+			go conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: curPage, Value: linkedPages[j]}, &result)
 			if err != nil {
 				util.PrintErr(err)
 			}
