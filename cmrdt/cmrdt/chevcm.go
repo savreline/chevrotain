@@ -18,8 +18,8 @@ import (
 	"../../util"
 	"go.mongodb.org/mongo-driver/mongo"
 
-	"github.com/DistributedClocks/GoVector/govec"
-	"github.com/DistributedClocks/GoVector/govec/vrpc"
+	"github.com/savreline/GoVector/govec"
+	"github.com/savreline/GoVector/govec/vrpc"
 )
 
 // Global variables

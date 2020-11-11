@@ -18,9 +18,9 @@ import (
 
 	"../../util"
 
-	"github.com/DistributedClocks/GoVector/govec"
-	"github.com/DistributedClocks/GoVector/govec/vclock"
-	"github.com/DistributedClocks/GoVector/govec/vrpc"
+	"github.com/savreline/GoVector/govec"
+	"github.com/savreline/GoVector/govec/vclock"
+	"github.com/savreline/GoVector/govec/vrpc"
 	"go.mongodb.org/mongo-driver/mongo"
 )
 

@@ -5,7 +5,7 @@ import (
 
 	"../../util"
 	"../cvrdt"
-	"github.com/DistributedClocks/GoVector/govec"
+	"github.com/savreline/GoVector/govec"
 )
 
 var clients []*rpc.Client

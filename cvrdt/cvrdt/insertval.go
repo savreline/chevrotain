@@ -13,7 +13,7 @@ import (
 	"strconv"
 
 	"../../util"
-	"github.com/DistributedClocks/GoVector/govec"
+	"github.com/savreline/GoVector/govec"
 	"go.mongodb.org/mongo-driver/bson"
 )
 

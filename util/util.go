@@ -11,8 +11,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/DistributedClocks/GoVector/govec"
-	"github.com/DistributedClocks/GoVector/govec/vrpc"
+	"github.com/savreline/GoVector/govec"
+	"github.com/savreline/GoVector/govec/vrpc"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
