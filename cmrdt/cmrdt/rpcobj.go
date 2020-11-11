@@ -47,7 +47,7 @@ func broadcastInsert(key string, value string) {
 				client.Go("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result, nil)
 			} else {
 				fmt.Println("InsertValue RPC", no, "->", destNo)
-				client.Call("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result)
+				client.Go("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result, nil)
 			}
 			if err != nil {
 				util.PrintErr(err)

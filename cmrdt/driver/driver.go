@@ -20,14 +20,14 @@ func main() {
 	if err != nil {
 		util.PrintErr(err)
 	}
-	// noReplicas := len(ports)
+	noReplicas := len(ports)
 
 	/* Init Cloks */
-	logger = govec.InitGoVector("Drv", "Drv", govec.GetDefaultConfig())
+	logger = govec.InitGoVector("Drv", "../cmrdt/Drv", govec.GetDefaultConfig())
 
 	/* Tests */
-	for i := 0; i < 1; i++ {
-		simpleTest(i)
+	for i := 0; i < noReplicas; i++ {
+		go simpleTest(i)
 	}
 	// wikiTest()
 
@@ -46,14 +46,14 @@ func simpleTest(no int) {
 	}
 
 	/* Inserts */
-	for i := 0; i < 1; i++ {
+	for i := 0; i < 10; i++ {
 		key := (no+1)*1000 + i
 		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
-		// for j := 0; j < 10; j++ {
-		// 	val := (no+1)*100 + j
-		// 	conn.Call("RPCExt.InsertValue",
-		// 		util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
-		// }
+		for j := 0; j < 10; j++ {
+			val := (no+1)*100 + j
+			conn.Call("RPCExt.InsertValue",
+				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
+		}
 	}
 }
 
