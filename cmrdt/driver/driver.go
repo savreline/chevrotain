@@ -20,14 +20,14 @@ func main() {
 	if err != nil {
 		util.PrintErr(err)
 	}
-	noReplicas := len(ports)
+	// noReplicas := len(ports)
 
 	/* Init Cloks */
 	logger = govec.InitGoVector("Drv", "Drv", govec.GetDefaultConfig())
 
 	/* Tests */
-	for i := 0; i < noReplicas; i++ {
-		go simpleTest(i)
+	for i := 0; i < 1; i++ {
+		simpleTest(i)
 	}
 	// wikiTest()
 

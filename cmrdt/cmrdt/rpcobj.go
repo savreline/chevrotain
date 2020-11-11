@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	"../../util"
+	"github.com/savreline/GoVector/govec"
 )
 
 // InsertKeyRPC receives incoming insert key call
@@ -29,6 +30,7 @@ func broadcastInsert(key string, value string) {
 	var err error
 	var flag = false
 
+	logger.StartBroadcast(govec.GetDefaultLogOptions())
 	for i, client := range conns {
 		if i == no {
 			flag = true
@@ -42,7 +44,7 @@ func broadcastInsert(key string, value string) {
 			}
 			if value == "" {
 				fmt.Println("InsertKey RPC", no, "->", destNo)
-				client.Call("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result)
+				client.Go("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result, nil)
 			} else {
 				fmt.Println("InsertValue RPC", no, "->", destNo)
 				client.Call("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result)
@@ -52,4 +54,5 @@ func broadcastInsert(key string, value string) {
 			}
 		}
 	}
+	logger.StopBroadcast()
 }
