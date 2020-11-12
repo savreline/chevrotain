@@ -59,6 +59,7 @@ https://www.markdownguide.org/cheat-sheet/
 
 ### Git
 `git reset --soft HEAD~1`
+https://stackoverflow.com/questions/1186535/how-to-modify-a-specified-commit
 
 ### BFS
 https://stackoverflow.com/questions/10258305/how-to-implement-a-breadth-first-search-to-a-certain-depth

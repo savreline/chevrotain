@@ -84,8 +84,7 @@ func main() {
 	/* Start Server */
 	util.PrintMsg(no, "RPC Server Listening on "+port)
 	go vrpc.ServeRPCConn(server, l, logger, options)
-	for {
-	}
+	select {}
 }
 
 // ConnectReplica connects this replica to others

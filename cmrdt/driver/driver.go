@@ -32,8 +32,7 @@ func main() {
 	}
 	// wikiTest()
 
-	for {
-	}
+	select {}
 }
 
 // simpleTest
@@ -47,10 +46,10 @@ func simpleTest(no int) {
 	}
 
 	/* Inserts */
-	for i := 0; i < 5; i++ {
+	for i := 0; i < 50; i++ {
 		key := (no+1)*1000 + i
 		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
-		for j := 0; j < 5; j++ {
+		for j := 0; j < 20; j++ {
 			val := (no+1)*100 + j
 			conn.Call("RPCExt.InsertValue",
 				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
