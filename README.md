@@ -8,6 +8,9 @@ https://stackoverflow.com/questions/56970867/how-to-use-mongo-driver-connection-
 https://www.mongodb.com/blog/post/mongodb-go-driver-tutorial-part-1-connecting-using-bson-and-crud-operations
 https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
 
+### Go Channels
+https://stackoverflow.com/questions/19992334/how-to-listen-to-n-channels-dynamic-select-statement
+
 ### Go Net Package
 `time.Sleep(5 * time.Second)` \
 https://golang.org/pkg/net/

@@ -11,16 +11,29 @@ import (
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
+	"github.com/savreline/GoVector/govec/vclock"
 )
 
 // InsertKeyRPC receives incoming insert key call
 func (t *RPCInt) InsertKeyRPC(args *util.KeyArgs, reply *int) error {
+	channel := make(chan vclock.VClock, 10)
+	lock.Lock()
+	chans[channel] = channel
+	lock.Unlock()
+	<-channel
+
 	InsertKeyLocal(args.Key)
 	return nil
 }
 
 // InsertValueRPC receives incoming insert value call
 func (t *RPCInt) InsertValueRPC(args *util.ValueArgs, reply *int) error {
+	channel := make(chan vclock.VClock, 10)
+	lock.Lock()
+	chans[channel] = channel
+	lock.Unlock()
+	<-channel
+
 	InsertValueLocal(args.Key, args.Value)
 	return nil
 }

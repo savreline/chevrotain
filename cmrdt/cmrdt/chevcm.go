@@ -15,11 +15,13 @@ import (
 	"net/rpc"
 	"os"
 	"strconv"
+	"sync"
 
 	"../../util"
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/savreline/GoVector/govec"
+	"github.com/savreline/GoVector/govec/vclock"
 	"github.com/savreline/GoVector/govec/vrpc"
 )
 
@@ -30,6 +32,8 @@ var eLog string
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
+var chans = make(map[chan vclock.VClock]chan vclock.VClock)
+var lock = &sync.Mutex{}
 var verbose = false
 
 // Record is a DB Record
@@ -84,6 +88,7 @@ func main() {
 	/* Start Server */
 	util.PrintMsg(no, "RPC Server Listening on "+port)
 	go vrpc.ServeRPCConn(server, l, logger, options)
+	go sendChans()
 	select {}
 }
 
@@ -112,4 +117,15 @@ func (t *RPCExt) TerminateReplica(args *util.ConnectArgs, reply *int) error {
 		}
 	}
 	return nil
+}
+
+func sendChans() {
+	for {
+		lock.Lock()
+		for _, channel := range chans {
+			channel <- logger.GetCurrentVC()
+			delete(chans, channel)
+		}
+		lock.Unlock()
+	}
 }
