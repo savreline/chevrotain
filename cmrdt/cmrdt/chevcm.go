@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"io/ioutil"
 	"log"
 	"net"
 	"net/rpc"
@@ -25,9 +26,11 @@ import (
 // Global variables
 var no int
 var port string
+var eLog string
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
+var verbose = false
 
 // Record is a DB Record
 type Record struct {
@@ -98,5 +101,16 @@ func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 		conns[i] = util.RPCClient(logger, port, "REPLICA "+strconv.Itoa(no)+": ")
 	}
 
+	return nil
+}
+
+// TerminateReplica writes to the log
+func (t *RPCExt) TerminateReplica(args *util.ConnectArgs, reply *int) error {
+	if verbose == true {
+		err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".txt", []byte(eLog), 0644)
+		if err != nil {
+			panic(err)
+		}
+	}
 	return nil
 }

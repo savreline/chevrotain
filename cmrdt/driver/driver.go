@@ -20,6 +20,7 @@ func main() {
 	if err != nil {
 		util.PrintErr(err)
 	}
+	// noReplicas := 1
 	noReplicas := len(ports)
 
 	/* Init Cloks */
@@ -46,14 +47,20 @@ func simpleTest(no int) {
 	}
 
 	/* Inserts */
-	for i := 0; i < 10; i++ {
+	for i := 0; i < 5; i++ {
 		key := (no+1)*1000 + i
 		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
-		for j := 0; j < 10; j++ {
+		for j := 0; j < 5; j++ {
 			val := (no+1)*100 + j
 			conn.Call("RPCExt.InsertValue",
 				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 		}
+	}
+
+	/* Terminate */
+	err = conn.Call("RPCExt.TerminateReplica", util.ConnectArgs{}, &result)
+	if err != nil {
+		util.PrintErr(err)
 	}
 }
 

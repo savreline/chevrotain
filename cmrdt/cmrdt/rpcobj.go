@@ -7,6 +7,7 @@ package main
 
 import (
 	"fmt"
+	"net/rpc"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
@@ -29,6 +30,7 @@ func broadcastInsert(key string, value string) {
 	var destNo int
 	var err error
 	var flag = false
+	var calls = make([]*rpc.Call, len(conns))
 
 	logger.StartBroadcast(govec.GetDefaultLogOptions())
 	for i, client := range conns {
@@ -44,10 +46,10 @@ func broadcastInsert(key string, value string) {
 			}
 			if value == "" {
 				fmt.Println("InsertKey RPC", no, "->", destNo)
-				client.Go("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result, nil)
+				calls[i] = client.Go("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result, nil)
 			} else {
 				fmt.Println("InsertValue RPC", no, "->", destNo)
-				client.Go("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result, nil)
+				calls[i] = client.Go("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result, nil)
 			}
 			if err != nil {
 				util.PrintErr(err)
@@ -55,4 +57,14 @@ func broadcastInsert(key string, value string) {
 		}
 	}
 	logger.StopBroadcast()
+
+	// Ensure broadcast completes and (optionally) log error
+	for i, call := range calls {
+		if call != nil {
+			replyCall := <-call.Done
+			if verbose == true {
+				eLog = eLog + fmt.Sprint("To Repl: ", i, " Key: ", key, " Val: ", value, " : ", replyCall.Error) + "\n"
+			}
+		}
+	}
 }

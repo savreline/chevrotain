@@ -17,3 +17,6 @@
 # Logs
 *.txt
 *.log
+
+# Database dumps
+/cmrdt/checker/*.csv
