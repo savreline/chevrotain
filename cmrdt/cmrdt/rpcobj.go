@@ -10,6 +10,7 @@ import (
 	"net/rpc"
 
 	"../../util"
+	"github.com/savreline/GoVector/govec"
 	"github.com/savreline/GoVector/govec/vclock"
 )
 
@@ -76,6 +77,7 @@ func waitForCallsToComplete(key string, value string, calls []*rpc.Call) {
 // Wait for the correct turn for the incoming RPC call
 func waitForTurn() {
 	/* Check if the RPC call needs to wait */
+	incomingClock := logger.GetIncomingVC()
 	wait := true // broadcastClockValue(logger.GetCurrentVC())
 
 	if wait == true {
@@ -86,10 +88,13 @@ func waitForTurn() {
 		lock.Lock()
 		chans[channel] = channel
 		lock.Unlock()
-		broadcastClockValue(logger.GetCurrentVC()) // to be moved
+		broadcastClockValue(incomingClock.VcMap) // to be moved
 
 		/* Wait for the correct clock */
 		<-channel
+
+		/* Merge clock */
+		logger.MergeIncomingClock("Incoming Broadcast", incomingClock, govec.GetDefaultLogOptions().Priority)
 
 		/* Remove channel from the pool */
 		lock.Lock()
