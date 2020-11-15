@@ -27,7 +27,8 @@ import (
 
 // Global variables
 var no int
-var port string
+var ePort string
+var iPort string
 var eLog string
 var conns []*rpc.Client
 var logger *govec.GoLog
@@ -54,8 +55,9 @@ func main() {
 	noReplicas, _ := strconv.Atoi(os.Args[1])
 	no, _ = strconv.Atoi(os.Args[2])
 	noStr := os.Args[2]
-	port = os.Args[3]
-	dbPort := os.Args[4]
+	ePort = os.Args[3]
+	iPort = os.Args[4]
+	dbPort := os.Args[5]
 	conns = make([]*rpc.Client, noReplicas)
 
 	/* Connect to MongoDB */
@@ -75,19 +77,26 @@ func main() {
 	}
 
 	/* Init RPC */
-	server := rpc.NewServer()
-	rpcint := new(RPCInt)
+	eServer := rpc.NewServer()
+	iServer := rpc.NewServer()
 	rpcext := new(RPCExt)
-	server.Register(rpcint)
-	server.Register(rpcext)
-	l, e := net.Listen("tcp", ":"+port)
-	if e != nil {
-		log.Fatal("listen error:", e)
+	rpcint := new(RPCInt)
+	eServer.Register(rpcext)
+	iServer.Register(rpcint)
+	e, err := net.Listen("tcp", ":"+ePort)
+	if err != nil {
+		log.Fatal("listen error:", err)
+	}
+	i, err := net.Listen("tcp", ":"+iPort)
+	if err != nil {
+		log.Fatal("listen error:", err)
 	}
 
 	/* Start Server */
-	util.PrintMsg(no, "RPC Server Listening on "+port)
-	go vrpc.ServeRPCConn(server, l, logger, options)
+	util.PrintMsg(no, "RPC External Server Listening on "+ePort)
+	util.PrintMsg(no, "RPC Internal Server Listening on "+iPort)
+	go eServer.Accept(e)
+	go vrpc.ServeRPCConn(iServer, i, logger, options)
 	go sendChans()
 	select {}
 }
@@ -95,7 +104,7 @@ func main() {
 // ConnectReplica connects this replica to others
 func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 	/* Parse Group Members */
-	ports, _, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
+	_, ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", iPort)
 	if err != nil {
 		util.PrintErr(err)
 	}

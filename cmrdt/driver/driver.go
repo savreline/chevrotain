@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
+	"net/rpc"
 	"os"
 	"strconv"
 	"strings"
@@ -23,9 +25,6 @@ func main() {
 	// noReplicas := 1
 	noReplicas := len(ports)
 
-	/* Init Cloks */
-	logger = govec.InitGoVector("Drv", "../cmrdt/Drv", govec.GetDefaultConfig())
-
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
 		go simpleTest(i)
@@ -37,27 +36,30 @@ func main() {
 
 // simpleTest
 func simpleTest(no int) {
-	/* Connect to the Replica and Connect the Replica */
 	var result int
-	conn := util.RPCClient(logger, ports[no], "DRIVER: ")
-	err := conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
-	if err != nil {
-		util.PrintErr(err)
-	}
+
+	/* Connect to the Replica and Connect the Replicas */
+	conn := connectReplicas(no)
 
 	/* Inserts */
 	for i := 0; i < 50; i++ {
 		key := (no+1)*1000 + i
-		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
+		err := conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
+		if err != nil {
+			util.PrintErr(err)
+		}
 		for j := 0; j < 20; j++ {
 			val := (no+1)*100 + j
-			conn.Call("RPCExt.InsertValue",
+			err := conn.Call("RPCExt.InsertValue",
 				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
+			if err != nil {
+				util.PrintErr(err)
+			}
 		}
 	}
 
 	/* Terminate */
-	err = conn.Call("RPCExt.TerminateReplica", util.ConnectArgs{}, &result)
+	err := conn.Call("RPCExt.TerminateReplica", util.ConnectArgs{}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -75,10 +77,12 @@ func loadPages(startPage string, no int) {
 	pathHead := "../../crawler/" + startPage + "/"
 	lastPage := startPage
 	maxDepth := 3
-
-	/* Connect to the Replica and Connect the Replica */
 	var result int
-	conn := util.RPCClient(logger, ports[no], "DRIVER: ")
+
+	/* Connect to the Replica and Connect the Replicas */
+	conn := connectReplicas(no)
+
+	/* Connect the Replica */
 	err := conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
 	if err != nil {
 		util.PrintErr(err)
@@ -137,4 +141,24 @@ func loadPages(startPage string, no int) {
 			}
 		}
 	}
+}
+
+// connectReplicas
+func connectReplicas(no int) *rpc.Client {
+	var result int
+
+	/* Connect to the Replica */
+	conn, err := rpc.Dial("tcp", "localhost:"+ports[no])
+	if err != nil {
+		util.PrintErr(err)
+	}
+	fmt.Println("DRIVER: Connection made to " + ports[no])
+
+	/* Connect the Replica */
+	err = conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
+	if err != nil {
+		util.PrintErr(err)
+	}
+
+	return conn
 }

@@ -74,7 +74,7 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, []strin
 			return ePorts, iPorts, dbPorts, nil
 		}
 
-		if row[0] != port {
+		if row[1] != port {
 			ePorts = append(ePorts, row[0])
 			iPorts = append(iPorts, row[1])
 			dbPorts = append(dbPorts, row[2])

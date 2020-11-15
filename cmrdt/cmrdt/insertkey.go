@@ -9,7 +9,6 @@ import (
 	"context"
 
 	"../../util"
-	"github.com/savreline/GoVector/govec"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
@@ -22,7 +21,6 @@ func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
 
 // InsertKeyLocal inserts the key into the local db
 func InsertKeyLocal(key string) {
-	logger.LogLocalEvent("Inserting Key"+key, govec.GetDefaultLogOptions())
 	filter := bson.D{{Key: "name", Value: "Keys"}}
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: key}}}}
