@@ -10,7 +10,6 @@ import (
 	"net/rpc"
 
 	"../../util"
-	"github.com/savreline/GoVector/govec"
 	"github.com/savreline/GoVector/govec/vclock"
 )
 
@@ -38,14 +37,13 @@ func (t *RPCInt) InsertValueRPC(args *util.ValueArgs, reply *int) error {
 	return nil
 }
 
-func broadcastInsert(key string, value string) {
+func broadcastInsert(key string, value string) []*rpc.Call {
 	var result int
 	var destNo int
 	var err error
 	var flag = false
 	var calls = make([]*rpc.Call, len(conns))
 
-	logger.StartBroadcast(govec.GetDefaultLogOptions())
 	for i, client := range conns {
 		if i == no {
 			flag = true
@@ -69,9 +67,12 @@ func broadcastInsert(key string, value string) {
 			}
 		}
 	}
-	logger.StopBroadcast()
 
-	// Ensure broadcast completes and (optionally) log error
+	return calls
+}
+
+// Ensure broadcast completes and (optionally) log error
+func ensureCallsComplete(key string, value string, calls []*rpc.Call) {
 	for i, call := range calls {
 		if call != nil {
 			replyCall := <-call.Done
