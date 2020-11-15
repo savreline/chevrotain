@@ -52,16 +52,17 @@ func Connect(port string) (*mongo.Client, context.Context) {
 }
 
 // ParseGroupMembersCVS parses the supplied CVS group member file
-func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) {
+func ParseGroupMembersCVS(file string, port string) ([]string, []string, []string, error) {
 	// from https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	defer f.Close()
 
 	csvr := csv.NewReader(f)
-	clPorts := []string{}
+	ePorts := []string{}
+	iPorts := []string{}
 	dbPorts := []string{}
 
 	for {
@@ -70,12 +71,13 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) 
 			if err == io.EOF {
 				err = nil
 			}
-			return clPorts, dbPorts, nil
+			return ePorts, iPorts, dbPorts, nil
 		}
 
 		if row[0] != port {
-			clPorts = append(clPorts, row[0])
-			dbPorts = append(dbPorts, row[1])
+			ePorts = append(ePorts, row[0])
+			iPorts = append(iPorts, row[1])
+			dbPorts = append(dbPorts, row[2])
 		}
 	}
 }

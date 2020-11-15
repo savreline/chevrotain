@@ -13,7 +13,7 @@ import (
 )
 
 func main() {
-	_, dbPorts, err := util.ParseGroupMembersCVS("../driver/ports.csv", "")
+	_, _, dbPorts, err := util.ParseGroupMembersCVS("../driver/ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}

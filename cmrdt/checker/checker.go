@@ -24,7 +24,7 @@ type Record struct {
 
 func main() {
 	drop := os.Args[1]
-	_, dbPorts, err := util.ParseGroupMembersCVS("../driver/ports.csv", "")
+	_, _, dbPorts, err := util.ParseGroupMembersCVS("../driver/ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}

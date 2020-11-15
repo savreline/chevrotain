@@ -107,7 +107,7 @@ func (t *RPCExt) ConnectReplica(args *ConnectArgs, reply *int) error {
 	noStr := strconv.Itoa(no + 1)
 
 	/* Parse Group Members */
-	ports, _, err := util.ParseGroupMembersCVS("ports.csv", replicas[no].port)
+	ports, _, _, err := util.ParseGroupMembersCVS("ports.csv", replicas[no].port)
 	if err != nil {
 		util.PrintErr(err)
 	}

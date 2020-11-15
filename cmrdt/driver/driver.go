@@ -16,7 +16,7 @@ var logger *govec.GoLog
 func main() {
 	/* Parse Group Membership */
 	var err error
-	ports, _, err = util.ParseGroupMembersCVS("ports.csv", "")
+	ports, _, _, err = util.ParseGroupMembersCVS("ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -46,10 +46,10 @@ func simpleTest(no int) {
 	}
 
 	/* Inserts */
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 50; i++ {
 		key := (no+1)*1000 + i
 		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
-		for j := 0; j < 50; j++ {
+		for j := 0; j < 20; j++ {
 			val := (no+1)*100 + j
 			conn.Call("RPCExt.InsertValue",
 				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)

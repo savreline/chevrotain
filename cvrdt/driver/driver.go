@@ -12,7 +12,7 @@ var clients []*rpc.Client
 
 func main() {
 	/* Parse Group Membership */
-	clPorts, dbPorts, err := util.ParseGroupMembersCVS("ports.csv", "")
+	clPorts, _, dbPorts, err := util.ParseGroupMembersCVS("ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}

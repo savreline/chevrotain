@@ -95,7 +95,7 @@ func main() {
 // ConnectReplica connects this replica to others
 func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 	/* Parse Group Members */
-	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
+	ports, _, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
 	if err != nil {
 		util.PrintErr(err)
 	}
