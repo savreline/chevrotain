@@ -19,7 +19,7 @@ func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
 	InsertKeyLocal(args.Key)
 	calls := broadcastInsert(args.Key, "")
 	logger.StopBroadcast()
-	ensureCallsComplete(args.Key, "", calls)
+	waitForCallsToComplete(args.Key, "", calls)
 	return nil
 }
 

@@ -15,24 +15,14 @@ import (
 
 // InsertKeyRPC receives incoming insert key call
 func (t *RPCInt) InsertKeyRPC(args *util.KeyArgs, reply *int) error {
-	channel := make(chan vclock.VClock, 10)
-	lock.Lock()
-	chans[channel] = channel
-	lock.Unlock()
-	<-channel
-
+	waitForTurn()
 	InsertKeyLocal(args.Key)
 	return nil
 }
 
 // InsertValueRPC receives incoming insert value call
 func (t *RPCInt) InsertValueRPC(args *util.ValueArgs, reply *int) error {
-	channel := make(chan vclock.VClock, 10)
-	lock.Lock()
-	chans[channel] = channel
-	lock.Unlock()
-	<-channel
-
+	waitForTurn()
 	InsertValueLocal(args.Key, args.Value)
 	return nil
 }
@@ -72,7 +62,7 @@ func broadcastInsert(key string, value string) []*rpc.Call {
 }
 
 // Ensure broadcast completes and (optionally) log error
-func ensureCallsComplete(key string, value string, calls []*rpc.Call) {
+func waitForCallsToComplete(key string, value string, calls []*rpc.Call) {
 	for i, call := range calls {
 		if call != nil {
 			replyCall := <-call.Done
@@ -80,5 +70,30 @@ func ensureCallsComplete(key string, value string, calls []*rpc.Call) {
 				eLog = eLog + fmt.Sprint("To Repl: ", i, " Key: ", key, " Val: ", value, " : ", replyCall.Error) + "\n"
 			}
 		}
+	}
+}
+
+// Wait for the correct turn for the incoming RPC call
+func waitForTurn() {
+	/* Check if the RPC call needs to wait */
+	wait := true // broadcastClockValue(logger.GetCurrentVC())
+
+	if wait == true {
+		/* Make a channel to communicate on with this RPC call */
+		channel := make(chan vclock.VClock, 10)
+
+		/* Add the channel to the pool */
+		lock.Lock()
+		chans[channel] = channel
+		lock.Unlock()
+		broadcastClockValue(logger.GetCurrentVC()) // to be moved
+
+		/* Wait for the correct clock */
+		<-channel
+
+		/* Remove channel from the pool */
+		lock.Lock()
+		delete(chans, channel)
+		lock.Unlock()
 	}
 }

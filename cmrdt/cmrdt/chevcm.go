@@ -97,7 +97,6 @@ func main() {
 	util.PrintMsg(no, "RPC Internal Server Listening on "+iPort)
 	go eServer.Accept(e)
 	go vrpc.ServeRPCConn(iServer, i, logger, options)
-	go sendChans()
 	select {}
 }
 
@@ -128,13 +127,8 @@ func (t *RPCExt) TerminateReplica(args *util.ConnectArgs, reply *int) error {
 	return nil
 }
 
-func sendChans() {
-	for {
-		lock.Lock()
-		for _, channel := range chans {
-			channel <- logger.GetCurrentVC()
-			delete(chans, channel)
-		}
-		lock.Unlock()
+func broadcastClockValue(clockValue vclock.VClock) {
+	for _, channel := range chans {
+		channel <- clockValue
 	}
 }

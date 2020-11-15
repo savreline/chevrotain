@@ -19,7 +19,7 @@ func (t *RPCExt) InsertValue(args *util.ValueArgs, reply *int) error {
 	InsertValueLocal(args.Key, args.Value)
 	calls := broadcastInsert(args.Key, args.Value)
 	logger.StopBroadcast()
-	ensureCallsComplete(args.Key, args.Value, calls)
+	waitForCallsToComplete(args.Key, args.Value, calls)
 	return nil
 }
 
