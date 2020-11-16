@@ -87,8 +87,8 @@ func waitForTurn() {
 		/* Add the channel to the pool */
 		lock.Lock()
 		chans[channel] = channel
-		lock.Unlock()
 		broadcastClockValue(incomingClock.VcMap) // to be moved
+		lock.Unlock()
 
 		/* Wait for the correct clock */
 		<-channel
