@@ -11,8 +11,6 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/savreline/GoVector/govec"
-	"github.com/savreline/GoVector/govec/vrpc"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -52,17 +50,16 @@ func Connect(port string) (*mongo.Client, context.Context) {
 }
 
 // ParseGroupMembersCVS parses the supplied CVS group member file
-func ParseGroupMembersCVS(file string, port string) ([]string, []string, []string, error) {
+func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) {
 	// from https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	defer f.Close()
 
 	csvr := csv.NewReader(f)
-	ePorts := []string{}
-	iPorts := []string{}
+	ports := []string{}
 	dbPorts := []string{}
 
 	for {
@@ -71,21 +68,19 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, []strin
 			if err == io.EOF {
 				err = nil
 			}
-			return ePorts, iPorts, dbPorts, nil
+			return ports, dbPorts, nil
 		}
 
-		if row[1] != port {
-			ePorts = append(ePorts, row[0])
-			iPorts = append(iPorts, row[1])
-			dbPorts = append(dbPorts, row[2])
+		if row[0] != port {
+			ports = append(ports, row[0])
+			dbPorts = append(dbPorts, row[1])
 		}
 	}
 }
 
 // RPCClient makes an RPC connection
-func RPCClient(logger *govec.GoLog, port string, who string) *rpc.Client {
-	options := govec.GetDefaultLogOptions()
-	client, err := vrpc.RPCDial("tcp", "127.0.0.1:"+port, logger, options)
+func RPCClient(port string, who string) *rpc.Client {
+	client, err := rpc.Dial("tcp", "127.0.0.1:"+port)
 	if err != nil {
 		log.Fatal(err)
 	}

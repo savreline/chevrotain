@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net/rpc"
 	"os"
@@ -9,16 +8,14 @@ import (
 	"strings"
 
 	"../../util"
-	"github.com/savreline/GoVector/govec"
 )
 
 var ports []string
-var logger *govec.GoLog
 
 func main() {
 	/* Parse Group Membership */
 	var err error
-	ports, _, _, err = util.ParseGroupMembersCVS("ports.csv", "")
+	ports, _, err = util.ParseGroupMembersCVS("ports.csv", "")
 	if err != nil {
 		util.PrintErr(err)
 	}
@@ -148,14 +145,10 @@ func connectReplicas(no int) *rpc.Client {
 	var result int
 
 	/* Connect to the Replica */
-	conn, err := rpc.Dial("tcp", "localhost:"+ports[no])
-	if err != nil {
-		util.PrintErr(err)
-	}
-	fmt.Println("DRIVER: Connection made to " + ports[no])
+	conn := util.RPCClient(ports[no], "DRIVER : ")
 
 	/* Connect the Replica */
-	err = conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
+	err := conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
 	if err != nil {
 		util.PrintErr(err)
 	}

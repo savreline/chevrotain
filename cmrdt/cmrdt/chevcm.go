@@ -22,13 +22,11 @@ import (
 
 	"github.com/savreline/GoVector/govec"
 	"github.com/savreline/GoVector/govec/vclock"
-	"github.com/savreline/GoVector/govec/vrpc"
 )
 
 // Global variables
 var no int
-var ePort string
-var iPort string
+var port string
 var eLog string
 var conns []*rpc.Client
 var logger *govec.GoLog
@@ -55,9 +53,8 @@ func main() {
 	noReplicas, _ := strconv.Atoi(os.Args[1])
 	no, _ = strconv.Atoi(os.Args[2])
 	noStr := os.Args[2]
-	ePort = os.Args[3]
-	iPort = os.Args[4]
-	dbPort := os.Args[5]
+	port = os.Args[3]
+	dbPort := os.Args[4]
 	conns = make([]*rpc.Client, noReplicas)
 
 	/* Connect to MongoDB */
@@ -67,7 +64,6 @@ func main() {
 
 	/* Init vector clocks */
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
-	options := govec.GetDefaultLogOptions()
 
 	/* Pre-allocate Keys entry */
 	newRecord := Record{"Keys", []string{}}
@@ -77,40 +73,33 @@ func main() {
 	}
 
 	/* Init RPC */
-	eServer := rpc.NewServer()
-	iServer := rpc.NewServer()
+	server := rpc.NewServer()
 	rpcext := new(RPCExt)
 	rpcint := new(RPCInt)
-	eServer.Register(rpcext)
-	iServer.Register(rpcint)
-	e, err := net.Listen("tcp", ":"+ePort)
-	if err != nil {
-		log.Fatal("listen error:", err)
-	}
-	i, err := net.Listen("tcp", ":"+iPort)
+	server.Register(rpcext)
+	server.Register(rpcint)
+	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
 		log.Fatal("listen error:", err)
 	}
 
 	/* Start Server */
-	util.PrintMsg(no, "RPC External Server Listening on "+ePort)
-	util.PrintMsg(no, "RPC Internal Server Listening on "+iPort)
-	go eServer.Accept(e)
-	go vrpc.ServeRPCConn(iServer, i, logger, options)
+	util.PrintMsg(no, "Server Listening on "+port)
+	go server.Accept(l)
 	select {}
 }
 
 // ConnectReplica connects this replica to others
 func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 	/* Parse Group Members */
-	_, ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", iPort)
+	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
 	if err != nil {
 		util.PrintErr(err)
 	}
 
 	/* Make RPC Connections */
 	for i, port := range ports {
-		conns[i] = util.RPCClient(logger, port, "REPLICA "+strconv.Itoa(no)+": ")
+		conns[i] = util.RPCClient(port, "REPLICA "+strconv.Itoa(no)+": ")
 	}
 
 	return nil
