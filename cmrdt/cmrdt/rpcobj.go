@@ -10,7 +10,6 @@ import (
 	"net/rpc"
 
 	"../../util"
-	"github.com/savreline/GoVector/govec"
 	"github.com/savreline/GoVector/govec/vclock"
 )
 
@@ -94,7 +93,7 @@ func waitForTurn() {
 		<-channel
 
 		/* Merge clock */
-		logger.MergeIncomingClock("Incoming Broadcast", incomingClock, govec.GetDefaultLogOptions().Priority)
+		// logger.MergeIncomingClock("Incoming Broadcast", incomingClock, govec.GetDefaultLogOptions().Priority)
 
 		/* Remove channel from the pool */
 		lock.Lock()

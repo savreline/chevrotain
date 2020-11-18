@@ -9,16 +9,13 @@ import (
 	"context"
 
 	"../../util"
-	"github.com/savreline/GoVector/govec"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // InsertValue inserts value into the given key
 func (t *RPCExt) InsertValue(args *util.ValueArgs, reply *int) error {
-	logger.StartBroadcast(govec.GetDefaultLogOptions())
 	InsertValueLocal(args.Key, args.Value)
 	calls := broadcastInsert(args.Key, args.Value)
-	logger.StopBroadcast()
 	waitForCallsToComplete(args.Key, args.Value, calls)
 	return nil
 }
