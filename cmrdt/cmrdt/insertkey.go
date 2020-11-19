@@ -9,13 +9,16 @@ import (
 	"context"
 
 	"../../util"
+	"github.com/savreline/GoVector/govec"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // InsertKey inserts the given key with an empty array for values
 func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
+	logger.StartBroadcast("OUT"+noStr+" InsKey "+args.Key, govec.GetDefaultLogOptions())
 	InsertKeyLocal(args.Key)
 	calls := broadcastInsert(args.Key, "")
+	logger.StopBroadcast()
 	waitForCallsToComplete(args.Key, "", calls)
 	return nil
 }

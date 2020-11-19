@@ -10,19 +10,32 @@ import (
 	"net/rpc"
 
 	"../../util"
+	"github.com/savreline/GoVector/govec"
 	"github.com/savreline/GoVector/govec/vclock"
 )
 
+// KeyArgs are the arguments to the InsertKeyRPC call
+type KeyArgs struct {
+	Key   string
+	Clock vclock.VClock
+}
+
+// ValueArgs are the arguments to the InsertValueRPC call
+type ValueArgs struct {
+	Key, Value string
+	Clock      vclock.VClock
+}
+
 // InsertKeyRPC receives incoming insert key call
-func (t *RPCInt) InsertKeyRPC(args *util.KeyArgs, reply *int) error {
-	waitForTurn()
+func (t *RPCInt) InsertKeyRPC(args *KeyArgs, reply *int) error {
+	waitForTurn(args.Clock, args.Key, "")
 	InsertKeyLocal(args.Key)
 	return nil
 }
 
 // InsertValueRPC receives incoming insert value call
-func (t *RPCInt) InsertValueRPC(args *util.ValueArgs, reply *int) error {
-	waitForTurn()
+func (t *RPCInt) InsertValueRPC(args *ValueArgs, reply *int) error {
+	waitForTurn(args.Clock, args.Key, args.Value)
 	InsertValueLocal(args.Key, args.Value)
 	return nil
 }
@@ -47,10 +60,14 @@ func broadcastInsert(key string, value string) []*rpc.Call {
 			}
 			if value == "" {
 				fmt.Println("InsertKey RPC", no, "->", destNo)
-				calls[i] = client.Go("RPCInt.InsertKeyRPC", util.KeyArgs{Key: key}, &result, nil)
+				calls[i] = client.Go("RPCInt.InsertKeyRPC",
+					KeyArgs{Key: key, Clock: logger.GetCurrentVC()},
+					&result, nil)
 			} else {
 				fmt.Println("InsertValue RPC", no, "->", destNo)
-				calls[i] = client.Go("RPCInt.InsertValueRPC", util.ValueArgs{Key: key, Value: value}, &result, nil)
+				calls[i] = client.Go("RPCInt.InsertValueRPC",
+					ValueArgs{Key: key, Value: value, Clock: logger.GetCurrentVC()},
+					&result, nil)
 			}
 			if err != nil {
 				util.PrintErr(err)
@@ -63,20 +80,16 @@ func broadcastInsert(key string, value string) []*rpc.Call {
 
 // Ensure broadcast completes and (optionally) log error
 func waitForCallsToComplete(key string, value string, calls []*rpc.Call) {
-	for i, call := range calls {
+	for _, call := range calls {
 		if call != nil {
-			replyCall := <-call.Done
-			if verbose == true {
-				eLog = eLog + fmt.Sprint("To Repl: ", i, " Key: ", key, " Val: ", value, " : ", replyCall.Error) + "\n"
-			}
+			<-call.Done
 		}
 	}
 }
 
 // Wait for the correct turn for the incoming RPC call
-func waitForTurn() {
+func waitForTurn(clock vclock.VClock, key string, value string) {
 	/* Check if the RPC call needs to wait */
-	incomingClock := logger.GetIncomingVC()
 	wait := true // broadcastClockValue(logger.GetCurrentVC())
 
 	if wait == true {
@@ -86,14 +99,20 @@ func waitForTurn() {
 		/* Add the channel to the pool */
 		lock.Lock()
 		chans[channel] = channel
-		broadcastClockValue(incomingClock.VcMap) // to be moved
+		broadcastClockValue(clock) // to be moved
 		lock.Unlock()
 
 		/* Wait for the correct clock */
 		<-channel
 
 		/* Merge clock */
-		// logger.MergeIncomingClock("Incoming Broadcast", incomingClock, govec.GetDefaultLogOptions().Priority)
+		var msg string
+		if value == "" {
+			msg = "IN InsKey " + key
+		} else {
+			msg = "IN InsVal " + key + ":" + value
+		}
+		logger.MergeIncomingClock(msg, clock, govec.GetDefaultLogOptions().Priority)
 
 		/* Remove channel from the pool */
 		lock.Lock()

@@ -26,6 +26,7 @@ import (
 
 // Global variables
 var no int
+var noStr string
 var port string
 var eLog string
 var conns []*rpc.Client
@@ -52,7 +53,7 @@ func main() {
 	/* Parse args, initialize data structures */
 	noReplicas, _ := strconv.Atoi(os.Args[1])
 	no, _ = strconv.Atoi(os.Args[2])
-	noStr := os.Args[2]
+	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
 	conns = make([]*rpc.Client, noReplicas)
