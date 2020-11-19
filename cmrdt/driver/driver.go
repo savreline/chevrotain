@@ -41,13 +41,13 @@ func simpleTest(no int) {
 	conn := connectReplicas(no)
 
 	/* Inserts */
-	for i := 0; i < 3; i++ {
+	for i := 0; i < 50; i++ {
 		key := (no+1)*1000 + i
 		err := conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
-		for j := 0; j < 0; j++ {
+		for j := 0; j < 20; j++ {
 			val := (no+1)*100 + j
 			err := conn.Call("RPCExt.InsertValue",
 				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
@@ -58,7 +58,7 @@ func simpleTest(no int) {
 	}
 
 	/* Terminate */
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 	err := conn.Call("RPCExt.TerminateReplica", util.ConnectArgs{}, &result)
 	if err != nil {
 		util.PrintErr(err)

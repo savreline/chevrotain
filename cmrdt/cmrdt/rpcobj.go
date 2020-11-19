@@ -7,7 +7,9 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"net/rpc"
+	"time"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
@@ -53,6 +55,7 @@ func broadcastInsert(key string, value string) []*rpc.Call {
 		if i == no {
 			flag = true
 		}
+		time.Sleep(time.Duration(rand.Intn(delay)) * time.Millisecond)
 
 		if client != nil {
 			if flag {
@@ -93,10 +96,9 @@ func waitForCallsToComplete(key string, value string, calls []*rpc.Call) {
 func waitForTurn(incomingClock vclock.VClock, incomingPid string, key string, value string) {
 	/* Check if the RPC call needs to wait */
 	wait := true // broadcastClockValue(logger.GetCurrentVC())
-	eLog = eLog + fmt.Sprint("K: ", key) +
-		fmt.Sprint(" Current: ", logger.SafeGetCurrentVC()) +
-		fmt.Sprint(" Incoming: ", incomingClock) +
-		fmt.Sprint(" Comparison: ", logger.CompareBroadcastClock(incomingClock, incomingPid)) + "\n"
+	bval, str := logger.CompareBroadcastClock(incomingClock, incomingPid)
+	eLog = eLog + fmt.Sprint("K: ", key) + str +
+		fmt.Sprint(" Comparison: ", bval) + "\n"
 
 	if wait == true {
 		/* Make a channel to communicate on with this RPC call */

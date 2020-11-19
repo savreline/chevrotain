@@ -26,6 +26,7 @@ import (
 
 // Global variables
 var no int
+var delay int
 var noStr string
 var port string
 var pid string
@@ -57,6 +58,7 @@ func main() {
 	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
+	delay, _ = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
 
 	/* Connect to MongoDB */
