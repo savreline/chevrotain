@@ -28,13 +28,14 @@ import (
 var no int
 var noStr string
 var port string
+var pid string
 var eLog string
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
 var chans = make(map[chan vclock.VClock]chan vclock.VClock)
 var lock = &sync.Mutex{}
-var verbose = false
+var verbose = true
 
 // Record is a DB Record
 type Record struct {
@@ -64,7 +65,8 @@ func main() {
 	util.PrintMsg(no, "Connected to DB on "+dbPort)
 
 	/* Init vector clocks */
-	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
+	pid = "R" + noStr
+	logger = govec.InitGoVector(pid, pid, govec.GetDefaultConfig())
 
 	/* Pre-allocate Keys entry */
 	newRecord := Record{"Keys", []string{}}
