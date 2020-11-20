@@ -9,6 +9,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -31,6 +32,7 @@ var noStr string
 var port string
 var pid string
 var eLog string
+var iLog string
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
@@ -112,8 +114,13 @@ func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 
 // TerminateReplica writes to the log
 func (t *RPCExt) TerminateReplica(args *util.ConnectArgs, reply *int) error {
+	eLog = eLog + fmt.Sprint("Clock ", logger.GetCurrentVC())
 	if verbose == true {
-		err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".txt", []byte(eLog), 0644)
+		err := ioutil.WriteFile("eRepl"+strconv.Itoa(no)+".txt", []byte(eLog), 0644)
+		if err != nil {
+			panic(err)
+		}
+		err = ioutil.WriteFile("iRepl"+strconv.Itoa(no)+".txt", []byte(iLog), 0644)
 		if err != nil {
 			panic(err)
 		}

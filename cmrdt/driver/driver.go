@@ -41,13 +41,13 @@ func simpleTest(no int) {
 	conn := connectReplicas(no)
 
 	/* Inserts */
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 3; i++ {
 		key := (no+1)*1000 + i
 		err := conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
 		if err != nil {
 			util.PrintErr(err)
 		}
-		for j := 0; j < 20; j++ {
+		for j := 0; j < 0; j++ {
 			val := (no+1)*100 + j
 			err := conn.Call("RPCExt.InsertValue",
 				util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)

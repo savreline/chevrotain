@@ -55,7 +55,9 @@ func broadcastInsert(key string, value string) []*rpc.Call {
 		if i == no {
 			flag = true
 		}
-		time.Sleep(time.Duration(rand.Intn(delay)) * time.Millisecond)
+		if delay > 0 {
+			time.Sleep(time.Duration(rand.Intn(delay)) * time.Millisecond)
+		}
 
 		if client != nil {
 			if flag {
@@ -94,37 +96,42 @@ func waitForCallsToComplete(key string, value string, calls []*rpc.Call) {
 
 // Wait for the correct turn for the incoming RPC call
 func waitForTurn(incomingClock vclock.VClock, incomingPid string, key string, value string) {
-	/* Check if the RPC call needs to wait */
-	wait := true // broadcastClockValue(logger.GetCurrentVC())
-	bval, str := logger.CompareBroadcastClock(incomingClock, incomingPid)
-	eLog = eLog + fmt.Sprint("K: ", key) + str +
-		fmt.Sprint(" Comparison: ", bval) + "\n"
+	/* Broadcast the incoming value to see if it helps any waiting call */
+	broadcastClockValue(incomingClock)
 
-	if wait == true {
+	/* Check if this RPC call needs to wait */
+	ready, str := logger.CompareBroadcastClock(incomingClock, incomingPid)
+	eLog = eLog + fmt.Sprint("K: ", key) + str + fmt.Sprint(" Comparison: ", ready) + "\n"
+
+	if ready == false {
 		/* Make a channel to communicate on with this RPC call */
 		channel := make(chan vclock.VClock, 10)
 
 		/* Add the channel to the pool */
 		lock.Lock()
 		chans[channel] = channel
-		broadcastClockValue(incomingClock) // to be moved
 		lock.Unlock()
 
 		/* Wait for the correct clock */
-		<-channel
-
-		/* Merge clock */
-		var msg string
-		if value == "" {
-			msg = "IN InsKey " + key + " from " + incomingPid
-		} else {
-			msg = "IN InsVal " + key + ":" + value + " from " + incomingPid
+		i := 0
+		for ok := true; ok != ready; i++ {
+			recvClock := <-channel
+			ready, str = logger.CompareBroadcastClock(recvClock, incomingPid)
+			iLog = iLog + fmt.Sprint("K: ", key) + str + fmt.Sprint(" Comparison: ", ready) + fmt.Sprint(":", i) + "\n"
 		}
-		logger.MergeIncomingClock(msg, incomingClock, govec.GetDefaultLogOptions().Priority)
 
 		/* Remove channel from the pool */
 		lock.Lock()
 		delete(chans, channel)
 		lock.Unlock()
 	}
+
+	/* Merge clock */
+	var msg string
+	if value == "" {
+		msg = "IN InsKey " + key + " from " + incomingPid
+	} else {
+		msg = "IN InsVal " + key + ":" + value + " from " + incomingPid
+	}
+	logger.MergeIncomingClock(msg, incomingClock, govec.GetDefaultLogOptions().Priority)
 }
