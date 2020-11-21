@@ -15,7 +15,7 @@ func (t *RPCExt) InsertValue(args *util.ValueArgs, reply *int) error {
 		Type:      IV,
 		Key:       args.Key,
 		Value:     args.Value,
-		Timestamp: copyCurrentClock(),
+		Timestamp: logger.GetCurrentVC().Copy(),
 		Pid:       noStr,
 		ConcOp:    false}
 	logger.StopBroadcast()

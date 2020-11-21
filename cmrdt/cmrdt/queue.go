@@ -64,23 +64,21 @@ func addToQueue(node OpNode) {
 		return
 	}
 	for curNode := queue.Front(); curNode != nil; curNode = curNode.Next() {
-		a := node.Timestamp.Compare(curNode.Value.(OpNode).Timestamp, vclock.Ancestor)
-		c := node.Timestamp.Compare(curNode.Value.(OpNode).Timestamp, vclock.Concurrent)
-		e := node.Timestamp.Compare(curNode.Value.(OpNode).Timestamp, vclock.Equal)
+		cmp := node.Timestamp.CompareClocks(curNode.Value.(OpNode).Timestamp)
 
-		if c || e {
+		if cmp == 1 {
 			node.ConcOp = true
-			temp := curNode.Value.(OpNode)
-			temp.ConcOp = true
-			curNode.Value = temp
-			queue.InsertAfter(node, curNode)
-			break
-		}
-		if a {
 			queue.InsertBefore(node, curNode)
-			break
+			lock.Unlock()
+			return
+		}
+		if cmp == 2 {
+			queue.InsertBefore(node, curNode)
+			lock.Unlock()
+			return
 		}
 	}
+	queue.PushBack(node)
 	lock.Unlock()
 }
 

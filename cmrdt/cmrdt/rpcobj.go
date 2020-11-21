@@ -82,12 +82,3 @@ func waitForBroadcastToFinish(calls []*rpc.Call) {
 		}
 	}
 }
-
-// Make a copy of the current clock
-func copyCurrentClock() map[string]uint64 {
-	timestamp := make(map[string]uint64, len(logger.GetCurrentVC()))
-	for k, v := range logger.GetCurrentVC() {
-		timestamp[k] = v
-	}
-	return timestamp
-}

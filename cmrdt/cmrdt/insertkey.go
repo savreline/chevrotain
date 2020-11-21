@@ -14,7 +14,7 @@ func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
 		Type:      IK,
 		Key:       args.Key,
 		Value:     "",
-		Timestamp: copyCurrentClock(),
+		Timestamp: logger.GetCurrentVC().Copy(),
 		Pid:       noStr,
 		ConcOp:    false}
 	logger.StopBroadcast()
