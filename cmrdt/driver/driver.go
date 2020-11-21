@@ -12,16 +12,6 @@ import (
 // Global variables
 var ports []string
 
-// KeyArgs are the arguments to the InsertKey RPCExt call
-type KeyArgs struct {
-	Key string
-}
-
-// ValueArgs are the arguments to the InsertValue RPCExt call
-type ValueArgs struct {
-	Key, Value string
-}
-
 func main() {
 	/* Parse Group Membership */
 	var err error
@@ -52,14 +42,14 @@ func simpleTest(no int) {
 	/* Inserts */
 	for i := 0; i < 50; i++ {
 		key := (no+1)*1000 + i
-		conn.Call("RPCExt.InsertKey", KeyArgs{Key: strconv.Itoa(key)}, &result)
+		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
 
 		for j := 0; j < 20; j++ {
 			val := (no+1)*100 + j
-			conn.Call("RPCExt.InsertValue", ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
+			conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 			if err != nil {
 				util.PrintErr("DRIVER", err)
 			}
@@ -131,7 +121,7 @@ func loadPages(startPage string, no int) {
 		}
 
 		/* Insert Key */
-		err = conn.Call("RPCExt.InsertKey", KeyArgs{Key: curPage}, &result)
+		err = conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: curPage}, &result)
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
@@ -141,7 +131,7 @@ func loadPages(startPage string, no int) {
 			queue = append(queue, linkedPages[j])
 
 			/* Insert Value */
-			err = conn.Call("RPCExt.InsertValue", ValueArgs{Key: curPage, Value: linkedPages[j]}, &result)
+			err = conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: curPage, Value: linkedPages[j]}, &result)
 			if err != nil {
 				util.PrintErr("DRIVER", err)
 			}

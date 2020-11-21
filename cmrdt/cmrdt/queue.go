@@ -9,27 +9,28 @@ import (
 	"github.com/savreline/GoVector/govec/vclock"
 )
 
-// Operation code
-type Operation int
+// OpCode is an operation code
+type OpCode int
 
-// Operation codes
+// OpCodes
 const (
-	IK Operation = iota + 1
+	IK OpCode = iota + 1
 	IV
 	RK
 	RV
 )
 
-// QueueNode represents a node in the operation wait queue
-type QueueNode struct {
-	Type       Operation
+// OpNode represents a node in the operation wait queue
+type OpNode struct {
+	Type       OpCode
 	Key, Value string
 	Timestamp  vclock.VClock
-	// ConcOp     *QueueNode
+	Pid        string
+	ConcOp     bool
 }
 
 // translate operation code from string to op code
-func lookupOpCode(opName string) Operation {
+func lookupOpCode(opName string) OpCode {
 	if opName == "IK" {
 		return IK
 	} else if opName == "IV" {
@@ -54,7 +55,7 @@ func printQueue() {
 }
 
 // insert a node into the correct location in the queue
-func addToQueue(node QueueNode) {
+func addToQueue(node OpCode) {
 	lock.Lock()
 	// TODO
 	lock.Unlock()

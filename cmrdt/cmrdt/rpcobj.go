@@ -8,25 +8,24 @@ import (
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
-	"github.com/savreline/GoVector/govec/vclock"
 )
 
 // InsertKeyRPC receives incoming insert key call
-func (t *RPCInt) InsertKeyRPC(args *KeyArgs, reply *int) error {
-	queueCall(args.Key, "", args.Timestamp, args.Pid, IK)
+func (t *RPCInt) InsertKeyRPC(args *OpNode, reply *int) error {
+	queueCall(*args)
 	InsertKeyLocal(args.Key)
 	return nil
 }
 
 // InsertValueRPC receives incoming insert value call
-func (t *RPCInt) InsertValueRPC(args *ValueArgs, reply *int) error {
-	queueCall(args.Key, "", args.Timestamp, args.Pid, IV)
+func (t *RPCInt) InsertValueRPC(args *OpNode, reply *int) error {
+	queueCall(*args)
 	InsertValueLocal(args.Key, args.Value)
 	return nil
 }
 
 // broadcastInsert
-func broadcastInsert(key string, value string, timestamp vclock.VClock) []*rpc.Call {
+func broadcast(opNode OpNode) []*rpc.Call {
 	var result int
 	var destNo int
 	var err error
@@ -47,16 +46,12 @@ func broadcastInsert(key string, value string, timestamp vclock.VClock) []*rpc.C
 			} else {
 				destNo = i + 1
 			}
-			if value == "" {
+			if opNode.Value == "" {
 				fmt.Println("InsertKey RPC", no, "->", destNo)
-				calls[i] = client.Go("RPCInt.InsertKeyRPC",
-					KeyArgs{Key: key, Timestamp: timestamp, Pid: noStr},
-					&result, nil)
+				calls[i] = client.Go("RPCInt.InsertKeyRPC", opNode, &result, nil)
 			} else {
 				fmt.Println("InsertValue RPC", no, "->", destNo)
-				calls[i] = client.Go("RPCInt.InsertValueRPC",
-					ValueArgs{Key: key, Value: value, Timestamp: timestamp, Pid: noStr},
-					&result, nil)
+				calls[i] = client.Go("RPCInt.InsertValueRPC", opNode, &result, nil)
 			}
 			if err != nil {
 				util.PrintErr(noStr, err)
@@ -67,19 +62,18 @@ func broadcastInsert(key string, value string, timestamp vclock.VClock) []*rpc.C
 }
 
 // queueCall will place the call onto the queue
-func queueCall(key string, value string, timestamp vclock.VClock, pid string, opCode Operation) {
+func queueCall(opNode OpNode) {
 	/* Add operation to queue */
-	opNode := QueueNode{Key: key, Value: value, Timestamp: timestamp, Type: opCode}
 	queue.PushFront(opNode)
 
 	/* Merge clock */
 	var msg string
-	if value == "" {
-		msg = "IN InsKey " + key + " from " + pid
+	if opNode.Value == "" {
+		msg = "IN InsKey " + opNode.Key + " from " + opNode.Pid
 	} else {
-		msg = "IN InsVal " + key + ":" + value + " from " + pid
+		msg = "IN InsVal " + opNode.Key + ":" + opNode.Value + " from " + opNode.Pid
 	}
-	logger.MergeIncomingClock(msg, timestamp, govec.GetDefaultLogOptions().Priority)
+	logger.MergeIncomingClock(msg, opNode.Timestamp, govec.GetDefaultLogOptions().Priority)
 }
 
 // Ensure broadcast completes

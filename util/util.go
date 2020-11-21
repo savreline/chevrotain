@@ -23,6 +23,16 @@ type Record struct {
 type ConnectArgs struct {
 }
 
+// KeyArgs are the arguments to the InsertKey RPCExt call
+type KeyArgs struct {
+	Key string
+}
+
+// ValueArgs are the arguments to the InsertValue RPCExt call
+type ValueArgs struct {
+	Key, Value string
+}
+
 // Connect to MongoDB on the given port, as per https://www.mongodb.com/golang
 func Connect(no string, port string) (*mongo.Client, context.Context) {
 	urlString := "mongodb://localhost:" + port + "/"

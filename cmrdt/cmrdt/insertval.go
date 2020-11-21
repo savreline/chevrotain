@@ -5,22 +5,21 @@ import (
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
-	"github.com/savreline/GoVector/govec/vclock"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
-// ValueArgs are the arguments to the InsertValue RPCInt call
-type ValueArgs struct {
-	Key, Value string
-	Pid        string
-	Timestamp  vclock.VClock
-}
-
 // InsertValue inserts value into the given key
-func (t *RPCExt) InsertValue(args *ValueArgs, reply *int) error {
+func (t *RPCExt) InsertValue(args *util.ValueArgs, reply *int) error {
 	logger.StartBroadcast("OUT"+noStr+" InsKey "+args.Key, govec.GetDefaultLogOptions())
 	InsertValueLocal(args.Key, args.Value)
-	calls := broadcastInsert(args.Key, args.Value, logger.GetCurrentVC())
+	opNode := OpNode{
+		Type:      IV,
+		Key:       args.Key,
+		Value:     args.Value,
+		Timestamp: logger.GetCurrentVC(),
+		Pid:       noStr,
+		ConcOp:    false}
+	calls := broadcast(opNode)
 	logger.StopBroadcast()
 	waitForBroadcastToFinish(calls)
 	return nil

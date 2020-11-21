@@ -5,21 +5,20 @@ import (
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
-	"github.com/savreline/GoVector/govec/vclock"
 )
 
-// KeyArgs are the arguments to the InsertKey RPCInt call
-type KeyArgs struct {
-	Key       string
-	Pid       string
-	Timestamp vclock.VClock
-}
-
 // InsertKey inserts the given key with an empty array for values
-func (t *RPCExt) InsertKey(args *KeyArgs, reply *int) error {
+func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
 	logger.StartBroadcast("OUT"+noStr+" InsKey "+args.Key, govec.GetDefaultLogOptions())
 	InsertKeyLocal(args.Key)
-	calls := broadcastInsert(args.Key, "", logger.GetCurrentVC())
+	opNode := OpNode{
+		Type:      IK,
+		Key:       args.Key,
+		Value:     "",
+		Timestamp: logger.GetCurrentVC(),
+		Pid:       noStr,
+		ConcOp:    false}
+	calls := broadcast(opNode)
 	logger.StopBroadcast()
 	waitForBroadcastToFinish(calls)
 	return nil
