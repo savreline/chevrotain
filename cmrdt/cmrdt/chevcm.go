@@ -21,6 +21,7 @@ var noStr string
 var port string
 var delay int
 var eLog string
+var curTick = 1
 var queue *list.List
 var lock sync.Mutex
 var conns []*rpc.Client
@@ -70,7 +71,7 @@ func main() {
 	/* Start Server */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
-	go eliminateConcOps()
+	go processQueue()
 	select {}
 }
 
