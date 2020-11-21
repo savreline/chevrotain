@@ -1,16 +1,7 @@
 package main
 
-/* In this file:
-0. Globals: conns, logger, db, no, port
-	Definitions: Record, RPCExt, RPCInt
-1. Main (connet to db, init clocks, init keys entry, start up RPC server)
-2. ConnectReplica (make conns to other replicas)
-*/
-
 import (
-	"context"
 	"io/ioutil"
-	"log"
 	"net"
 	"net/rpc"
 	"os"
@@ -20,23 +11,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 
 	"github.com/savreline/GoVector/govec"
-	"github.com/savreline/GoVector/govec/vrpc"
 )
 
 // Global variables
 var no int
+var noStr string
 var port string
+var delay int
 var eLog string
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
 var verbose = false
-
-// Record is a DB Record
-type Record struct {
-	Name   string   `json:"name"`
-	Values []string `json:"values"`
-}
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -47,43 +33,38 @@ type RPCInt int
 // Makes connection to the database, starts up the RPC server
 func main() {
 	/* Parse args, initialize data structures */
-	noReplicas, _ := strconv.Atoi(os.Args[1])
-	no, _ = strconv.Atoi(os.Args[2])
-	noStr := os.Args[2]
+	noReplicas, err := strconv.Atoi(os.Args[1])
+	no, err = strconv.Atoi(os.Args[2])
+	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
+	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
+	if err != nil {
+		util.PrintErr(noStr, err)
+	}
 
 	/* Connect to MongoDB */
-	dbClient, _ := util.Connect(dbPort)
+	dbClient, _ := util.Connect(noStr, dbPort)
 	db = dbClient.Database("chev")
-	util.PrintMsg(no, "Connected to DB on "+dbPort)
+	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
 
 	/* Init vector clocks */
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
-	options := govec.GetDefaultLogOptions()
-
-	/* Pre-allocate Keys entry */
-	newRecord := Record{"Keys", []string{}}
-	_, err := db.Collection("kvs").InsertOne(context.TODO(), newRecord)
-	if err != nil {
-		util.PrintErr(err)
-	}
 
 	/* Init RPC */
-	server := rpc.NewServer()
-	rpcint := new(RPCInt)
 	rpcext := new(RPCExt)
-	server.Register(rpcint)
-	server.Register(rpcext)
-	l, e := net.Listen("tcp", ":"+port)
-	if e != nil {
-		log.Fatal("listen error:", e)
+	rpcint := new(RPCInt)
+	rpc.Register(rpcint)
+	rpc.Register(rpcext)
+	l, err := net.Listen("tcp", ":"+port)
+	if err != nil {
+		util.PrintErr(noStr, err)
 	}
 
 	/* Start Server */
-	util.PrintMsg(no, "RPC Server Listening on "+port)
-	go vrpc.ServeRPCConn(server, l, logger, options)
+	util.PrintMsg(noStr, "RPC Server Listening on "+port)
+	go rpc.Accept(l)
 	select {}
 }
 
@@ -92,23 +73,23 @@ func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 	/* Parse Group Members */
 	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
 	if err != nil {
-		util.PrintErr(err)
+		util.PrintErr(noStr, err)
 	}
 
 	/* Make RPC Connections */
 	for i, port := range ports {
-		conns[i] = util.RPCClient(logger, port, "REPLICA "+strconv.Itoa(no)+": ")
+		conns[i] = util.RPCClient(noStr, port)
 	}
 
 	return nil
 }
 
-// TerminateReplica writes to the log
+// TerminateReplica saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.ConnectArgs, reply *int) error {
 	if verbose == true {
-		err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".txt", []byte(eLog), 0644)
+		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
-			panic(err)
+			util.PrintErr(noStr, err)
 		}
 	}
 	return nil

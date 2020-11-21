@@ -1,45 +1,36 @@
 package main
 
-/* In this file
-1. InsertKey Ext RPC method
-2. InsertKeyLocal (that works with the local db)
-*/
-
 import (
 	"context"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
-	"go.mongodb.org/mongo-driver/bson"
+	"github.com/savreline/GoVector/govec/vclock"
 )
 
+// KeyArgs are the arguments to the InsertKey RPCInt call
+type KeyArgs struct {
+	Key       string
+	Pid       string
+	Timestamp vclock.VClock
+}
+
 // InsertKey inserts the given key with an empty array for values
-func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
+func (t *RPCExt) InsertKey(args *KeyArgs, reply *int) error {
+	logger.StartBroadcast("OUT"+noStr+" InsKey "+args.Key, govec.GetDefaultLogOptions())
 	InsertKeyLocal(args.Key)
-	broadcastInsert(args.Key, "")
+	calls := broadcastInsert(args.Key, "", logger.GetCurrentVC())
+	logger.StopBroadcast()
+	waitForBroadcastToFinish(calls)
 	return nil
 }
 
 // InsertKeyLocal inserts the key into the local db
 func InsertKeyLocal(key string) {
-	logger.LogLocalEvent("Inserting Key"+key, govec.GetDefaultLogOptions())
-	filter := bson.D{{Key: "name", Value: "Keys"}}
-	update := bson.D{{Key: "$push", Value: bson.D{
-		{Key: "values", Value: key}}}}
-
-	/* Update global keys entry */
-	_, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
+	newRecord := util.Record{Name: key, Values: []string{}}
+	_, err := db.Collection("kvs").InsertOne(context.TODO(), newRecord)
 	if err != nil {
-		util.PrintErr(err)
+		util.PrintErr(noStr, err)
 	}
-	// fmt.Printf("REPLICA "+strconv.Itoa(no)+": Matched %v documents and updated %v documents.\n",
-	// 	updateResult.MatchedCount, updateResult.ModifiedCount)
-
-	/* Insert entry for the given key */
-	newRecord := Record{key, []string{}}
-	_, err = db.Collection("kvs").InsertOne(context.TODO(), newRecord)
-	if err != nil {
-		util.PrintErr(err)
-	}
-	util.PrintMsg(no, "Inserted Key "+key)
+	util.PrintMsg(noStr, "Inserted Key "+key)
 }
