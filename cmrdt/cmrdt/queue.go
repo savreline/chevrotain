@@ -51,13 +51,36 @@ func printQueue() {
 	for n := queue.Front(); n != nil; n = n.Next() {
 		eLog = eLog + fmt.Sprintln(n.Value)
 	}
+	eLog = eLog + "\n"
 	lock.Unlock()
 }
 
 // insert a node into the correct location in the queue
-func addToQueue(node OpCode) {
+func addToQueue(node OpNode) {
 	lock.Lock()
-	// TODO
+	if queue.Front() == nil {
+		queue.PushFront(node)
+		lock.Unlock()
+		return
+	}
+	for curNode := queue.Front(); curNode != nil; curNode = curNode.Next() {
+		a := node.Timestamp.Compare(curNode.Value.(OpNode).Timestamp, vclock.Ancestor)
+		c := node.Timestamp.Compare(curNode.Value.(OpNode).Timestamp, vclock.Concurrent)
+		e := node.Timestamp.Compare(curNode.Value.(OpNode).Timestamp, vclock.Equal)
+
+		if c || e {
+			node.ConcOp = true
+			temp := curNode.Value.(OpNode)
+			temp.ConcOp = true
+			curNode.Value = temp
+			queue.InsertAfter(node, curNode)
+			break
+		}
+		if a {
+			queue.InsertBefore(node, curNode)
+			break
+		}
+	}
 	lock.Unlock()
 }
 

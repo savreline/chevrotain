@@ -10,16 +10,16 @@ import (
 // InsertKey inserts the given key with an empty array for values
 func (t *RPCExt) InsertKey(args *util.KeyArgs, reply *int) error {
 	logger.StartBroadcast("OUT"+noStr+" InsKey "+args.Key, govec.GetDefaultLogOptions())
-	InsertKeyLocal(args.Key)
 	opNode := OpNode{
 		Type:      IK,
 		Key:       args.Key,
 		Value:     "",
-		Timestamp: logger.GetCurrentVC(),
+		Timestamp: copyCurrentClock(),
 		Pid:       noStr,
 		ConcOp:    false}
-	calls := broadcast(opNode)
 	logger.StopBroadcast()
+	addToQueue(opNode)
+	calls := broadcast(opNode)
 	waitForBroadcastToFinish(calls)
 	return nil
 }

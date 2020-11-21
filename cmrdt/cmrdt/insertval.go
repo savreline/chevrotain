@@ -11,16 +11,16 @@ import (
 // InsertValue inserts value into the given key
 func (t *RPCExt) InsertValue(args *util.ValueArgs, reply *int) error {
 	logger.StartBroadcast("OUT"+noStr+" InsKey "+args.Key, govec.GetDefaultLogOptions())
-	InsertValueLocal(args.Key, args.Value)
 	opNode := OpNode{
 		Type:      IV,
 		Key:       args.Key,
 		Value:     args.Value,
-		Timestamp: logger.GetCurrentVC(),
+		Timestamp: copyCurrentClock(),
 		Pid:       noStr,
 		ConcOp:    false}
-	calls := broadcast(opNode)
 	logger.StopBroadcast()
+	addToQueue(opNode)
+	calls := broadcast(opNode)
 	waitForBroadcastToFinish(calls)
 	return nil
 }

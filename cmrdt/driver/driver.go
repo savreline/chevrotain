@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"../../util"
 )
@@ -57,10 +58,12 @@ func simpleTest(no int) {
 	}
 
 	/* Terminate */
+	time.Sleep(3 * time.Second)
 	err = conn.Call("RPCExt.TerminateReplica", util.ConnectArgs{}, &result)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
+	util.PrintMsg("DRIVER", "Done on "+ports[no])
 }
 
 // wikiTest

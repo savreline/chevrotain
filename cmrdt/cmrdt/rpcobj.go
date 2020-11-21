@@ -13,14 +13,12 @@ import (
 // InsertKeyRPC receives incoming insert key call
 func (t *RPCInt) InsertKeyRPC(args *OpNode, reply *int) error {
 	queueCall(*args)
-	InsertKeyLocal(args.Key)
 	return nil
 }
 
 // InsertValueRPC receives incoming insert value call
 func (t *RPCInt) InsertValueRPC(args *OpNode, reply *int) error {
 	queueCall(*args)
-	InsertValueLocal(args.Key, args.Value)
 	return nil
 }
 
@@ -64,7 +62,7 @@ func broadcast(opNode OpNode) []*rpc.Call {
 // queueCall will place the call onto the queue
 func queueCall(opNode OpNode) {
 	/* Add operation to queue */
-	queue.PushFront(opNode)
+	addToQueue(opNode)
 
 	/* Merge clock */
 	var msg string
@@ -83,4 +81,13 @@ func waitForBroadcastToFinish(calls []*rpc.Call) {
 			<-call.Done
 		}
 	}
+}
+
+// Make a copy of the current clock
+func copyCurrentClock() map[string]uint64 {
+	timestamp := make(map[string]uint64, len(logger.GetCurrentVC()))
+	for k, v := range logger.GetCurrentVC() {
+		timestamp[k] = v
+	}
+	return timestamp
 }
