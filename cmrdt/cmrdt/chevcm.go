@@ -1,11 +1,13 @@
 package main
 
 import (
+	"container/list"
 	"io/ioutil"
 	"net"
 	"net/rpc"
 	"os"
 	"strconv"
+	"sync"
 
 	"../../util"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -19,10 +21,12 @@ var noStr string
 var port string
 var delay int
 var eLog string
+var queue *list.List
+var lock sync.Mutex
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
-var verbose = false
+var verbose = true
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -40,6 +44,7 @@ func main() {
 	dbPort := os.Args[4]
 	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
+	queue = list.New()
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
@@ -65,6 +70,7 @@ func main() {
 	/* Start Server */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
+	go eliminateConcOps()
 	select {}
 }
 
@@ -86,6 +92,7 @@ func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 
 // TerminateReplica saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.ConnectArgs, reply *int) error {
+	printQueue()
 	if verbose == true {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {

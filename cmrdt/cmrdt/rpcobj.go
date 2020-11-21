@@ -13,14 +13,14 @@ import (
 
 // InsertKeyRPC receives incoming insert key call
 func (t *RPCInt) InsertKeyRPC(args *KeyArgs, reply *int) error {
-	queueCall(args.Key, "", args.Timestamp, args.Pid)
+	queueCall(args.Key, "", args.Timestamp, args.Pid, IK)
 	InsertKeyLocal(args.Key)
 	return nil
 }
 
 // InsertValueRPC receives incoming insert value call
 func (t *RPCInt) InsertValueRPC(args *ValueArgs, reply *int) error {
-	queueCall(args.Key, "", args.Timestamp, args.Pid)
+	queueCall(args.Key, "", args.Timestamp, args.Pid, IV)
 	InsertValueLocal(args.Key, args.Value)
 	return nil
 }
@@ -67,7 +67,11 @@ func broadcastInsert(key string, value string, timestamp vclock.VClock) []*rpc.C
 }
 
 // queueCall will place the call onto the queue
-func queueCall(key string, value string, timestamp vclock.VClock, pid string) {
+func queueCall(key string, value string, timestamp vclock.VClock, pid string, opCode Operation) {
+	/* Add operation to queue */
+	opNode := QueueNode{Key: key, Value: value, Timestamp: timestamp, Type: opCode}
+	queue.PushFront(opNode)
+
 	/* Merge clock */
 	var msg string
 	if value == "" {
