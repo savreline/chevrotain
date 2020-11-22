@@ -12,17 +12,17 @@ import (
 
 // InsertKeyRPC receives incoming insert key call
 func (t *RPCInt) InsertKeyRPC(args *OpNode, reply *int) error {
-	queueCall(*args)
+	processIntCall(*args)
 	return nil
 }
 
 // InsertValueRPC receives incoming insert value call
 func (t *RPCInt) InsertValueRPC(args *OpNode, reply *int) error {
-	queueCall(*args)
+	processIntCall(*args)
 	return nil
 }
 
-// broadcastInsert
+// broadcast an operation
 func broadcast(opNode OpNode) []*rpc.Call {
 	var result int
 	var destNo int
@@ -59,8 +59,25 @@ func broadcast(opNode OpNode) []*rpc.Call {
 	return calls
 }
 
-// queueCall will place the call onto the queue
-func queueCall(opNode OpNode) {
+// process an external RPC call
+func processExtCall(args util.RPCExtArgs, opCode OpCode) {
+	logger.StartBroadcast("OUT "+noStr+": "+lookupOpCode(opCode)+" : "+args.Key+" : "+args.Value,
+		govec.GetDefaultLogOptions())
+	opNode := OpNode{
+		Type:      opCode,
+		Key:       args.Key,
+		Value:     args.Value,
+		Timestamp: logger.GetCurrentVC().Copy(),
+		Pid:       noStr,
+		ConcOp:    false}
+	logger.StopBroadcast()
+	addToQueue(opNode)
+	calls := broadcast(opNode)
+	waitForBroadcastToFinish(calls)
+}
+
+// process an internal RPC call
+func processIntCall(opNode OpNode) {
 	/* Add operation to queue */
 	addToQueue(opNode)
 

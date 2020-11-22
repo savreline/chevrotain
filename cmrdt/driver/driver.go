@@ -35,22 +35,22 @@ func simpleTest(no int) {
 	/* Connect to the Replica and Connect the Replica */
 	var result int
 	conn := util.RPCClient("DRIVER", ports[no])
-	err := conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
+	err := conn.Call("RPCExt.ConnectReplica", util.RPCExtArgs{}, &result)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
 
 	/* Inserts */
-	for i := 0; i < 50; i++ {
+	for i := 0; i < 10; i++ {
 		key := (no+1)*1000 + i
-		conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: strconv.Itoa(key)}, &result)
+		conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: strconv.Itoa(key)}, &result)
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
 
-		for j := 0; j < 20; j++ {
+		for j := 0; j < 3; j++ {
 			val := (no+1)*100 + j
-			conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
+			conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 			if err != nil {
 				util.PrintErr("DRIVER", err)
 			}
@@ -59,7 +59,7 @@ func simpleTest(no int) {
 
 	/* Terminate */
 	time.Sleep(3 * time.Second)
-	err = conn.Call("RPCExt.TerminateReplica", util.ConnectArgs{}, &result)
+	err = conn.Call("RPCExt.TerminateReplica", util.RPCExtArgs{}, &result)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
@@ -82,7 +82,7 @@ func loadPages(startPage string, no int) {
 	/* Connect to the Replica and Connect the Replica */
 	var result int
 	conn := util.RPCClient("DRIVER", ports[no])
-	err := conn.Call("RPCExt.ConnectReplica", util.ConnectArgs{}, &result)
+	err := conn.Call("RPCExt.ConnectReplica", util.RPCExtArgs{}, &result)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
@@ -124,7 +124,7 @@ func loadPages(startPage string, no int) {
 		}
 
 		/* Insert Key */
-		err = conn.Call("RPCExt.InsertKey", util.KeyArgs{Key: curPage}, &result)
+		err = conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: curPage}, &result)
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
@@ -134,7 +134,7 @@ func loadPages(startPage string, no int) {
 			queue = append(queue, linkedPages[j])
 
 			/* Insert Value */
-			err = conn.Call("RPCExt.InsertValue", util.ValueArgs{Key: curPage, Value: linkedPages[j]}, &result)
+			err = conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: curPage, Value: linkedPages[j]}, &result)
 			if err != nil {
 				util.PrintErr("DRIVER", err)
 			}
@@ -142,7 +142,7 @@ func loadPages(startPage string, no int) {
 	}
 
 	/* Terminate */
-	err = conn.Call("RPCExt.TerminateReplica", util.ConnectArgs{}, &result)
+	err = conn.Call("RPCExt.TerminateReplica", util.RPCExtArgs{}, &result)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}

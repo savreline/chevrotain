@@ -76,7 +76,7 @@ func main() {
 }
 
 // ConnectReplica connects this replica to others
-func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
+func (t *RPCExt) ConnectReplica(args *util.RPCExtArgs, reply *int) error {
 	/* Parse Group Members */
 	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
 	if err != nil {
@@ -92,8 +92,7 @@ func (t *RPCExt) ConnectReplica(args *util.ConnectArgs, reply *int) error {
 }
 
 // TerminateReplica saves the logs to disk
-func (t *RPCExt) TerminateReplica(args *util.ConnectArgs, reply *int) error {
-	printQueue()
+func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	if verbose == true {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {

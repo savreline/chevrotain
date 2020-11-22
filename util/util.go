@@ -19,17 +19,8 @@ type Record struct {
 	Values []string `json:"values"`
 }
 
-// ConnectArgs are the arguments to the ConnectReplica call (a dummy structure)
-type ConnectArgs struct {
-}
-
-// KeyArgs are the arguments to the InsertKey RPCExt call
-type KeyArgs struct {
-	Key string
-}
-
-// ValueArgs are the arguments to the InsertValue RPCExt call
-type ValueArgs struct {
+// RPCExtArgs are the arguments to any RPCExt Call
+type RPCExtArgs struct {
 	Key, Value string
 }
 

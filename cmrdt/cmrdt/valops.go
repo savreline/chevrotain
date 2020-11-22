@@ -4,24 +4,18 @@ import (
 	"context"
 
 	"../../util"
-	"github.com/savreline/GoVector/govec"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // InsertValue inserts value into the given key
-func (t *RPCExt) InsertValue(args *util.ValueArgs, reply *int) error {
-	logger.StartBroadcast("OUT"+noStr+" InsKey "+args.Key, govec.GetDefaultLogOptions())
-	opNode := OpNode{
-		Type:      IV,
-		Key:       args.Key,
-		Value:     args.Value,
-		Timestamp: logger.GetCurrentVC().Copy(),
-		Pid:       noStr,
-		ConcOp:    false}
-	logger.StopBroadcast()
-	addToQueue(opNode)
-	calls := broadcast(opNode)
-	waitForBroadcastToFinish(calls)
+func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
+	processExtCall(*args, IV)
+	return nil
+}
+
+// RemoveValue givens the value from the given key
+func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
+	processExtCall(*args, RV)
 	return nil
 }
 

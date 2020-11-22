@@ -32,29 +32,26 @@ type OpNode struct {
 }
 
 // translate operation code from string to op code
-func lookupOpCode(opName string) OpCode {
-	if opName == "IK" {
-		return IK
-	} else if opName == "IV" {
-		return IV
-	} else if opName == "RK" {
-		return RK
-	} else if opName == "RV" {
-		return RV
+func lookupOpCode(opCode OpCode) string {
+	if opCode == IK {
+		return "IK"
+	} else if opCode == IV {
+		return "IV"
+	} else if opCode == RK {
+		return "RK"
+	} else if opCode == RV {
+		return "RV"
 	} else {
 		util.PrintErr(noStr, errors.New("lookupOpCode: unknown operation"))
-		return 0
+		return ""
 	}
 }
 
 // Print the Queue
 func printQueue() {
-	lock.Lock()
 	for n := queue.Front(); n != nil; n = n.Next() {
 		eLog = eLog + fmt.Sprintln(n.Value)
 	}
-	eLog = eLog + "\n"
-	lock.Unlock()
 }
 
 // insert a node into the correct location in the queue
@@ -87,7 +84,7 @@ func addToQueue(node OpNode) {
 // process some of the operations that are queued up
 func processQueue() {
 	for {
-		time.Sleep(2 * time.Second)
+		time.Sleep(250 * time.Millisecond)
 		lock.Lock()
 		eliminateConcOps()
 		processQueueHelper()
@@ -98,6 +95,10 @@ func processQueue() {
 // processQueueHelper does the actual processing of queue operations
 func processQueueHelper() {
 	updateCurTick()
+	if queue.Front() != nil {
+		eLog = eLog + "\n" + "BEFORE\n"
+	}
+	printQueue()
 
 	for n := queue.Front(); n != nil; {
 		opNode := n.Value.(OpNode)
@@ -105,6 +106,10 @@ func processQueueHelper() {
 		/* Stop if any timestamp is exceeding the current safe tick */
 		for i := 0; i < len(conns); i++ {
 			if int(opNode.Timestamp["R"+strconv.Itoa(i+1)]) > curTick {
+				if queue.Front() != nil {
+					eLog = eLog + "\n" + "AFTER\n"
+				}
+				printQueue()
 				return
 			}
 		}
@@ -147,7 +152,12 @@ func updateCurTick() {
 
 	/* Determine the earliest timestamp for all replicas */
 	curTick = min(b)
-	eLog = eLog + fmt.Sprint(a) + ":" + fmt.Sprint(curTick) + "\n"
+	for i := 0; i < noReplicas; i++ {
+		if len(a[i]) > 0 {
+			eLog = eLog + fmt.Sprintln(a[i])
+		}
+	}
+	eLog = eLog + ":" + fmt.Sprintln(curTick) + "\n"
 }
 
 // determine the latest timestamp per replica
