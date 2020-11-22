@@ -21,6 +21,7 @@ var noStr string
 var port string
 var delay int
 var eLog string
+var iLog string
 var curTick = 1
 var queue *list.List
 var lock sync.Mutex
@@ -95,6 +96,10 @@ func (t *RPCExt) ConnectReplica(args *util.RPCExtArgs, reply *int) error {
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	if verbose == true {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
+		if err != nil {
+			util.PrintErr(noStr, err)
+		}
+		err = ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, err)
 		}

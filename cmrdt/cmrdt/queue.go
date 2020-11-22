@@ -84,7 +84,7 @@ func addToQueue(node OpNode) {
 // process some of the operations that are queued up
 func processQueue() {
 	for {
-		time.Sleep(250 * time.Millisecond)
+		time.Sleep(2000 * time.Millisecond)
 		lock.Lock()
 		eliminateConcOps()
 		processQueueHelper()

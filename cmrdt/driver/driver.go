@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -41,19 +42,26 @@ func simpleTest(no int) {
 	}
 
 	/* Inserts */
-	for i := 0; i < 10; i++ {
-		key := (no+1)*1000 + i
+	k := 0
+	for i := 0; i < 50; i++ {
+		key := (no+1)*100 + i
 		conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: strconv.Itoa(key)}, &result)
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
+		time.Sleep(50 * time.Millisecond)
+		// }
 
-		for j := 0; j < 3; j++ {
-			val := (no+1)*100 + j
+		// for i := 0; i < 50; i++ {
+		// 	key := (no+1)*100 + i
+		for j := 0; j < 20; j++ {
+			val := (no+1)*1000 + k
 			conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 			if err != nil {
 				util.PrintErr("DRIVER", err)
 			}
+			time.Sleep(50 * time.Millisecond)
+			k++
 		}
 	}
 
@@ -146,4 +154,13 @@ func loadPages(startPage string, no int) {
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
+}
+
+// https://golang.cafe/blog/golang-random-number-generator.html
+func getRand() int {
+	rand.Seed(time.Now().UnixNano())
+	min := 10
+	max := 1000
+	res := rand.Intn(max-min+1) + min
+	return res
 }
