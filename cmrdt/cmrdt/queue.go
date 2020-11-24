@@ -31,6 +31,12 @@ type OpNode struct {
 	ConcOp     bool
 }
 
+// ListNode is a node in the linked list queue
+type ListNode struct {
+	Data OpNode
+	Next *ListNode
+}
+
 // translate operation code from string to op code
 func lookupOpCode(opCode OpCode) string {
 	if opCode == IK {
@@ -49,35 +55,50 @@ func lookupOpCode(opCode OpCode) string {
 
 // Print the Queue
 func printQueue() {
-	for n := queue.Front(); n != nil; n = n.Next() {
-		eLog = eLog + fmt.Sprintln(n.Value)
+	for n := queue; n != nil; n = n.Next {
+		eLog = eLog + fmt.Sprintln(n.Data)
 	}
 }
 
 // insert a node into the correct location in the queue
 func addToQueue(node OpNode) {
 	lock.Lock()
-	if queue.Front() == nil {
-		queue.PushFront(node)
+
+	/* Case 1: Empty Queue */
+	if queue == nil {
+		queue = &ListNode{Data: node, Next: nil}
 		lock.Unlock()
 		return
 	}
-	for curNode := queue.Front(); curNode != nil; curNode = curNode.Next() {
-		cmp := node.Timestamp.CompareClocks(curNode.Value.(OpNode).Timestamp)
+
+	/* Case 2: Insertion at the Head */
+	cmp := node.Timestamp.CompareClocks(queue.Data.Timestamp)
+	if cmp == 1 {
+		node.ConcOp = true
+	}
+	if cmp == 1 || cmp == 2 {
+		queue = &ListNode{Data: node, Next: queue}
+		lock.Unlock()
+		return
+	}
+
+	/* Case 3: Insertion in the Middle */
+	curNode := queue
+	for ; curNode.Next != nil; curNode = curNode.Next {
+		cmp := node.Timestamp.CompareClocks(curNode.Next.Data.Timestamp)
 
 		if cmp == 1 {
 			node.ConcOp = true
-			queue.InsertBefore(node, curNode)
-			lock.Unlock()
-			return
 		}
-		if cmp == 2 {
-			queue.InsertBefore(node, curNode)
+		if cmp == 1 || cmp == 2 {
+			curNode.Next = &ListNode{Data: node, Next: curNode.Next}
 			lock.Unlock()
 			return
 		}
 	}
-	queue.PushBack(node)
+
+	/* Case 4: Insertion at the Tail */
+	curNode.Next = &ListNode{Data: node, Next: nil}
 	lock.Unlock()
 }
 
@@ -95,18 +116,18 @@ func processQueue() {
 // processQueueHelper does the actual processing of queue operations
 func processQueueHelper() {
 	updateCurTick()
-	if queue.Front() != nil {
+	if queue != nil {
 		eLog = eLog + "\n" + "BEFORE\n"
 	}
 	printQueue()
 
-	for n := queue.Front(); n != nil; {
-		opNode := n.Value.(OpNode)
+	for queue != nil {
+		opNode := queue.Data
 
 		/* Stop if any timestamp is exceeding the current safe tick */
 		for i := 0; i < len(conns); i++ {
 			if int(opNode.Timestamp["R"+strconv.Itoa(i+1)]) > curTick {
-				if queue.Front() != nil {
+				if queue != nil {
 					eLog = eLog + "\n" + "AFTER\n"
 				}
 				printQueue()
@@ -121,10 +142,8 @@ func processQueueHelper() {
 			InsertValueLocal(opNode.Key, opNode.Value)
 		}
 
-		/* Delete the associated node */
-		temp := n
-		n = n.Next()
-		queue.Remove(temp)
+		/* Remove Node */
+		queue = queue.Next
 	}
 }
 
@@ -134,9 +153,9 @@ func updateCurTick() {
 
 	/* Gather all current timestamps */
 	a := make([][]int, noReplicas)
-	for n := queue.Front(); n != nil; n = n.Next() {
+	for n := queue; n != nil; n = n.Next {
 		for i := 0; i < noReplicas; i++ {
-			a[i] = append(a[i], int(n.Value.(OpNode).Timestamp["R"+strconv.Itoa(i+1)]))
+			a[i] = append(a[i], int(n.Data.Timestamp["R"+strconv.Itoa(i+1)]))
 		}
 	}
 

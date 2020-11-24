@@ -1,7 +1,6 @@
 package main
 
 import (
-	"container/list"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -23,7 +22,7 @@ var delay int
 var eLog string
 var iLog string
 var curTick = 1
-var queue *list.List
+var queue *ListNode
 var lock sync.Mutex
 var conns []*rpc.Client
 var logger *govec.GoLog
@@ -46,7 +45,6 @@ func main() {
 	dbPort := os.Args[4]
 	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
-	queue = list.New()
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
