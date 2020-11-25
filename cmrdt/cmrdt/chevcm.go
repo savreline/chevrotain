@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -48,6 +49,16 @@ func main() {
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
+
+	// queueTest123()
+	// queueTest321()
+	// queueTest132()
+	// queueTest13524()
+	// queueTest24531()
+	queueTestAdv()
+	fmt.Println(eLog)
+	processConcOps()
+	os.Exit(0)
 
 	/* Connect to MongoDB */
 	dbClient, _ := util.Connect(noStr, dbPort)

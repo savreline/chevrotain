@@ -144,15 +144,36 @@ func initAdvExamples() {
 	maps[7] = map[string]uint64{
 		"R3": 2,
 	}
-	for i := 0; i < 8; i++ {
+	for i := 0; i < 5; i++ {
 		opNodes[i] = OpNode{
 			Type:      IK,
-			Key:       "",
-			Value:     "",
+			Key:       "1",
+			Value:     "1000",
 			Timestamp: maps[i],
 			Pid:       noStr,
 			ConcOp:    false}
 	}
+	opNodes[5] = OpNode{
+		Type:      IV,
+		Key:       "2",
+		Value:     "2000",
+		Timestamp: maps[5],
+		Pid:       noStr,
+		ConcOp:    false}
+	opNodes[6] = OpNode{
+		Type:      RK,
+		Key:       "3",
+		Value:     "3000",
+		Timestamp: maps[6],
+		Pid:       noStr,
+		ConcOp:    false}
+	opNodes[7] = OpNode{
+		Type:      RV,
+		Key:       "4",
+		Value:     "5000",
+		Timestamp: maps[7],
+		Pid:       noStr,
+		ConcOp:    false}
 }
 
 func queueTestAdv() {

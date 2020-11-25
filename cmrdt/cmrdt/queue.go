@@ -107,7 +107,7 @@ func processQueue() {
 	for {
 		time.Sleep(2000 * time.Millisecond)
 		lock.Lock()
-		eliminateConcOps()
+		processConcOps()
 		processQueueHelper()
 		lock.Unlock()
 	}
@@ -201,7 +201,71 @@ func min(b []int) int {
 	return res
 }
 
-// eliminate concurrent operations from the queue using predefined preference
-func eliminateConcOps() {
-	// TODO
+// process concurrent operations from the queue using predefined preference
+func processConcOps() {
+	var inABlock = false
+	var p, prev, first *ListNode
+
+	for n := queue; n != nil; n, p = n.Next, n {
+		/* Start of a block */
+		if n.Data.ConcOp == true && inABlock == false {
+			inABlock = true
+			prev = p
+			first = n
+		}
+		/* End of a block */
+		if n.Data.ConcOp == false && inABlock == true {
+			inABlock = false
+			processBlock(prev, first, n.Next)
+		}
+	}
+}
+
+// process a block of concurrent operations
+func processBlock(prev *ListNode, first *ListNode, next *ListNode) {
+	if checkIfSameOp(first, next) || checkIfDiffVals(first, next) {
+		return
+	}
+	countOps(first, next)
+	elimOps(first, next)
+	orderBlock(prev, first, next)
+}
+
+// shortcut no. 1: all operations are the same
+func checkIfSameOp(first *ListNode, next *ListNode) bool {
+	val := first.Data.Type
+	for n := first; n != next; n = n.Next {
+		if n.Data.Type != val {
+			return false
+		}
+	}
+	return true
+}
+
+// shortcut no. 2: all values are different
+func checkIfDiffVals(first *ListNode, next *ListNode) bool {
+	setOfVals := make(map[string]bool)
+	for n := first; n != next; n = n.Next {
+		val := n.Data.Key + ":" + n.Data.Value
+		if setOfVals[val] {
+			return false
+		}
+		setOfVals[val] = true
+	}
+	return true
+}
+
+// count number of operations of each type
+func countOps(first *ListNode, next *ListNode) {
+
+}
+
+// eliminate unnecessary operations
+func elimOps(first *ListNode, next *ListNode) {
+
+}
+
+// order the remaining operations in the block
+func orderBlock(prev *ListNode, first *ListNode, next *ListNode) {
+
 }
