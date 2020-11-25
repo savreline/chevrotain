@@ -29,6 +29,7 @@ var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
 var verbose = true
+var flag = []int{0, 0}
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -56,8 +57,9 @@ func main() {
 	// queueTest13524()
 	// queueTest24531()
 	queueTestAdv()
-	fmt.Println(eLog)
 	processConcOps()
+	printQueue()
+	fmt.Println(eLog)
 	os.Exit(0)
 
 	/* Connect to MongoDB */

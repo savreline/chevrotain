@@ -5,11 +5,15 @@ import (
 	"fmt"
 	"sort"
 	"strconv"
+	"strings"
 	"time"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec/vclock"
 )
+
+// Global variables
+var prev *ListNode
 
 // OpCode is an operation code
 type OpCode int
@@ -55,6 +59,7 @@ func lookupOpCode(opCode OpCode) string {
 
 // Print the Queue
 func printQueue() {
+	eLog = eLog + "Queue" + "\n"
 	for n := queue; n != nil; n = n.Next {
 		eLog = eLog + fmt.Sprintln(n.Data)
 	}
@@ -204,68 +209,172 @@ func min(b []int) int {
 // process concurrent operations from the queue using predefined preference
 func processConcOps() {
 	var inABlock = false
-	var p, prev, first *ListNode
+	var first *ListNode
+	for n := queue; n != nil; n = n.Next {
 
-	for n := queue; n != nil; n, p = n.Next, n {
 		/* Start of a block */
 		if n.Data.ConcOp == true && inABlock == false {
 			inABlock = true
-			prev = p
 			first = n
-		}
-		/* End of a block */
-		if n.Data.ConcOp == false && inABlock == true {
+
+			/* End of a block */
+		} else if n.Data.ConcOp == false && inABlock == true {
 			inABlock = false
-			processBlock(prev, first, n.Next)
+			processBlock(first)
+
+			/* Single-op block */
+		} else if n.Data.ConcOp == false && inABlock == false {
+			prev.Next = n
+			prev = n
 		}
 	}
 }
 
 // process a block of concurrent operations
-func processBlock(prev *ListNode, first *ListNode, next *ListNode) {
-	if checkIfSameOp(first, next) || checkIfDiffVals(first, next) {
-		return
+func processBlock(first *ListNode) {
+	sameOp := checkIfSameOp(first)
+	diffVals, maxClock := checkIfDiffVals(first)
+	if sameOp || diffVals {
+		// return
 	}
-	countOps(first, next)
-	elimOps(first, next)
-	orderBlock(prev, first, next)
+	ops := elimOps(first)
+	orderBlock(maxClock, ops)
 }
 
 // shortcut no. 1: all operations are the same
-func checkIfSameOp(first *ListNode, next *ListNode) bool {
+func checkIfSameOp(first *ListNode) bool {
 	val := first.Data.Type
-	for n := first; n != next; n = n.Next {
+	for n := first; ; n = n.Next {
 		if n.Data.Type != val {
 			return false
+		}
+		if n.Data.ConcOp == false {
+			break
 		}
 	}
 	return true
 }
 
 // shortcut no. 2: all values are different
-func checkIfDiffVals(first *ListNode, next *ListNode) bool {
+func checkIfDiffVals(first *ListNode) (bool, vclock.VClock) {
+	noReplicas := len(conns)
+	a := make([][]int, noReplicas)
 	setOfVals := make(map[string]bool)
-	for n := first; n != next; n = n.Next {
+	res := true
+
+	/* Check for different values and add timestamps to a */
+	for n := first; ; n = n.Next {
 		val := n.Data.Key + ":" + n.Data.Value
 		if setOfVals[val] {
-			return false
+			res = false
 		}
 		setOfVals[val] = true
+		for i := 0; i < noReplicas; i++ {
+			a[i] = append(a[i], int(n.Data.Timestamp["R"+strconv.Itoa(i+1)]))
+		}
+		if n.Data.ConcOp == false {
+			break
+		}
 	}
-	return true
+
+	/* Determine b */
+	b := make(map[string]uint64, noReplicas)
+	for i := 0; i < noReplicas; i++ {
+		b["R"+strconv.Itoa(i+1)] = uint64(max(a, i))
+	}
+
+	return res, b
 }
 
-// count number of operations of each type
-func countOps(first *ListNode, next *ListNode) {
+// count number of operations of each type and eliminate accordinly
+func elimOps(first *ListNode) []map[string]int {
+	/* Init maps */
+	ops := make([]map[string]int, 5)
+	for i := 1; i < 5; i++ {
+		ops[i] = make(map[string]int)
+	}
 
-}
+	/* Build up counts */
+	for n := first; ; n = n.Next {
+		val := n.Data.Key + ":" + n.Data.Value
+		ops[n.Data.Type][val]++
+		if n.Data.ConcOp == false {
+			break
+		}
+	}
 
-// eliminate unnecessary operations
-func elimOps(first *ListNode, next *ListNode) {
+	/* Eliminate as per spec */
+	for _, id := range []int{1, 2} {
+		for k := range ops[id] {
+			if ops[id+2][k] > 0 {
+				switch flag[id-1] {
+				case -1:
+					ops[id][k] = 0
+					ops[id+2][k] = 1
+				case 0:
+					ops[id][k] = 0
+					ops[id+2][k] = 0
+				case 1:
+					ops[id][k] = 1
+					ops[id+2][k] = 0
+				}
+			}
+		}
+	}
 
+	/* Print for Testing */
+	// for i := 1; i < 5; i++ {
+	// 	fmt.Println(i)
+	// 	for k, v := range ops[i] {
+	// 		fmt.Println(k, ":", v)
+	// 	}
+	// 	fmt.Println()
+	// }
+	return ops
 }
 
 // order the remaining operations in the block
-func orderBlock(prev *ListNode, first *ListNode, next *ListNode) {
+func orderBlock(timestamp vclock.VClock, ops []map[string]int) {
+	var flag = false
+	var n *ListNode
 
+	for _, id := range []int{1, 4, 2, 3} {
+		for k := range ops[id] {
+			args := strings.SplitN(k, ":", -1)
+			opNode := OpNode{
+				Type:      OpCode(id),
+				Key:       args[0],
+				Value:     args[1],
+				Timestamp: timestamp,
+				Pid:       "0",
+				ConcOp:    false}
+
+			/* If this is the first op in a block, must link previous block */
+			if flag == false {
+				flag = true
+
+				/* No prev, link the queue pointer */
+				if prev == nil {
+					queue = &ListNode{Data: opNode, Next: nil}
+					n = queue
+
+					/* Else, link prev */
+				} else {
+					prev.Next = &ListNode{Data: opNode, Next: nil}
+					n = prev.Next
+
+				}
+
+				continue
+			}
+
+			/* Linking with the block */
+			n.Next = &ListNode{Data: opNode, Next: nil}
+			n = n.Next
+		}
+	}
+
+	/* Set prev to point to the last node */
+	prev = n
+	printQueue()
 }
