@@ -49,7 +49,7 @@ func simpleTest(no int) {
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
-		time.Sleep(50 * time.Millisecond)
+		// time.Sleep(50 * time.Millisecond)
 		// }
 
 		// for i := 0; i < 50; i++ {

@@ -59,7 +59,9 @@ func lookupOpCode(opCode OpCode) string {
 
 // Print the Queue
 func printQueue() {
-	eLog = eLog + "Queue" + "\n"
+	if queue != nil {
+		eLog = eLog + "Queue\n"
+	}
 	for n := queue; n != nil; n = n.Next {
 		eLog = eLog + fmt.Sprintln(n.Data)
 	}
@@ -112,8 +114,12 @@ func processQueue() {
 	for {
 		time.Sleep(2000 * time.Millisecond)
 		lock.Lock()
+		eLog = eLog + "\nAn Iteration\n"
+		printQueue()
 		processConcOps()
+		printQueue()
 		processQueueHelper()
+		printQueue()
 		lock.Unlock()
 	}
 }
@@ -121,21 +127,15 @@ func processQueue() {
 // processQueueHelper does the actual processing of queue operations
 func processQueueHelper() {
 	updateCurTick()
-	if queue != nil {
-		eLog = eLog + "\n" + "BEFORE\n"
-	}
-	printQueue()
+	ticks = make([][]int, noReplicas)
+	prev = nil
 
 	for queue != nil {
 		opNode := queue.Data
 
 		/* Stop if any timestamp is exceeding the current safe tick */
-		for i := 0; i < len(conns); i++ {
+		for i := 0; i < noReplicas; i++ {
 			if int(opNode.Timestamp["R"+strconv.Itoa(i+1)]) > curTick {
-				if queue != nil {
-					eLog = eLog + "\n" + "AFTER\n"
-				}
-				printQueue()
 				return
 			}
 		}
@@ -154,34 +154,24 @@ func processQueueHelper() {
 
 // updateCurTick updates the current "safe" tick
 func updateCurTick() {
-	noReplicas := len(conns)
-
-	/* Gather all current timestamps */
-	a := make([][]int, noReplicas)
-	for n := queue; n != nil; n = n.Next {
-		for i := 0; i < noReplicas; i++ {
-			a[i] = append(a[i], int(n.Data.Timestamp["R"+strconv.Itoa(i+1)]))
-		}
-	}
-
-	if len(a[0]) == 0 {
+	if len(ticks[0]) == 0 {
 		return
 	}
 
 	/* Determine the latest timestamp per replica */
 	b := make([]int, noReplicas)
 	for i := 0; i < noReplicas; i++ {
-		b[i] = max(a, i)
+		b[i] = max(ticks, i)
 	}
 
 	/* Determine the earliest timestamp for all replicas */
 	curTick = min(b)
 	for i := 0; i < noReplicas; i++ {
-		if len(a[i]) > 0 {
-			eLog = eLog + fmt.Sprintln(a[i])
+		if len(ticks[i]) > 0 {
+			eLog = eLog + fmt.Sprintln(ticks[i])
 		}
 	}
-	eLog = eLog + ":" + fmt.Sprintln(curTick) + "\n"
+	eLog = eLog + ":" + fmt.Sprintln(curTick)
 }
 
 // determine the latest timestamp per replica
@@ -210,6 +200,7 @@ func min(b []int) int {
 func processConcOps() {
 	var inABlock = false
 	var first *ListNode
+
 	for n := queue; n != nil; n = n.Next {
 
 		/* Start of a block */
@@ -220,25 +211,42 @@ func processConcOps() {
 			/* End of a block */
 		} else if n.Data.ConcOp == false && inABlock == true {
 			inABlock = false
-			processBlock(first)
+			processBlock(first, n)
 
 			/* Single-op block */
 		} else if n.Data.ConcOp == false && inABlock == false {
-			prev.Next = n
-			prev = n
+			processSingleOpBlock(n)
 		}
 	}
 }
 
 // process a block of concurrent operations
-func processBlock(first *ListNode) {
+func processBlock(first *ListNode, last *ListNode) {
 	sameOp := checkIfSameOp(first)
-	diffVals, maxClock := checkIfDiffVals(first)
+	diffVals := checkIfDiffVals(first)
 	if sameOp || diffVals {
-		// return
+		if prev == nil {
+			queue = first
+		} else {
+			prev.Next = first
+		}
+		prev = last
+		return
 	}
-	ops := elimOps(first)
-	orderBlock(maxClock, ops)
+	orderBlock(elimOps(first))
+}
+
+// process a single op block
+func processSingleOpBlock(n *ListNode) {
+	for i := 0; i < noReplicas; i++ {
+		ticks[i] = append(ticks[i], int(n.Data.Timestamp["R"+strconv.Itoa(i+1)]))
+	}
+	if prev == nil {
+		queue = n
+	} else {
+		prev.Next = n
+	}
+	prev = n
 }
 
 // shortcut no. 1: all operations are the same
@@ -256,34 +264,30 @@ func checkIfSameOp(first *ListNode) bool {
 }
 
 // shortcut no. 2: all values are different
-func checkIfDiffVals(first *ListNode) (bool, vclock.VClock) {
-	noReplicas := len(conns)
-	a := make([][]int, noReplicas)
+func checkIfDiffVals(first *ListNode) bool {
 	setOfVals := make(map[string]bool)
 	res := true
 
-	/* Check for different values and add timestamps to a */
 	for n := first; ; n = n.Next {
+
+		/* Check for different values */
 		val := n.Data.Key + ":" + n.Data.Value
 		if setOfVals[val] {
 			res = false
 		}
 		setOfVals[val] = true
+
+		/* Add timestamps to ticks */
 		for i := 0; i < noReplicas; i++ {
-			a[i] = append(a[i], int(n.Data.Timestamp["R"+strconv.Itoa(i+1)]))
+			ticks[i] = append(ticks[i], int(n.Data.Timestamp["R"+strconv.Itoa(i+1)]))
 		}
+
 		if n.Data.ConcOp == false {
 			break
 		}
 	}
 
-	/* Determine b */
-	b := make(map[string]uint64, noReplicas)
-	for i := 0; i < noReplicas; i++ {
-		b["R"+strconv.Itoa(i+1)] = uint64(max(a, i))
-	}
-
-	return res, b
+	return res
 }
 
 // count number of operations of each type and eliminate accordinly
@@ -322,19 +326,11 @@ func elimOps(first *ListNode) []map[string]int {
 		}
 	}
 
-	/* Print for Testing */
-	// for i := 1; i < 5; i++ {
-	// 	fmt.Println(i)
-	// 	for k, v := range ops[i] {
-	// 		fmt.Println(k, ":", v)
-	// 	}
-	// 	fmt.Println()
-	// }
 	return ops
 }
 
 // order the remaining operations in the block
-func orderBlock(timestamp vclock.VClock, ops []map[string]int) {
+func orderBlock(ops []map[string]int) {
 	var flag = false
 	var n *ListNode
 
@@ -345,7 +341,7 @@ func orderBlock(timestamp vclock.VClock, ops []map[string]int) {
 				Type:      OpCode(id),
 				Key:       args[0],
 				Value:     args[1],
-				Timestamp: timestamp,
+				Timestamp: make(map[string]uint64),
 				Pid:       "0",
 				ConcOp:    false}
 
@@ -376,5 +372,4 @@ func orderBlock(timestamp vclock.VClock, ops []map[string]int) {
 
 	/* Set prev to point to the last node */
 	prev = n
-	printQueue()
 }

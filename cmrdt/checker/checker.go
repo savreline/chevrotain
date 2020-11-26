@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"reflect"
 	"sort"
 	"strconv"
 
@@ -49,32 +48,17 @@ func main() {
 		}
 	}
 
-	var result = true
 	for i := 0; i < noReplicas-1; i++ {
-		eqResult := testEq(results[i], results[i+1], i)
-		msg := fmt.Sprint("Comparison of ", i+1, " to ", i+2, " is ", eqResult)
+		errs, cnt := testEq(results[i], results[i+1], i)
+		msg := fmt.Sprint("Number of diffs ", i+1, " to ", i+2, " is ", errs, " and percent is ", (cnt-errs)/cnt*100)
 		util.PrintMsg("CHECKER", msg)
-		if eqResult == false {
-			result = false
-		}
 	}
-
-	msg := fmt.Sprint("Overall Result is ", result)
-	util.PrintMsg("CHECKER", msg)
 }
 
 // with advice from https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
-func testEq(a, b []util.Record, no int) bool {
+func testEq(a, b []util.Record, no int) (float32, float32) {
 	var str1, str2 string
-	result := true
-
-	/* Shortcuts */
-	if (a == nil) != (b == nil) {
-		result = false
-	}
-	if len(a) != len(b) {
-		result = false
-	}
+	var errs, cnt float32
 
 	/* Check Equality */
 	for i := range a {
@@ -82,14 +66,21 @@ func testEq(a, b []util.Record, no int) bool {
 		sort.Strings(b[i].Values)
 		str1 = str1 + a[i].Name
 		str2 = str2 + b[i].Name
+		cnt++
+		if a[i].Name != b[i].Name {
+			errs++
+		}
 		for _, val := range a[i].Values {
 			str1 = str1 + "," + val
 		}
 		for _, val := range b[i].Values {
 			str2 = str2 + "," + val
 		}
-		if !reflect.DeepEqual(a[i], b[i]) {
-			result = false
+		for j, val := range a[i].Values {
+			cnt++
+			if j >= len(b[i].Values) || val != b[i].Values[j] {
+				errs++
+			}
 		}
 		str1 = str1 + "\n"
 		str2 = str2 + "\n"
@@ -104,5 +95,5 @@ func testEq(a, b []util.Record, no int) bool {
 	if err != nil {
 		util.PrintErr("CHECKER", err)
 	}
-	return result
+	return errs, cnt
 }

@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -21,7 +20,7 @@ var noStr string
 var port string
 var delay int
 var eLog string
-var iLog string
+var noReplicas int
 var curTick = 1
 var queue *ListNode
 var lock sync.Mutex
@@ -30,6 +29,7 @@ var logger *govec.GoLog
 var db *mongo.Database
 var verbose = true
 var flag = []int{0, 0}
+var ticks [][]int
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -39,28 +39,31 @@ type RPCInt int
 
 // Makes connection to the database, starts up the RPC server
 func main() {
+	var err error
+
 	/* Parse args, initialize data structures */
-	noReplicas, err := strconv.Atoi(os.Args[1])
+	noReplicas, err = strconv.Atoi(os.Args[1])
 	no, err = strconv.Atoi(os.Args[2])
 	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
 	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
+	ticks = make([][]int, noReplicas)
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
 
-	// queueTest123()
-	// queueTest321()
-	// queueTest132()
-	// queueTest13524()
-	// queueTest24531()
-	queueTestAdv()
-	processConcOps()
-	printQueue()
-	fmt.Println(eLog)
-	os.Exit(0)
+	// // queueTest123()
+	// // queueTest321()
+	// // queueTest132()
+	// // queueTest13524()
+	// // queueTest24531()
+	// queueTestAdv()
+	// processConcOps()
+	// printQueue()
+	// fmt.Println(eLog)
+	// os.Exit(0)
 
 	/* Connect to MongoDB */
 	dbClient, _ := util.Connect(noStr, dbPort)
@@ -107,10 +110,6 @@ func (t *RPCExt) ConnectReplica(args *util.RPCExtArgs, reply *int) error {
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	if verbose == true {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
-		if err != nil {
-			util.PrintErr(noStr, err)
-		}
-		err = ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, err)
 		}

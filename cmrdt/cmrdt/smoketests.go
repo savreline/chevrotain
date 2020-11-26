@@ -16,6 +16,8 @@ var opNodes []OpNode
 // queueTest13524()
 // queueTest24531()
 queueTestAdv()
+processConcOps()
+printQueue()
 fmt.Println(eLog)
 os.Exit(0)
 */
