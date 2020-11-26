@@ -1,13 +1,8 @@
-package cvrdt
-
-/*In this file:
-0. Definition of SnapShotArgs
-1. GetCurrentSnapShot
-*/
+package main
 
 // SnapShotArgs are the arguments to the GetCurrentSnapShot RPC call
 type SnapShotArgs struct {
-	No int
+	// TODO
 }
 
 // GetCurrentSnapShot merges the positive and negative datasets into one collection

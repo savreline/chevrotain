@@ -9,6 +9,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/savreline/GoVector/govec/vclock"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -17,6 +18,19 @@ import (
 type Record struct {
 	Name   string   `json:"name"`
 	Values []string `json:"values"`
+}
+
+// CvRecord is a CvRDT DB Record
+type CvRecord struct {
+	Name      string        `json:"name"`
+	Timestamp vclock.VClock `json:"time"`
+	Values    []ValueEntry  `json:"values"`
+}
+
+// ValueEntry is a value along with the timestamp
+type ValueEntry struct {
+	Value     string        `json:"name"`
+	Timestamp vclock.VClock `json:"time"`
 }
 
 // RPCExtArgs are the arguments to any RPCExt Call
