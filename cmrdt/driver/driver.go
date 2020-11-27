@@ -36,7 +36,7 @@ func simpleTest(no int) {
 	/* Connect to the Replica and Connect the Replica */
 	var result int
 	conn := util.RPCClient("DRIVER", ports[no])
-	err := conn.Call("RPCExt.ConnectReplica", util.RPCExtArgs{}, &result)
+	err := conn.Call("RPCExt.ConnectReplica", util.InitArgs{Settings: [2]int{0, 0}, TimeInt: 2000}, &result)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
@@ -49,7 +49,7 @@ func simpleTest(no int) {
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
-		// time.Sleep(50 * time.Millisecond)
+		time.Sleep(50 * time.Millisecond)
 		// }
 
 		// for i := 0; i < 50; i++ {

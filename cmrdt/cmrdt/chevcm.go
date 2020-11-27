@@ -18,7 +18,6 @@ import (
 var no int
 var noStr string
 var port string
-var delay int
 var eLog string
 var noReplicas int
 var curTick = 1
@@ -28,7 +27,8 @@ var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
 var verbose = true
-var flag = []int{0, 0}
+var settings [2]int
+var channel = make(chan int)
 var ticks [][]int
 
 // RPCExt is the RPC object that receives commands from the driver
@@ -47,7 +47,6 @@ func main() {
 	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
-	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
 	ticks = make([][]int, noReplicas)
 	if err != nil {
@@ -91,7 +90,11 @@ func main() {
 }
 
 // ConnectReplica connects this replica to others
-func (t *RPCExt) ConnectReplica(args *util.RPCExtArgs, reply *int) error {
+func (t *RPCExt) ConnectReplica(args *util.InitArgs, reply *int) error {
+	/* Set up args */
+	settings = args.Settings
+	channel <- args.TimeInt
+
 	/* Parse Group Members */
 	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)
 	if err != nil {

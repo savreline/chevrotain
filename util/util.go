@@ -15,8 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// Record is a DB Record
-type Record struct {
+// CmRecord is a CmRDT DB Record
+type CmRecord struct {
 	Name   string   `json:"name"`
 	Values []string `json:"values"`
 }
@@ -37,6 +37,12 @@ type ValueEntry struct {
 // RPCExtArgs are the arguments to any RPCExt Call
 type RPCExtArgs struct {
 	Key, Value string
+}
+
+// InitArgs are the arguments to Init RPCExt Call
+type InitArgs struct {
+	Settings [2]int
+	TimeInt  int
 }
 
 // Connect to MongoDB on the given port, as per https://www.mongodb.com/golang

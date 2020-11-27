@@ -34,6 +34,8 @@ func (t *RPCExt) GetCurrentSnapShot(args *util.RPCExtArgs, reply *int) error {
 
 // broadcasts state to all other replicas
 func sendState() {
+	timeInt := <-channel
+	close(channel)
 	for {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
 		posState := util.DownloadCvState(db.Collection(posCollection), "0")

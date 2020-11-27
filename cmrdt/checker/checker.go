@@ -23,7 +23,7 @@ func main() {
 	}
 	noReplicas := len(dbPorts)
 	cols := make([]*mongo.Collection, noReplicas)
-	results := make([][]util.Record, noReplicas)
+	results := make([][]util.CmRecord, noReplicas)
 
 	/* Connect */
 	for i, dbPort := range dbPorts {
@@ -56,7 +56,7 @@ func main() {
 }
 
 // with advice from https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
-func testEq(a, b []util.Record, no int) (float32, float32) {
+func testEq(a, b []util.CmRecord, no int) (float32, float32) {
 	var str1, str2 string
 	var errs, cnt float32
 

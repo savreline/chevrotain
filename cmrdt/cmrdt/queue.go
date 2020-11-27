@@ -111,8 +111,10 @@ func addToQueue(node OpNode) {
 
 // process some of the operations that are queued up
 func processQueue() {
+	timeInt := <-channel
+	close(channel)
 	for {
-		time.Sleep(2000 * time.Millisecond)
+		time.Sleep(time.Duration(timeInt) * time.Millisecond)
 		lock.Lock()
 		eLog = eLog + "\nAn Iteration\n"
 		printQueue()
@@ -311,7 +313,7 @@ func elimOps(first *ListNode) []map[string]int {
 	for _, id := range []int{1, 2} {
 		for k := range ops[id] {
 			if ops[id+2][k] > 0 {
-				switch flag[id-1] {
+				switch settings[id-1] {
 				case -1:
 					ops[id][k] = 0
 					ops[id+2][k] = 1

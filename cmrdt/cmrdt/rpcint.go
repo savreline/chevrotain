@@ -2,9 +2,7 @@ package main
 
 import (
 	"fmt"
-	"math/rand"
 	"net/rpc"
-	"time"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
@@ -33,9 +31,6 @@ func broadcast(opNode OpNode) []*rpc.Call {
 	for i, client := range conns {
 		if i == no {
 			flag = true
-		}
-		if delay > 0 {
-			time.Sleep(time.Duration(rand.Intn(delay)) * time.Millisecond)
 		}
 
 		if client != nil {

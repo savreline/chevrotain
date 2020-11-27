@@ -20,8 +20,8 @@ func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 
 // InsertKeyLocal inserts the key into the local db
 func InsertKeyLocal(key string) {
-	newRecord := util.Record{Name: key, Values: []string{}}
-	_, err := db.Collection("kvs").InsertOne(context.TODO(), newRecord)
+	record := util.CmRecord{Name: key, Values: []string{}}
+	_, err := db.Collection("kvs").InsertOne(context.TODO(), record)
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}

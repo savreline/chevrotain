@@ -31,20 +31,20 @@ func simpleTest(no int) {
 	/* Connect to the Replica and Connect the Replica */
 	var result int
 	conn := util.RPCClient("DRIVER", ports[no])
-	err := conn.Call("RPCExt.ConnectReplica", util.RPCExtArgs{}, &result)
+	err := conn.Call("RPCExt.ConnectReplica", util.InitArgs{Settings: [2]int{0, 0}, TimeInt: 5000}, &result)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
 
 	/* Inserts */
 	k := 0
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 20; i++ {
 		key := (no+1)*100 + i
 		conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: strconv.Itoa(key)}, &result)
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
-		for j := 0; j < 1; j++ {
+		for j := 0; j < 20; j++ {
 			val := (no+1)*1000 + k
 			conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 			if err != nil {
@@ -55,9 +55,9 @@ func simpleTest(no int) {
 	}
 
 	time.Sleep(5000 * time.Millisecond)
-	for i := 0; i < 2; i++ {
+	for i := 0; i < 20; i++ {
 		key := (no+1)*100 + i
-		for j := 0; j < 1; j++ {
+		for j := 0; j < 20; j++ {
 			val := (no+1)*1000 + k
 			conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 			if err != nil {
