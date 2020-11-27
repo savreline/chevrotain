@@ -38,10 +38,12 @@ func sendState() {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
 		posState := util.DownloadCvState(db.Collection(posCollection), "0")
 		negState := util.DownloadCvState(db.Collection(negCollection), "0")
+		logger.StartBroadcast("OUT "+noStr, govec.GetDefaultLogOptions())
 		broadcast(StateArgs{PosState: posState,
 			NegState:  negState,
 			No:        noStr,
-			Timestamp: logger.GetCurrentVC()})
+			Timestamp: logger.GetCurrentVC().Copy()})
+		logger.StopBroadcast()
 	}
 }
 

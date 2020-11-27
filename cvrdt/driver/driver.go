@@ -38,13 +38,13 @@ func simpleTest(no int) {
 
 	/* Inserts */
 	k := 0
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 2; i++ {
 		key := (no+1)*100 + i
 		conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: strconv.Itoa(key)}, &result)
 		if err != nil {
 			util.PrintErr("DRIVER", err)
 		}
-		for j := 0; j < 10; j++ {
+		for j := 0; j < 1; j++ {
 			val := (no+1)*1000 + k
 			conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 			if err != nil {
@@ -55,9 +55,9 @@ func simpleTest(no int) {
 	}
 
 	time.Sleep(5000 * time.Millisecond)
-	for i := 0; i < 20; i++ {
+	for i := 0; i < 2; i++ {
 		key := (no+1)*100 + i
-		for j := 0; j < 10; j++ {
+		for j := 0; j < 1; j++ {
 			val := (no+1)*1000 + k
 			conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
 			if err != nil {
