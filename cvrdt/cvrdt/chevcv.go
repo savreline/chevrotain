@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -63,6 +64,17 @@ func main() {
 
 	/* Init vector clocks */
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
+
+	/* Pre-allocate Keys entry */
+	record := util.CvRecord{Name: "Keys", Timestamp: logger.GetCurrentVC(), Values: []util.ValueEntry{}}
+	_, err = db.Collection(posCollection).InsertOne(context.TODO(), record)
+	if err != nil {
+		util.PrintErr(noStr, err)
+	}
+	_, err = db.Collection(negCollection).InsertOne(context.TODO(), record)
+	if err != nil {
+		util.PrintErr(noStr, err)
+	}
 
 	/* Init RPC */
 	rpcext := new(RPCExt)

@@ -5,6 +5,7 @@ import (
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // InsertKey inserts the given key with an empty array for values
@@ -31,8 +32,18 @@ func InsertKeyLocal(key string, collection string, record *util.CvRecord) {
 		}
 	}
 
+	/* Update global keys entry */
+	valEntry := util.ValueEntry{Value: key, Timestamp: record.Timestamp}
+	filter := bson.D{{Key: "name", Value: "Keys"}}
+	update := bson.D{{Key: "$push", Value: bson.D{
+		{Key: "values", Value: valEntry}}}}
+	_, err := db.Collection(collection).UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		util.PrintErr(noStr, err)
+	}
+
 	/* Insert the Key */
-	_, err := db.Collection(collection).InsertOne(context.TODO(), record)
+	_, err = db.Collection(collection).InsertOne(context.TODO(), record)
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
