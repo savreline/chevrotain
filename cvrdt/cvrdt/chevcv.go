@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -32,7 +31,8 @@ var logger *govec.GoLog
 var db *mongo.Database
 var verbose = true     // TODO (1/2)
 var flag = []int{0, 0} // TODO
-var ticks [][]int      // TODO
+var timeInt = 5000
+var ticks [][]int // TODO
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -65,17 +65,6 @@ func main() {
 	/* Init vector clocks */
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
-	/* Pre-allocate Keys entry */
-	newRecord := util.CvRecord{Name: "Keys", Timestamp: logger.GetCurrentVC(), Values: []util.ValueEntry{}}
-	_, err = db.Collection(posCollection).InsertOne(context.TODO(), newRecord)
-	if err != nil {
-		util.PrintErr(noStr, err)
-	}
-	_, err = db.Collection(negCollection).InsertOne(context.TODO(), newRecord)
-	if err != nil {
-		util.PrintErr(noStr, err)
-	}
-
 	/* Init RPC */
 	rpcext := new(RPCExt)
 	rpcint := new(RPCInt)
@@ -89,6 +78,7 @@ func main() {
 	/* Start Server */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
+	go sendState()
 	select {}
 }
 

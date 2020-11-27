@@ -1,16 +1,13 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"strconv"
 
 	"../../util"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -23,8 +20,6 @@ func main() {
 	noReplicas := len(dbPorts)
 	colsP := make([]*mongo.Collection, noReplicas)
 	colsN := make([]*mongo.Collection, noReplicas)
-	resultsP := make([][]util.CvRecord, noReplicas)
-	resultsN := make([][]util.CvRecord, noReplicas)
 
 	/* Connect */
 	for i, dbPort := range dbPorts {
@@ -35,36 +30,18 @@ func main() {
 	}
 
 	/* Download results and save */
-	downloadResults(colsP, resultsP, drop)
-	for i, result := range resultsP {
-		saveToCSV(result, i)
+	for i, col := range colsP {
+		result := util.DownloadCvState(col, drop)
+		saveToCSV(result, i, "P")
 	}
-	downloadResults(colsN, resultsN, drop)
-	// for i, result := range resultsN {
-	// 	saveToCSV(result, i)
-	// }
-}
-
-// https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
-// https://github.com/mongodb/mongo-go-driver
-func downloadResults(cols []*mongo.Collection, results [][]util.CvRecord, drop string) {
-	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
-	for i, col := range cols {
-		cursor, err := col.Find(context.TODO(), bson.D{}, opts)
-		if err != nil {
-			util.PrintErr("CHECKER", err)
-		}
-		if err = cursor.All(context.TODO(), &results[i]); err != nil {
-			util.PrintErr("CHECKER", err)
-		}
-		if drop == "1" {
-			col.Drop(context.TODO())
-		}
+	for i, col := range colsN {
+		result := util.DownloadCvState(col, drop)
+		saveToCSV(result, i, "N")
 	}
 }
 
 // save to CSV
-func saveToCSV(a []util.CvRecord, no int) {
+func saveToCSV(a []util.CvRecord, no int, pn string) {
 	var str string
 
 	for i := range a {
@@ -86,7 +63,7 @@ func saveToCSV(a []util.CvRecord, no int) {
 	}
 
 	/* Write to CSV */
-	err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str), 0644)
+	err := ioutil.WriteFile("Repl"+pn+strconv.Itoa(no)+".csv", []byte(str), 0644)
 	if err != nil {
 		util.PrintErr("CHECKER", err)
 	}

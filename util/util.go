@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/savreline/GoVector/govec/vclock"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -97,6 +98,26 @@ func RPCClient(no string, port string) *rpc.Client {
 
 	PrintMsg(no, "Connection made to "+port)
 	return client
+}
+
+// DownloadCvResults gets the current database snapshot for CvRDT
+// https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
+// https://github.com/mongodb/mongo-go-driver
+func DownloadCvState(col *mongo.Collection, drop string) []CvRecord {
+	var result []CvRecord
+
+	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	if err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if err = cursor.All(context.TODO(), &result); err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if drop == "1" {
+		col.Drop(context.TODO())
+	}
+	return result
 }
 
 // PrintMsg prints message to console from a replica
