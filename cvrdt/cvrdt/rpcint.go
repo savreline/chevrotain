@@ -22,30 +22,37 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 	msg := "Recv State from " + args.No
 	logger.MergeIncomingClock(msg, args.Timestamp, govec.GetDefaultLogOptions().Priority)
 	mergeCollection(args.PosState, posCollection)
-	mergeCollection(args.PosState, negCollection)
+	mergeCollection(args.NegState, negCollection)
 	return nil
 }
 
 // GetCurrentSnapShot merges the positive and negative datasets into one collection
 func (t *RPCExt) GetCurrentSnapShot(args *util.RPCExtArgs, reply *int) error {
-	// TODO
+	channel <- false
+	time.Sleep(time.Duration(2*timeInt) * time.Millisecond)
+	fmt.Println("Merging")
+	mergeCollections()
 	return nil
 }
 
 // broadcasts state to all other replicas
 func sendState() {
-	timeInt := <-channel
-	close(channel)
+	<-channel
 	for {
-		time.Sleep(time.Duration(timeInt) * time.Millisecond)
-		posState := util.DownloadCvState(db.Collection(posCollection), "0")
-		negState := util.DownloadCvState(db.Collection(negCollection), "0")
-		logger.StartBroadcast("OUT "+noStr, govec.GetDefaultLogOptions())
-		broadcast(StateArgs{PosState: posState,
-			NegState:  negState,
-			No:        noStr,
-			Timestamp: logger.GetCurrentVC().Copy()})
-		logger.StopBroadcast()
+		select {
+		case <-channel:
+			return
+		default:
+			time.Sleep(time.Duration(timeInt) * time.Millisecond)
+			posState := util.DownloadCvState(db.Collection(posCollection), "0")
+			negState := util.DownloadCvState(db.Collection(negCollection), "0")
+			logger.StartBroadcast("OUT "+noStr, govec.GetDefaultLogOptions())
+			broadcast(StateArgs{PosState: posState,
+				NegState:  negState,
+				No:        noStr,
+				Timestamp: logger.GetCurrentVC().Copy()})
+			logger.StopBroadcast()
+		}
 	}
 }
 

@@ -36,5 +36,11 @@ func InsertKeyLocal(key string, collection string, record *util.CvRecord) {
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	util.PrintMsg(noStr, "Inserted Key "+key)
+
+	/* Print to console */
+	if collection == posCollection {
+		util.PrintMsg(noStr, "Inserted Key "+key)
+	} else {
+		util.PrintMsg(noStr, "Removed Key "+key)
+	}
 }

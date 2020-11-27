@@ -36,5 +36,11 @@ func InsertValueLocal(key string, value string, collection string, record *util.
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	util.PrintMsg(noStr, "Inserted value "+value)
+
+	/* Print to console */
+	if collection == posCollection {
+		util.PrintMsg(noStr, "Inserted value "+value)
+	} else {
+		util.PrintMsg(noStr, "Removed value "+value)
+	}
 }

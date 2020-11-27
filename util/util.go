@@ -106,11 +106,29 @@ func RPCClient(no string, port string) *rpc.Client {
 	return client
 }
 
-// DownloadCvResults gets the current database snapshot for CvRDT
+// DownloadCvState gets the current database snapshot for CvRDT
 // https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
 // https://github.com/mongodb/mongo-go-driver
 func DownloadCvState(col *mongo.Collection, drop string) []CvRecord {
 	var result []CvRecord
+
+	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	if err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if err = cursor.All(context.TODO(), &result); err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if drop == "1" {
+		col.Drop(context.TODO())
+	}
+	return result
+}
+
+// DownloadCmState gets the current database snapshot for CmRDT
+func DownloadCmState(col *mongo.Collection, drop string) []CmRecord {
+	var result []CmRecord
 
 	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
 	cursor, err := col.Find(context.TODO(), bson.D{}, opts)

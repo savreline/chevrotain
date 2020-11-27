@@ -30,7 +30,8 @@ var logger *govec.GoLog
 var db *mongo.Database
 var verbose = true // TODO (1/2)
 var settings [2]int
-var channel = make(chan int)
+var timeInt int
+var channel = make(chan bool)
 var ticks [][]int // TODO
 
 // RPCExt is the RPC object that receives commands from the driver
@@ -84,7 +85,8 @@ func main() {
 func (t *RPCExt) ConnectReplica(args *util.InitArgs, reply *int) error {
 	/* Set up args */
 	settings = args.Settings
-	channel <- args.TimeInt
+	timeInt = args.TimeInt
+	channel <- true
 
 	/* Parse Group Members */
 	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)

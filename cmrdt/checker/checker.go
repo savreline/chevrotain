@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,9 +8,7 @@ import (
 	"strconv"
 
 	"../../util"
-	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func main() {
@@ -32,22 +29,12 @@ func main() {
 		util.PrintMsg("CHECKER", "Connected to DB on port "+dbPort)
 	}
 
-	// https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
-	// https://github.com/mongodb/mongo-go-driver
-	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	/* Get Snapshot of Database's State */
 	for i, col := range cols {
-		cursor, err := col.Find(context.TODO(), bson.D{}, opts)
-		if err != nil {
-			util.PrintErr("CHECKER", err)
-		}
-		if err = cursor.All(context.TODO(), &results[i]); err != nil {
-			util.PrintErr("CHECKER", err)
-		}
-		if drop == "1" {
-			col.Drop(context.TODO())
-		}
+		results[i] = util.DownloadCmState(col, drop)
 	}
 
+	/* Check Equality */
 	for i := 0; i < noReplicas-1; i++ {
 		errs, cnt := testEq(results[i], results[i+1], i)
 		msg := fmt.Sprint("Number of diffs ", i+1, " to ", i+2, " is ", errs, " and percent is ", (cnt-errs)/cnt*100)
