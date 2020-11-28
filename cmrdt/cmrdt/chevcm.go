@@ -70,7 +70,7 @@ func main() {
 	// os.Exit(0)
 
 	/* Connect to MongoDB */
-	dbClient, _ := util.Connect(noStr, dbPort)
+	dbClient, _ := util.ConnectDb(noStr, dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
 

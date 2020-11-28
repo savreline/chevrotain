@@ -45,8 +45,8 @@ type InitArgs struct {
 	TimeInt  int
 }
 
-// Connect to MongoDB on the given port, as per https://www.mongodb.com/golang
-func Connect(no string, port string) (*mongo.Client, context.Context) {
+// ConnectDb to MongoDB on the given port, as per https://www.mongodb.com/golang
+func ConnectDb(no string, port string) (*mongo.Client, context.Context) {
 	urlString := "mongodb://localhost:" + port + "/"
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(urlString))
@@ -104,6 +104,28 @@ func RPCClient(no string, port string) *rpc.Client {
 
 	PrintMsg(no, "Connection made to "+port)
 	return client
+}
+
+// ConnectDriver connects driver to a replica
+func ConnectDriver(port string) *rpc.Client {
+	var result int
+	conn := RPCClient("DRIVER", port)
+	err := conn.Call("RPCExt.ConnectReplica", InitArgs{Settings: [2]int{0, 0}, TimeInt: 5000}, &result)
+	if err != nil {
+		PrintErr("DRIVER", err)
+	}
+	return conn
+}
+
+// Terminate is a command from the driver to terminate a replica
+func Terminate(port string, conn *rpc.Client) {
+	time.Sleep(3 * time.Second)
+	var result int
+	err := conn.Call("RPCExt.TerminateReplica", RPCExtArgs{}, &result)
+	if err != nil {
+		PrintErr("DRIVER", err)
+	}
+	PrintMsg("DRIVER", "Done on "+port)
 }
 
 // DownloadCvState gets the current database snapshot for CvRDT

@@ -25,7 +25,7 @@ func main() {
 
 	/* Connect */
 	for i, dbPort := range dbPorts {
-		dbClient, _ := util.Connect("CHECKER", dbPort)
+		dbClient, _ := util.ConnectDb("CHECKER", dbPort)
 		colsP[i] = dbClient.Database("chev").Collection("kvsp")
 		colsN[i] = dbClient.Database("chev").Collection("kvsn")
 		cols[i] = dbClient.Database("chev").Collection("kvs")
