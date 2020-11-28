@@ -27,9 +27,28 @@ func InsertValueLocal(key string, value string) {
 		{Key: "values", Value: value}}}}
 
 	/* Do the update */
-	_, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
+	_, err := db.Collection(collectionName).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	util.PrintMsg(noStr, "Inserted Value "+value)
+	if verbose == true {
+		util.PrintMsg(noStr, "Inserted Value "+value)
+	}
+}
+
+// RemoveValueLocal removes the value from the local db
+func RemoveValueLocal(key string, value string) {
+	/* Define filters */
+	filter := bson.D{{Key: "name", Value: key}}
+	update := bson.D{{Key: "$pull", Value: bson.D{
+		{Key: "values", Value: value}}}}
+
+	/* Do the delete */
+	_, err := db.Collection(collectionName).UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		util.PrintErr(noStr, err)
+	}
+	if verbose == true {
+		util.PrintMsg(noStr, "Deleted Value "+value)
+	}
 }

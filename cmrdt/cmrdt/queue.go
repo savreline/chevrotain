@@ -44,13 +44,13 @@ type ListNode struct {
 // translate operation code from string to op code
 func lookupOpCode(opCode OpCode) string {
 	if opCode == IK {
-		return "IK"
+		return "Insert Key"
 	} else if opCode == IV {
-		return "IV"
+		return "Insert Value"
 	} else if opCode == RK {
-		return "RK"
+		return "Remove Key"
 	} else if opCode == RV {
-		return "RV"
+		return "Remove Value"
 	} else {
 		util.PrintErr(noStr, errors.New("lookupOpCode: unknown operation"))
 		return ""
@@ -147,6 +147,10 @@ func processQueueHelper() {
 			InsertKeyLocal(opNode.Key)
 		} else if opNode.Type == IV {
 			InsertValueLocal(opNode.Key, opNode.Value)
+		} else if opNode.Type == RK {
+			RemoveKeyLocal(opNode.Key)
+		} else if opNode.Type == RV {
+			RemoveValueLocal(opNode.Key, opNode.Value)
 		}
 
 		/* Remove Node */

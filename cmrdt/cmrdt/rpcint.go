@@ -8,18 +8,6 @@ import (
 	"github.com/savreline/GoVector/govec"
 )
 
-// InsertKeyRPC receives incoming insert key call
-func (t *RPCInt) InsertKeyRPC(args *OpNode, reply *int) error {
-	processIntCall(*args)
-	return nil
-}
-
-// InsertValueRPC receives incoming insert value call
-func (t *RPCInt) InsertValueRPC(args *OpNode, reply *int) error {
-	processIntCall(*args)
-	return nil
-}
-
 // broadcast an operation
 func broadcast(opNode OpNode) []*rpc.Call {
 	var result int
@@ -39,13 +27,10 @@ func broadcast(opNode OpNode) []*rpc.Call {
 			} else {
 				destNo = i + 1
 			}
-			if opNode.Value == "" {
-				fmt.Println("InsertKey RPC", no, "->", destNo)
-				calls[i] = client.Go("RPCInt.InsertKeyRPC", opNode, &result, nil)
-			} else {
-				fmt.Println("InsertValue RPC", no, "->", destNo)
-				calls[i] = client.Go("RPCInt.InsertValueRPC", opNode, &result, nil)
+			if verbose == true {
+				fmt.Println(lookupOpCode(opNode.Type)+" RPC", no, "->", destNo)
 			}
+			calls[i] = client.Go("RPCInt.ProcessIntCall", opNode, &result, nil)
 			if err != nil {
 				util.PrintErr(noStr, err)
 			}
@@ -54,7 +39,11 @@ func broadcast(opNode OpNode) []*rpc.Call {
 	return calls
 }
 
-// process an external RPC call
+// process an external RPC call:
+//	1. tick the clock
+//	2. package the operation into an opNode struct
+//	3. add to local queue
+//	4. call the broadcast method
 func processExtCall(args util.RPCExtArgs, opCode OpCode) {
 	logger.StartBroadcast("OUT "+noStr+": "+lookupOpCode(opCode)+" : "+args.Key+" : "+args.Value,
 		govec.GetDefaultLogOptions())
@@ -71,19 +60,20 @@ func processExtCall(args util.RPCExtArgs, opCode OpCode) {
 	waitForBroadcastToFinish(calls)
 }
 
-// process an internal RPC call
-func processIntCall(opNode OpNode) {
-	/* Add operation to queue */
-	addToQueue(opNode)
+// ProcessIntCall processes an internal RPC call:
+//	1. add to local queue
+//	2. merge the incoming clock
+func (t *RPCInt) ProcessIntCall(args *OpNode, reply *int) error {
+	addToQueue(*args)
 
-	/* Merge clock */
 	var msg string
-	if opNode.Value == "" {
-		msg = "IN InsKey " + opNode.Key + " from " + opNode.Pid
+	if args.Value == "" {
+		msg = "IN InsKey " + args.Key + " from " + args.Pid
 	} else {
-		msg = "IN InsVal " + opNode.Key + ":" + opNode.Value + " from " + opNode.Pid
+		msg = "IN InsVal " + args.Key + ":" + args.Value + " from " + args.Pid
 	}
-	logger.MergeIncomingClock(msg, opNode.Timestamp, govec.GetDefaultLogOptions().Priority)
+	logger.MergeIncomingClock(msg, args.Timestamp, govec.GetDefaultLogOptions().Priority)
+	return nil
 }
 
 // Ensure broadcast completes

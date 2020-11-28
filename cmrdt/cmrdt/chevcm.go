@@ -14,6 +14,11 @@ import (
 	"github.com/savreline/GoVector/govec"
 )
 
+// Constants
+const (
+	collectionName = "kvs"
+)
+
 // Global variables
 var no int
 var noStr string
