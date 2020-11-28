@@ -118,8 +118,8 @@ func ConnectDriver(port string) *rpc.Client {
 }
 
 // Terminate is a command from the driver to terminate a replica
-func Terminate(port string, conn *rpc.Client) {
-	time.Sleep(3 * time.Second)
+func Terminate(port string, conn *rpc.Client, delay int) {
+	time.Sleep(time.Duration(delay) * time.Second)
 	var result int
 	err := conn.Call("RPCExt.TerminateReplica", RPCExtArgs{}, &result)
 	if err != nil {

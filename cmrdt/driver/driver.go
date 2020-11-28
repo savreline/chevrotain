@@ -30,10 +30,13 @@ func main() {
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		// go simpleTest(i, 50, 20)
+		go simpleTest(i, 50, 20, false)
 	}
 	for i := 0; i < noReplicas; i++ {
-		go removeTest(i)
+		// go removeTest(i)
+	}
+	for i := 0; i < noReplicas; i++ {
+		// go simpleTest(i, 3, 0, true)
 	}
 	// wikiTest()
 	select {}

@@ -67,5 +67,5 @@ func removeTest(no int) {
 	}
 
 	/* Terminate */
-	util.Terminate(ports[no], conn)
+	util.Terminate(ports[no], conn, 3)
 }

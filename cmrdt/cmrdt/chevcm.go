@@ -35,6 +35,7 @@ var verbose = true
 var settings [2]int
 var channel = make(chan int)
 var ticks [][]int
+var sent = false
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int

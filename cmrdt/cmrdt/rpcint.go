@@ -36,6 +36,7 @@ func broadcast(opNode OpNode) []*rpc.Call {
 			}
 		}
 	}
+	sent = true
 	return calls
 }
 

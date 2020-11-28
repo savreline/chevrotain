@@ -24,6 +24,7 @@ const (
 	IV
 	RK
 	RV
+	NO
 )
 
 // OpNode represents a node in the operation wait queue
@@ -51,6 +52,8 @@ func lookupOpCode(opCode OpCode) string {
 		return "Remove Key"
 	} else if opCode == RV {
 		return "Remove Value"
+	} else if opCode == NO {
+		return "No Op"
 	} else {
 		util.PrintErr(noStr, errors.New("lookupOpCode: unknown operation"))
 		return ""
@@ -114,7 +117,13 @@ func processQueue() {
 	timeInt := <-channel
 	close(channel)
 	for {
+		/* If nothing sent over last timeInt, send a no op */
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
+		if sent == false {
+			processExtCall(util.RPCExtArgs{Key: "", Value: ""}, NO)
+		}
+
+		/* Process queue */
 		lock.Lock()
 		eLog = eLog + "\nAn Iteration\n"
 		printQueue()
@@ -122,6 +131,7 @@ func processQueue() {
 		printQueue()
 		processQueueHelper()
 		printQueue()
+		sent = false
 		lock.Unlock()
 	}
 }

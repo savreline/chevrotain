@@ -45,5 +45,5 @@ func simpleTest(no int, keys int, vals int) {
 	}
 
 	/* Terminate */
-	util.Terminate(ports[no], conn)
+	util.Terminate(ports[no], conn, 3)
 }
