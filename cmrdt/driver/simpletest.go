@@ -48,7 +48,11 @@ func simpleTest(no int, noKeys int, noVals int, noop bool) {
 	}
 
 	/* Terminate */
-	util.Terminate(ports[no], conn, 10)
+	if noop {
+		util.Terminate(ports[no], conn, 30)
+	} else {
+		util.Terminate(ports[no], conn, 10)
+	}
 
 	/* Write Latencies to CSV */
 	var str string

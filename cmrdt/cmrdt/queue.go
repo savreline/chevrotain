@@ -212,12 +212,16 @@ func updateCurTick() {
 
 	/* Determine the earliest timestamp for all replicas */
 	curTick = min(b)
+	if curTick == 0 {
+		curTick = 1
+	}
 	for i := 0; i < noReplicas; i++ {
 		if len(ticks[i]) > 0 {
 			eLog = eLog + fmt.Sprintln(ticks[i])
 		}
 	}
 	if verbose == true {
+		eLog = eLog + fmt.Sprintln(b) + "=======\n"
 		eLog = eLog + ":" + fmt.Sprintln(curTick)
 	}
 }
