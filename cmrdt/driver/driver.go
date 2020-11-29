@@ -10,6 +10,7 @@ import (
 )
 
 // Global variables
+var latencies []map[int]int64
 var ports []string
 var delay int
 
@@ -27,6 +28,12 @@ func main() {
 		util.PrintErr("DRIVER", err)
 	}
 	noReplicas := len(ports)
+
+	/* Make Latency Maps */
+	latencies = make([]map[int]int64, noReplicas)
+	for i := 0; i < noReplicas; i++ {
+		latencies[i] = make(map[int]int64)
+	}
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {

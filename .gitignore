@@ -21,3 +21,5 @@
 # Database dumps
 /cmrdt/checker/*.csv
 /cvrdt/checker/*.csv
+/cmrdt/driver/*.csv
+/cvrdt/driver/*.csv
