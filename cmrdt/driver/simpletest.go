@@ -13,7 +13,7 @@ func simpleTest(no int, keys int, vals int, noop bool) {
 	var result int
 
 	/* Send ops only to replica 0 */
-	if noop && no == 0 {
+	if !noop || (noop && no == 0) {
 		/* Inserts */
 		k := 0
 		for i := 0; i < keys; i++ {
@@ -40,5 +40,5 @@ func simpleTest(no int, keys int, vals int, noop bool) {
 	}
 
 	/* Terminate */
-	util.Terminate(ports[no], conn, 3)
+	util.Terminate(ports[no], conn, 10)
 }

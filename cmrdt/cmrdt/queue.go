@@ -83,24 +83,22 @@ func addToQueue(node OpNode) {
 
 	/* Case 2: Insertion at the Head */
 	cmp := node.Timestamp.CompareClocks(queue.Data.Timestamp)
-	if cmp == 1 {
-		node.ConcOp = true
-	}
-	if cmp == 1 || cmp == 2 {
+	if cmp == 2 {
 		queue = &ListNode{Data: node, Next: queue}
 		lock.Unlock()
 		return
 	}
 
-	/* Case 3: Insertion in the Middle */
+	/* Case 3: Insertion Elsewhere: First Check that we can find a comparable node */
 	curNode := queue
 	for ; curNode.Next != nil; curNode = curNode.Next {
-		cmp := node.Timestamp.CompareClocks(curNode.Next.Data.Timestamp)
+		cmpNext := node.Timestamp.CompareClocks(curNode.Next.Data.Timestamp)
+		cmpPrev := node.Timestamp.CompareClocks(curNode.Data.Timestamp)
 
-		if cmp == 1 {
-			node.ConcOp = true
-		}
-		if cmp == 1 || cmp == 2 {
+		if cmpNext == 2 {
+			if cmpPrev == 1 {
+				curNode.Data.ConcOp = true
+			}
 			curNode.Next = &ListNode{Data: node, Next: curNode.Next}
 			lock.Unlock()
 			return
@@ -108,8 +106,38 @@ func addToQueue(node OpNode) {
 	}
 
 	/* Case 4: Insertion at the Tail */
-	curNode.Next = &ListNode{Data: node, Next: nil}
-	lock.Unlock()
+	cmp = node.Timestamp.CompareClocks(curNode.Data.Timestamp)
+	if cmp == 3 {
+		curNode.Next = &ListNode{Data: node, Next: curNode.Next}
+		lock.Unlock()
+		return
+	}
+
+	/* Case 5: Concurrent Insertion at the Head (gave up on finding a comparable node) */
+	cmp = node.Timestamp.CompareClocks(queue.Data.Timestamp)
+	if cmp == 1 {
+		node.ConcOp = true
+		if queue.Next != nil && node.Timestamp.CompareClocks(queue.Next.Data.Timestamp) == 1 {
+			queue.Data.ConcOp = true
+		}
+		queue = &ListNode{Data: node, Next: queue}
+		lock.Unlock()
+		return
+	}
+
+	/* Case 6: Concurrent Insertion Elsewhere (gave up on finding a comparable node) */
+	for curNode := queue; curNode != nil; curNode = curNode.Next {
+		cmp := node.Timestamp.CompareClocks(curNode.Data.Timestamp)
+		if cmp == 1 {
+			curNode.Data.ConcOp = true
+			if curNode.Next != nil && node.Timestamp.CompareClocks(curNode.Next.Data.Timestamp) == 1 {
+				node.ConcOp = true
+			}
+			curNode.Next = &ListNode{Data: node, Next: curNode.Next}
+			lock.Unlock()
+			return
+		}
+	}
 }
 
 // process some of the operations that are queued up
@@ -139,6 +167,8 @@ func processQueue() {
 // processQueueHelper does the actual processing of queue operations
 func processQueueHelper() {
 	updateCurTick()
+
+	/* Reset ticks and prev pointer to be ready for further calls to processConcOps */
 	ticks = make([][]int, noReplicas)
 	prev = nil
 
@@ -187,7 +217,9 @@ func updateCurTick() {
 			eLog = eLog + fmt.Sprintln(ticks[i])
 		}
 	}
-	eLog = eLog + ":" + fmt.Sprintln(curTick)
+	if verbose == true {
+		eLog = eLog + ":" + fmt.Sprintln(curTick)
+	}
 }
 
 // determine the latest timestamp per replica
