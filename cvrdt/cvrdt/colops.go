@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"fmt"
 
 	"../../util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -23,127 +22,88 @@ func mergeCollection(state []util.CvRecord, collection string) {
 	}
 }
 
-// merge positive and negative collections
+// merge positive and negative collections (need to refactor this to work symmetrically)
 func mergeCollections() {
-	/* Merge the global keys entry */
-	var keysPosRecord, keysNegRecord util.CvRecord
-	filter := bson.D{{Key: "name", Value: "Keys"}}
-	err := db.Collection(posCollection).FindOne(context.TODO(), filter).Decode(&keysPosRecord)
+	/* Download the positive collection */
+	cursor, err := db.Collection(posCollection).Find(context.TODO(), bson.D{})
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	err = db.Collection(negCollection).FindOne(context.TODO(), filter).Decode(&keysNegRecord)
-	if err != nil {
-		util.PrintErr(noStr, err)
-	}
-	mergeArray(keysPosRecord.Values, keysNegRecord.Values, "")
 
-	/* Merge all other entries */
-	// cursor, err := db.Collection(posCollection).Find(context.TODO(), bson.D{})
-	// if err != nil {
-	// 	fmt.Println("error 1")
-	// 	util.PrintErr(noStr, err)
-	// }
-	// for cursor.Next(context.TODO()) {
-	// 	/* Get next item */
-	// 	var posRecord, negRecord util.CvRecord
-	// 	if err := cursor.Decode(&posRecord); err != nil {
-	// 		fmt.Println("error 2")
-	// 		util.PrintErr(noStr, err)
-	// 	}
+	for cursor.Next(context.TODO()) {
+		/* Get the positive array */
+		var posEntry, negEntry util.CvRecord
+		if err := cursor.Decode(&posEntry); err != nil {
+			util.PrintErr(noStr, err)
+		}
 
-	// 	/* Look in the negative collection */
-	// 	filter = bson.D{{Key: "name", Value: posRecord.Name}}
-	// 	err = db.Collection(negCollection).FindOne(context.TODO(), filter).Decode(&negRecord)
-	// 	if err != nil {
-	// 		fmt.Println("error 3")
-	// 		util.PrintErr(noStr, err)
-	// 	}
-	// 	mergeArray(posRecord.Values, negRecord.Values, posRecord.Name)
-	// }
-}
+		/* Try to find the negative array */
+		filter := bson.D{{Key: "name", Value: posEntry.Name}}
+		err = db.Collection(negCollection).FindOne(context.TODO(), filter).Decode(&negEntry)
+		if err != nil {
+			util.PrintErr(noStr, err)
+		}
 
-// merge specific arrays
-func mergeArray(posArray []util.ValueEntry, negArray []util.ValueEntry, key string) {
-	for _, posRecord := range posArray {
-		/* Since item been in posCollection, default action is to insert it */
-		var insert = true
-		filter := bson.D{{Key: "name", Value: key}}
+		/* Optimization: If not found, just copy the array directly */
 
-		/* Try to locate the item in the negative collection */
-		negRecord, found := locateValEntry(negArray, posRecord.Value)
-		if found == true {
-			/* If found, compare time stamps and decide */
-			cmp := posRecord.Timestamp.CompareClocks(negRecord.Timestamp)
+		/* Record-by-record */
+		for _, posRecord := range posEntry.Values {
+			var insert = true
 
-			/* If negative record is the last one, do not insert the item */
-			if cmp == 2 {
-				insert = false
-			}
+			/* Try to find the record in the negative array */
+			negRecord, found := locateValEntry(negEntry.Values, posRecord.Value)
 
-			/* If concurrent, decide as per rules */
-			if cmp == 1 {
-				if settings[0] == 0 {
+			/* If found, decide on clocks */
+			if found {
+				cmp := posRecord.Timestamp.CompareClocks(negRecord.Timestamp)
+
+				/* If negative record is the last one, do not insert the item */
+				if cmp == 2 { // TODO: may have many records
 					insert = false
 				}
-			}
 
-			/* Delete positive record */
-			update := bson.D{{Key: "$pull", Value: bson.D{
-				{Key: "values", Value: posRecord}}}}
-			_, err := db.Collection(posCollection).UpdateOne(context.TODO(), filter, update)
-			if err != nil {
-				fmt.Println("error 4")
-				util.PrintErr(noStr, err)
-			}
+				/* If concurrent, decide as per rules */
+				if cmp == 1 {
+					if settings[0] == 0 {
+						insert = false
+					}
+				}
 
-			/* Delete negative record */
-			update = bson.D{{Key: "$pull", Value: bson.D{
-				{Key: "values", Value: negRecord}}}}
-			_, err = db.Collection(negCollection).UpdateOne(context.TODO(), filter, update)
-			if err != nil {
-				fmt.Println("error 5")
-				util.PrintErr(noStr, err)
-			}
-
-			if key == "" {
-				keyFilter := bson.D{{Key: "name", Value: posRecord.Value}}
-
-				/* Delete key in positive collection */
-				_, err := db.Collection(posCollection).DeleteOne(context.TODO(), keyFilter)
+				/* Delete positive record */
+				update := bson.D{{Key: "$pull", Value: bson.D{
+					{Key: "values", Value: posRecord}}}}
+				_, err := db.Collection(posCollection).UpdateOne(context.TODO(), filter, update)
 				if err != nil {
-					fmt.Println("error 6")
 					util.PrintErr(noStr, err)
 				}
 
-				/* Delete key in negative collection */
-				_, err = db.Collection(negCollection).DeleteOne(context.TODO(), keyFilter)
+				/* Delete negative record */
+				update = bson.D{{Key: "$pull", Value: bson.D{
+					{Key: "values", Value: negRecord}}}}
+				_, err = db.Collection(negCollection).UpdateOne(context.TODO(), filter, update)
 				if err != nil {
-					fmt.Println("error 7")
 					util.PrintErr(noStr, err)
 				}
 			}
-		}
 
-		/* Insert new key, if need be */
-		if insert == true && key == "" {
-			record := util.CmRecord{Name: posRecord.Value, Values: []string{}}
-			_, err := db.Collection("kvs").InsertOne(context.TODO(), record)
-			if err != nil {
-				fmt.Println("error 8")
-				util.PrintErr(noStr, err)
+			/* Insert new key into final collection (if need be) */
+			if insert && posEntry.Name == "Keys" {
+				record := util.CmRecord{Name: posRecord.Value, Values: []string{}}
+				_, err := db.Collection("kvs").InsertOne(context.TODO(), record)
+				if err != nil {
+					util.PrintErr(noStr, err)
+				}
 			}
-		}
 
-		/* Insert new value, if need be */
-		if insert == true && key != "" {
-			filter = bson.D{{Key: "name", Value: key}}
-			update := bson.D{{Key: "$push", Value: bson.D{
-				{Key: "values", Value: posRecord.Value}}}}
-			_, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
-			if err != nil {
-				fmt.Println("error 9")
-				util.PrintErr(noStr, err)
+			/* Insert new value into final collection (if need be) */
+			if insert == true && posEntry.Name != "Keys" {
+				filter = bson.D{{Key: "name", Value: posEntry.Name}}
+				update := bson.D{{Key: "$push", Value: bson.D{
+					{Key: "values", Value: posRecord.Value}}}}
+				_, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
+				if err != nil {
+					util.PrintErr(noStr, err)
+				}
 			}
 		}
 	}

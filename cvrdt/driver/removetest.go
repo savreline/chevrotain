@@ -2,6 +2,7 @@ package main
 
 import (
 	"strconv"
+	"time"
 
 	"../../util"
 )
@@ -54,11 +55,11 @@ func removeTest(no int) {
 	}
 
 	/* Merge */
-	// time.Sleep(5 * time.Second)
-	// err := conn.Call("RPCExt.GetCurrentSnapShot", util.RPCExtArgs{}, &result)
-	// if err != nil {
-	// 	util.PrintErr("DRIVER", err)
-	// }
+	time.Sleep(5 * time.Second)
+	err := conn.Call("RPCExt.GetCurrentSnapShot", util.RPCExtArgs{}, &result)
+	if err != nil {
+		util.PrintErr("DRIVER", err)
+	}
 
 	/* Terminate */
 	util.Terminate(ports[no], conn, 3)
