@@ -60,10 +60,13 @@ func saveCvToCSV(a []util.CvRecord, no int, pn string) {
 		}
 
 		str = str + "\n"
-		str = str + fmt.Sprint(a[i].Timestamp)
+		// str = str + fmt.Sprint(a[i].Timestamp)
 
-		for _, val := range a[i].Values {
-			str = str + "," + fmt.Sprint(val.Timestamp)
+		for i, val := range a[i].Values {
+			if i != 0 {
+				str = str + ","
+			}
+			str = str + fmt.Sprint(val.Timestamp)
 		}
 
 		str = str + "\n"

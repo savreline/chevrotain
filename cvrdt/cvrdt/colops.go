@@ -9,26 +9,15 @@ import (
 )
 
 func mergeCollection(state []util.CvRecord, collection string) {
-
-	for _, record := range state {
-
-		/* Keys: filter is set to key's name, if not found, insert record */
-		var res util.CvRecord
-		filter := bson.D{{Key: "name", Value: record.Name}}
-		err := db.Collection(collection).FindOne(context.TODO(), filter).Decode(&res)
-		if err != nil {
-			InsertKeyLocal(record.Name, collection, &record)
-		}
-
-		/* Values: look for with the key, if not found, insert vrecord */
-		for _, vrecord := range record.Values {
+	for _, entry := range state {
+		for _, record := range entry.Values {
 			var res util.ValueEntry
-			filter := bson.D{{Key: "name", Value: record.Name},
-				{Key: "values", Value: bson.D{
-					{Key: "$elemMatch", Value: bson.D{{Key: "value", Value: vrecord.Value}}}}}}
+			filter := bson.D{{Key: "name", Value: entry.Name}, // could be Keys
+				{Key: "values", Value: bson.D{ // look to see if we already have the value
+					{Key: "$elemMatch", Value: bson.D{{Key: "value", Value: record.Value}}}}}}
 			err := db.Collection(collection).FindOne(context.TODO(), filter).Decode(&res)
-			if err != nil {
-				InsertValueLocal(record.Name, vrecord.Value, collection, &vrecord)
+			if err != nil { // if we don't have it, need to insert the record
+				InsertLocalRecord(entry.Name, record.Value, collection, &record)
 			}
 		}
 	}

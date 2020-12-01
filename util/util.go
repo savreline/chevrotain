@@ -23,9 +23,8 @@ type CmRecord struct {
 
 // CvRecord is a CvRDT DB Record
 type CvRecord struct {
-	Name      string        `json:"name"`
-	Timestamp vclock.VClock `json:"time"`
-	Values    []ValueEntry  `json:"values"`
+	Name   string       `json:"name"`
+	Values []ValueEntry `json:"values"`
 }
 
 // ValueEntry is a value along with the timestamp

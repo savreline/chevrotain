@@ -66,7 +66,7 @@ func main() {
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
 	/* Pre-allocate Keys entry */
-	record := util.CvRecord{Name: "Keys", Timestamp: logger.GetCurrentVC(), Values: []util.ValueEntry{}}
+	record := util.CvRecord{Name: "Keys", Values: []util.ValueEntry{}}
 	_, err = db.Collection(posCollection).InsertOne(context.TODO(), record)
 	if err != nil {
 		util.PrintErr(noStr, err)
