@@ -23,17 +23,20 @@ const (
 var no int
 var noStr string
 var port string
-var eLog string // TODO (1/2)
+var eLog string
 var noReplicas int
-var curTick = 1 // TODO
+var curTick = 1
+var curLocalTick = 1
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
-var verbose = true // TODO (1/2)
+var verbose = true
 var settings [2]int
 var timeInt int
-var channel = make(chan bool)
-var ticks [][]int // TODO
+var chanState = make(chan bool)
+var chanTick = make(chan bool)
+var chanGC = make(chan bool)
+var ticks [][]int
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -90,6 +93,8 @@ func main() {
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
 	go sendState()
+	go sendTick()
+	go runGC()
 	select {}
 }
 
@@ -98,7 +103,9 @@ func (t *RPCExt) ConnectReplica(args *util.InitArgs, reply *int) error {
 	/* Set up args */
 	settings = args.Settings
 	timeInt = args.TimeInt
-	channel <- true
+	chanState <- true
+	chanTick <- true
+	chanGC <- true
 
 	/* Parse Group Members */
 	ports, _, err := util.ParseGroupMembersCVS("../driver/ports.csv", port)

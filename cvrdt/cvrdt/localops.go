@@ -36,8 +36,8 @@ func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 func InsertLocalRecord(key string, value string, collection string, record *util.ValueEntry) {
 	/* In no ready to go record is supplied, tick the clock and make one */
 	if record == nil {
-		logger.LogLocalEvent("Inserting key "+key+" value "+value, govec.GetDefaultLogOptions())
-		record = &util.ValueEntry{Value: value, Timestamp: logger.GetCurrentVC()}
+		timestamp := logger.LogLocalEvent("Inserting key "+key+" value "+value, govec.GetDefaultLogOptions())
+		record = &util.ValueEntry{Value: value, Timestamp: timestamp}
 	}
 
 	/* Look for the key (which could be "Keys") and push the record in */
@@ -61,6 +61,9 @@ func InsertLocalRecord(key string, value string, collection string, record *util
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
+
+	/* Add ticks */
+	addTicks(record.Timestamp)
 
 	/* Print to console */
 	if collection == posCollection && key == "Keys" {
