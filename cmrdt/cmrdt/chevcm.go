@@ -34,7 +34,7 @@ var db *mongo.Database
 var chans = make(map[chan vclock.VClock]chan vclock.VClock)
 var channel = make(chan int)
 var lock sync.Mutex
-var verbose = true
+var verbose = false
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -103,15 +103,13 @@ func (t *RPCExt) ConnectReplica(args *util.InitArgs, reply *int) error {
 
 // TerminateReplica writes to the log
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	if verbose == true {
-		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
-		if err != nil {
-			util.PrintErr(noStr, err)
-		}
-		err = ioutil.WriteFile("iRepl"+strconv.Itoa(no)+".txt", []byte(iLog), 0644)
-		if err != nil {
-			panic(err)
-		}
+	err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
+	if err != nil {
+		util.PrintErr(noStr, err)
+	}
+	err = ioutil.WriteFile("iRepl"+strconv.Itoa(no)+".txt", []byte(iLog), 0644)
+	if err != nil {
+		panic(err)
 	}
 	return nil
 }

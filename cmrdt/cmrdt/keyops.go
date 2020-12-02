@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
@@ -28,6 +29,9 @@ func processExtCall(args *util.RPCExtArgs, insert bool) {
 	calls := broadcast(args, insert)
 	logger.StopBroadcast()
 	waitForCallsToComplete(calls)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 }
 
 // InsertKeyLocal inserts the key into the local db

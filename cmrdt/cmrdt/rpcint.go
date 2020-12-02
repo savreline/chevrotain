@@ -26,6 +26,9 @@ type RPCIntArgs struct {
 func (t *RPCInt) InsertKeyRPC(args *RPCIntArgs, reply *int) error {
 	waitForTurn(args.Clock, args.Pid, args.Key, "", true)
 	InsertKeyLocal(args.Key)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
@@ -33,6 +36,9 @@ func (t *RPCInt) InsertKeyRPC(args *RPCIntArgs, reply *int) error {
 func (t *RPCInt) InsertValueRPC(args *RPCIntArgs, reply *int) error {
 	waitForTurn(args.Clock, args.Pid, args.Key, args.Value, true)
 	InsertValueLocal(args.Key, args.Value)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
@@ -40,6 +46,9 @@ func (t *RPCInt) InsertValueRPC(args *RPCIntArgs, reply *int) error {
 func (t *RPCInt) RemoveKeyRPC(args *RPCIntArgs, reply *int) error {
 	waitForTurn(args.Clock, args.Pid, args.Key, "", false)
 	RemoveKeyLocal(args.Key)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
@@ -47,6 +56,9 @@ func (t *RPCInt) RemoveKeyRPC(args *RPCIntArgs, reply *int) error {
 func (t *RPCInt) RemoveValueRPC(args *RPCIntArgs, reply *int) error {
 	waitForTurn(args.Clock, args.Pid, args.Key, args.Value, false)
 	RemoveValueLocal(args.Key, args.Value)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
@@ -61,9 +73,6 @@ func broadcast(args *util.RPCExtArgs, insert bool) []*rpc.Call {
 		if i == no {
 			flag = true
 		}
-		if delay > 0 {
-			time.Sleep(time.Duration(delay) * time.Millisecond)
-		}
 
 		if client != nil {
 			if flag {
@@ -72,22 +81,30 @@ func broadcast(args *util.RPCExtArgs, insert bool) []*rpc.Call {
 				destNo = i + 1
 			}
 			if args.Value == "" && insert {
-				fmt.Println("InsertKey RPC", no, "->", destNo)
+				if verbose == true {
+					fmt.Println("InsertKey RPC", no, "->", destNo)
+				}
 				calls[i] = client.Go("RPCInt.InsertKeyRPC",
 					RPCIntArgs{Key: args.Key, Pid: noStr, Clock: logger.GetCurrentVC()},
 					&result, nil)
 			} else if args.Value != "" && insert {
-				fmt.Println("InsertValue RPC", no, "->", destNo)
+				if verbose == true {
+					fmt.Println("InsertValue RPC", no, "->", destNo)
+				}
 				calls[i] = client.Go("RPCInt.InsertValueRPC",
 					RPCIntArgs{Key: args.Key, Value: args.Value, Pid: noStr, Clock: logger.GetCurrentVC()},
 					&result, nil)
 			} else if args.Value == "" && !insert {
-				fmt.Println("RemoveKey RPC", no, "->", destNo)
+				if verbose == true {
+					fmt.Println("RemoveKey RPC", no, "->", destNo)
+				}
 				calls[i] = client.Go("RPCInt.RemoveKeyRPC",
 					RPCIntArgs{Key: args.Key, Pid: noStr, Clock: logger.GetCurrentVC()},
 					&result, nil)
 			} else {
-				fmt.Println("RemoveValue RPC", no, "->", destNo)
+				if verbose == true {
+					fmt.Println("RemoveValue RPC", no, "->", destNo)
+				}
 				calls[i] = client.Go("RPCInt.RemoveValueRPC",
 					RPCIntArgs{Key: args.Key, Value: args.Value, Pid: noStr, Clock: logger.GetCurrentVC()},
 					&result, nil)
@@ -117,11 +134,13 @@ func waitForTurn(incomingClock vclock.VClock, incomingPid string, key string, va
 
 	/* Check if this RPC call needs to wait */
 	ready, cnt := logger.GetCurrentVCSafe().CompareBroadcastClock(incomingClock, incomingPid)
-	eLog = eLog + fmt.Sprint("K: ", key) + fmt.Sprint(" count ", cnt) +
+	eLog = eLog + fmt.Sprint("K:", key) + fmt.Sprint(" V:", value) + fmt.Sprint(" count ", cnt) +
 		fmt.Sprint(" Comparison: ", ready) + "\n"
 
 	// ready = true
 	if ready == false {
+		fmt.Println("FALSE!!!")
+
 		/* Make a channel to communicate on with this RPC call */
 		channel := make(chan vclock.VClock, 10)
 

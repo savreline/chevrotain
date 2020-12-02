@@ -15,39 +15,45 @@ func simpleTest(no int, noKeys int, noVals int) {
 	conn := util.ConnectDriver(ports[no])
 	var result int
 	k := 0
+	t := time.Now().UnixNano()
 
 	/* Inserts */
 	for i := 0; i < noKeys; i++ {
 		key := (no+1)*100 + i
-		t := time.Now().UnixNano()
-		err := conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: strconv.Itoa(key)}, &result)
-		if err != nil {
-			util.PrintErr("DRIVER", err)
-		}
-		latencies[no][k] = time.Now().UnixNano() - t
-		// time.Sleep(time.Duration(getRand()) * time.Millisecond)
+		latencies[no][k] = time.Now().UnixNano()
+		calls[no][k] = conn.Go("RPCExt.InsertKey",
+			util.RPCExtArgs{Key: strconv.Itoa(key)},
+			&result, nil)
+		time.Sleep(time.Duration(delay) * time.Millisecond)
 		k++
-		// }
 
-		// for i := 0; i < noKeys; i++ {
-		// 	key := (no+1)*100 + i
 		for j := 0; j < noVals; j++ {
 			val := (no+1)*1000 + k
-			t := time.Now().UnixNano()
-			err := conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
-			if err != nil {
-				util.PrintErr("DRIVER", err)
-			}
-			latencies[no][k] = time.Now().UnixNano() - t
-			// time.Sleep(time.Duration(getRand()) * time.Millisecond)
+			latencies[no][k] = time.Now().UnixNano()
+			calls[no][k] = conn.Go("RPCExt.InsertValue",
+				util.RPCExtArgs{Key: strconv.Itoa(key),
+					Value: strconv.Itoa(val)},
+				&result, nil)
+			time.Sleep(time.Duration(delay) * time.Millisecond)
 			k++
 		}
 	}
 
+	delta1 := time.Now().UnixNano() - t
+
+	for i, call := range calls[no] {
+		if call != nil {
+			<-call.Done
+			latencies[no][i] = time.Now().UnixNano() - latencies[no][i]
+		}
+	}
+
+	delta2 := time.Now().UnixNano() - t
+
 	/* Terminate */
 	util.Terminate(ports[no], conn, 5)
 
-	/* Write Latencies to CSV */
+	/* Compute Average */
 	var str string
 	var sum int64
 	keys := make([]int, 0, len(latencies[no]))
@@ -59,10 +65,17 @@ func simpleTest(no int, noKeys int, noVals int) {
 	for _, key := range keys {
 		str = str + strconv.Itoa(key) + "," + strconv.FormatInt(latencies[no][key], 10) + "\n"
 	}
+
+	/* Write Latencies to CSV */
 	err := ioutil.WriteFile("Latencies"+strconv.Itoa(no)+".csv", []byte(str), 0644)
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
+
+	/* Print Latency */
 	avg := float32(sum) / 1000000 / float32(k)
-	util.PrintMsg("DRIVER:", "Average Latency to Replica "+strconv.Itoa(no)+" is (ms):"+fmt.Sprint(avg))
+	avgT := float32(delta2) / 1000000 / float32(k)
+	util.PrintMsg("DRIVER:", "Time Elapsed to send ops is (us): "+fmt.Sprint(float32(delta1)/float32(1000)))
+	util.PrintMsg("DRIVER:", "Average Time per op to "+strconv.Itoa(no)+" is (ms):"+fmt.Sprint(avgT))
+	util.PrintMsg("DRIVER:", "Average latency to "+strconv.Itoa(no)+" is (ms):"+fmt.Sprint(avg))
 }

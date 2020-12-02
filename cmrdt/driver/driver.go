@@ -1,15 +1,15 @@
 package main
 
 import (
-	"math/rand"
+	"net/rpc"
 	"os"
 	"strconv"
-	"time"
 
 	"../../util"
 )
 
 // Global variables
+var calls [][]*rpc.Call
 var latencies []map[int]int64
 var ports []string
 var delay int
@@ -30,14 +30,16 @@ func main() {
 	noReplicas := len(ports)
 
 	/* Make Latency Maps */
+	calls = make([][]*rpc.Call, noReplicas)
 	latencies = make([]map[int]int64, noReplicas)
 	for i := 0; i < noReplicas; i++ {
 		latencies[i] = make(map[int]int64)
+		calls[i] = make([]*rpc.Call, 1050)
 	}
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		go simpleTest(i, 50, 20)
+		go simpleTest(i, 5, 2)
 	}
 	for i := 0; i < noReplicas; i++ {
 		// go removeTest(i)
@@ -45,13 +47,4 @@ func main() {
 	// wikiTest()
 
 	select {}
-}
-
-// https://golang.cafe/blog/golang-random-number-generator.html
-func getRand() int {
-	rand.Seed(time.Now().UnixNano())
-	min := 10
-	max := 100
-	res := rand.Intn(max-min+1) + min
-	return res
 }
