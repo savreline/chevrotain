@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/rpc"
 	"os"
 	"time"
@@ -182,4 +183,13 @@ func PrintErr(no string, err error) {
 		fmt.Println("REPLICA "+no+": ", err)
 	}
 	os.Exit(1)
+}
+
+// https://golang.cafe/blog/golang-random-number-generator.html
+func GetRand(no int) int {
+	rand.Seed(time.Now().UnixNano())
+	min := int(0.8 * float32(no))
+	max := int(1.2 * float32(no))
+	res := rand.Intn(max-min+1) + min
+	return res
 }

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"net/rpc"
+	"time"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
@@ -59,6 +60,10 @@ func processExtCall(args util.RPCExtArgs, opCode OpCode) {
 	addToQueue(opNode)
 	calls := broadcast(opNode)
 	waitForBroadcastToFinish(calls)
+
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 }
 
 // ProcessIntCall processes an internal RPC call:
@@ -74,6 +79,10 @@ func (t *RPCInt) ProcessIntCall(args *OpNode, reply *int) error {
 		msg = "IN InsVal " + args.Key + ":" + args.Value + " from " + args.Pid
 	}
 	logger.MergeIncomingClock(msg, args.Timestamp, govec.GetDefaultLogOptions().Priority)
+
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 

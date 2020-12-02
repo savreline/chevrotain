@@ -31,11 +31,12 @@ var lock sync.Mutex
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
-var verbose = true
+var verbose = false
 var settings [2]int
 var channel = make(chan int)
 var ticks [][]int
 var sent = false
+var delay int
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -53,6 +54,7 @@ func main() {
 	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
+	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
 	ticks = make([][]int, noReplicas)
 	if err != nil {
