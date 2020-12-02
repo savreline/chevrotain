@@ -98,21 +98,31 @@ func mergeCollections() {
 
 				/* Insert new key into final collection (if need be) */
 				if insert && posEntry.Name == "Keys" {
-					record := util.CmRecord{Name: posRecord.Value, Values: []string{}}
-					_, err := db.Collection("kvs").InsertOne(context.TODO(), record)
+					var res util.CmRecord
+					filter := bson.D{{Key: "name", Value: posRecord.Value}}
+					err := db.Collection("kvs").FindOne(context.TODO(), filter).Decode(&res)
 					if err != nil {
-						util.PrintErr(noStr, err)
+						record := util.CmRecord{Name: posRecord.Value, Values: []string{}}
+						_, err := db.Collection("kvs").InsertOne(context.TODO(), record)
+						if err != nil {
+							util.PrintErr(noStr, err)
+						}
 					}
 				}
 
 				/* Insert new value into final collection (if need be) */
 				if insert == true && posEntry.Name != "Keys" {
-					filter = bson.D{{Key: "name", Value: posEntry.Name}}
+					var res util.ValueEntry
+					filterVal := bson.D{{Key: "name", Value: posEntry.Name}, // could be Keys
+						{Key: "values", Value: posRecord.Value}}
 					update := bson.D{{Key: "$push", Value: bson.D{
 						{Key: "values", Value: posRecord.Value}}}}
-					_, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
+					err := db.Collection("kvs").FindOne(context.TODO(), filterVal).Decode(&res)
 					if err != nil {
-						util.PrintErr(noStr, err)
+						_, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
+						if err != nil {
+							util.PrintErr(noStr, err)
+						}
 					}
 				}
 			}
