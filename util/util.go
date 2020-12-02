@@ -5,37 +5,52 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"log"
 	"net/rpc"
 	"os"
-	"strconv"
 	"time"
 
+	"github.com/savreline/GoVector/govec/vclock"
+	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// ConnectArgs are the arguments to the ConnectReplica call (a dummy structure)
-type ConnectArgs struct {
+// CmRecord is a CmRDT DB Record
+type CmRecord struct {
+	Name   string   `json:"name"`
+	Values []string `json:"values"`
 }
 
-// KeyArgs are the arguments to the InsertKeyRPC call
-type KeyArgs struct {
-	Key string
+// CvRecord is a CvRDT DB Record
+type CvRecord struct {
+	Name   string       `json:"name"`
+	Values []ValueEntry `json:"values"`
 }
 
-// ValueArgs are the arguments to the InsertValueRPC call
-type ValueArgs struct {
+// ValueEntry is a value along with the timestamp
+type ValueEntry struct {
+	Value     string        `json:"name"`
+	Timestamp vclock.VClock `json:"time"`
+}
+
+// RPCExtArgs are the arguments to any RPCExt Call
+type RPCExtArgs struct {
 	Key, Value string
 }
 
-// Connect to MongoDB on the given port, as per https://www.mongodb.com/golang
-func Connect(port string) (*mongo.Client, context.Context) {
+// InitArgs are the arguments to Init RPCExt Call
+type InitArgs struct {
+	Settings [2]int
+	TimeInt  int
+}
+
+// ConnectDb to MongoDB on the given port, as per https://www.mongodb.com/golang
+func ConnectDb(no string, port string) (*mongo.Client, context.Context) {
 	urlString := "mongodb://localhost:" + port + "/"
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(urlString))
 	if err != nil {
-		log.Fatal(err)
+		PrintErr(no, err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -43,7 +58,7 @@ func Connect(port string) (*mongo.Client, context.Context) {
 
 	err = client.Connect(ctx)
 	if err != nil {
-		log.Fatal(err)
+		PrintErr(no, err)
 	}
 
 	return client, ctx
@@ -51,7 +66,7 @@ func Connect(port string) (*mongo.Client, context.Context) {
 
 // ParseGroupMembersCVS parses the supplied CVS group member file
 func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) {
-	// from https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
+	// adapted from https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
 	f, err := os.Open(file)
 	if err != nil {
 		return nil, nil, err
@@ -59,7 +74,7 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) 
 	defer f.Close()
 
 	csvr := csv.NewReader(f)
-	ports := []string{}
+	clPorts := []string{}
 	dbPorts := []string{}
 
 	for {
@@ -68,37 +83,103 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) 
 			if err == io.EOF {
 				err = nil
 			}
-			return ports, dbPorts, nil
+			return clPorts, dbPorts, nil
 		}
 
+		/* Remove own port from results if appropriate */
 		if row[0] != port {
-			ports = append(ports, row[0])
+			clPorts = append(clPorts, row[0])
 			dbPorts = append(dbPorts, row[1])
 		}
 	}
 }
 
-// RPCClient makes an RPC connection
-func RPCClient(port string, who string) *rpc.Client {
+// RPCClient makes an RPC connection to the given port
+func RPCClient(no string, port string) *rpc.Client {
 	client, err := rpc.Dial("tcp", "127.0.0.1:"+port)
 	if err != nil {
-		log.Fatal(err)
+		PrintErr(no, err)
 	}
 
-	fmt.Println(who + "Connection made to " + port)
+	PrintMsg(no, "Connection made to "+port)
 	return client
 }
 
-// PrintMsg prints message to console from a replica
-func PrintMsg(no int, msg string) {
-	fmt.Println("REPLICA " + strconv.Itoa(no) + ": " + msg)
+// ConnectDriver connects driver to a replica
+func ConnectDriver(port string) *rpc.Client {
+	var result int
+	conn := RPCClient("DRIVER", port)
+	err := conn.Call("RPCExt.ConnectReplica", InitArgs{Settings: [2]int{0, 0}, TimeInt: 5000}, &result)
+	if err != nil {
+		PrintErr("DRIVER", err)
+	}
+	return conn
 }
 
-// PrintErr prints error
-// from https://github.com/DistributedClocks/GoVector/blob/master/example/ClientServer/ClientServer.go
-func PrintErr(err error) {
+// Terminate is a command from the driver to terminate a replica
+func Terminate(port string, conn *rpc.Client, delay int) {
+	time.Sleep(time.Duration(delay) * time.Second)
+	var result int
+	err := conn.Call("RPCExt.TerminateReplica", RPCExtArgs{}, &result)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		PrintErr("DRIVER", err)
 	}
+	PrintMsg("DRIVER", "Done on "+port)
+}
+
+// DownloadCvState gets the current database snapshot for CvRDT
+// https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
+// https://github.com/mongodb/mongo-go-driver
+func DownloadCvState(col *mongo.Collection, drop string) []CvRecord {
+	var result []CvRecord
+
+	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	if err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if err = cursor.All(context.TODO(), &result); err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if drop == "1" {
+		col.Drop(context.TODO())
+	}
+	return result
+}
+
+// DownloadCmState gets the current database snapshot for CmRDT
+func DownloadCmState(col *mongo.Collection, drop string) []CmRecord {
+	var result []CmRecord
+
+	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	if err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if err = cursor.All(context.TODO(), &result); err != nil {
+		PrintErr("CHECKER", err)
+	}
+	if drop == "1" {
+		col.Drop(context.TODO())
+	}
+	return result
+}
+
+// PrintMsg prints message to console from a replica
+func PrintMsg(no string, msg string) {
+	if no == "DRIVER" || no == "CHECKER" {
+		fmt.Println(no + ": " + msg)
+	} else {
+		fmt.Println("REPLICA " + no + ": " + msg)
+	}
+}
+
+// PrintErr prints error to console from a replica and exits
+func PrintErr(no string, err error) {
+	if no == "DRIVER" || no == "CHECKER" {
+		fmt.Println(no+": ", err)
+	} else {
+		fmt.Println("REPLICA "+no+": ", err)
+	}
+	os.Exit(1)
 }
