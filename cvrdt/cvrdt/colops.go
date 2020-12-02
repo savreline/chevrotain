@@ -81,15 +81,15 @@ func mergeCollections() {
 
 					/* Delete positive record */
 					update := bson.D{{Key: "$pull", Value: bson.D{
-						{Key: "values", Value: posRecord}}}}
+						{Key: "values", Value: bson.D{{
+							Key: "value", Value: bson.D{{
+								Key: "$eq", Value: posRecord.Value}}}}}}}}
 					_, err := db.Collection(posCollection).UpdateOne(context.TODO(), filter, update)
 					if err != nil {
 						util.PrintErr(noStr, err)
 					}
 
 					/* Delete negative record */
-					update = bson.D{{Key: "$pull", Value: bson.D{
-						{Key: "values", Value: negRecord}}}}
 					_, err = db.Collection(negCollection).UpdateOne(context.TODO(), filter, update)
 					if err != nil {
 						util.PrintErr(noStr, err)
