@@ -23,3 +23,4 @@
 /cvrdt/checker/*.csv
 /cmrdt/driver/*.csv
 /cvrdt/driver/*.csv
+/single/*.csv
