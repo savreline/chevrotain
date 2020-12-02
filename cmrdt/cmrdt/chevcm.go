@@ -115,7 +115,9 @@ func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 }
 
 func broadcastClockValue(clockValue vclock.VClock) {
+	lock.Lock()
 	for _, channel := range chans {
 		channel <- clockValue
 	}
+	lock.Unlock()
 }

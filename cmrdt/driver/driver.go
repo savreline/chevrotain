@@ -1,18 +1,19 @@
 package main
 
 import (
-	"net/rpc"
 	"os"
 	"strconv"
+	"sync"
 
 	"../../util"
 )
 
 // Global variables
-var calls [][]*rpc.Call
 var latencies []map[int]int64
 var ports []string
 var delay int
+var lock sync.Mutex
+var wg sync.WaitGroup
 
 func main() {
 	/* Parse Command Line Arguments */
@@ -29,22 +30,22 @@ func main() {
 	}
 	noReplicas := len(ports)
 
-	/* Make Latency Maps */
-	calls = make([][]*rpc.Call, noReplicas)
+	/* Make Slice of Calls to Wait For */
 	latencies = make([]map[int]int64, noReplicas)
 	for i := 0; i < noReplicas; i++ {
 		latencies[i] = make(map[int]int64)
-		calls[i] = make([]*rpc.Call, 1050)
 	}
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		go simpleTest(i, 5, 2)
+		go simpleTest(i, 50, 20, false)
 	}
 	for i := 0; i < noReplicas; i++ {
 		// go removeTest(i)
 	}
+	for i := 0; i < noReplicas; i++ {
+		// go simpleTest(i, 3, 0, true)
+	}
 	// wikiTest()
-
 	select {}
 }

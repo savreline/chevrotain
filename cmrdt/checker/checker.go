@@ -11,6 +11,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+var noReplicas int
+
 func main() {
 	/* Parse args, initialize data structures */
 	drop := os.Args[1]
@@ -18,7 +20,7 @@ func main() {
 	if err != nil {
 		util.PrintErr("CHECKER", err)
 	}
-	noReplicas := len(dbPorts)
+	noReplicas = len(dbPorts)
 	cols := make([]*mongo.Collection, noReplicas)
 	results := make([][]util.CmRecord, noReplicas)
 
@@ -40,6 +42,9 @@ func main() {
 		msg := fmt.Sprint("Number of diffs ", i+1, " to ", i+2, " is ", errs, " and percent is ", (cnt-errs)/cnt*100)
 		util.PrintMsg("CHECKER", msg)
 	}
+	errs, cnt := testEq(results[0], results[noReplicas-1], noReplicas)
+	msg := fmt.Sprint("Number of diffs ", 1, " to ", noReplicas, " is ", errs, " and percent is ", (cnt-errs)/cnt*100)
+	util.PrintMsg("CHECKER", msg)
 }
 
 // with advice from https://stackoverflow.com/questions/15311969/checking-the-equality-of-two-slices
@@ -74,13 +79,15 @@ func testEq(a, b []util.CmRecord, no int) (float32, float32) {
 	}
 
 	/* Write to CSV */
-	err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str1), 0644)
-	if err != nil {
-		util.PrintErr("CHECKER", err)
-	}
-	err = ioutil.WriteFile("Repl"+strconv.Itoa(no+1)+".csv", []byte(str2), 0644)
-	if err != nil {
-		util.PrintErr("CHECKER", err)
+	if no != 0 && no != noReplicas-1 {
+		err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str1), 0644)
+		if err != nil {
+			util.PrintErr("CHECKER", err)
+		}
+		err = ioutil.WriteFile("Repl"+strconv.Itoa(no+1)+".csv", []byte(str2), 0644)
+		if err != nil {
+			util.PrintErr("CHECKER", err)
+		}
 	}
 	return errs, cnt
 }

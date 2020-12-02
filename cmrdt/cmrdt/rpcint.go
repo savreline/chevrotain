@@ -139,10 +139,10 @@ func waitForTurn(incomingClock vclock.VClock, incomingPid string, key string, va
 
 	// ready = true
 	if ready == false {
-		fmt.Println("FALSE!!!")
+		// fmt.Println("FALSE!!!")
 
 		/* Make a channel to communicate on with this RPC call */
-		channel := make(chan vclock.VClock, 10)
+		channel := make(chan vclock.VClock, 100)
 
 		/* Add the channel to the pool */
 		lock.Lock()
@@ -151,11 +151,18 @@ func waitForTurn(incomingClock vclock.VClock, incomingPid string, key string, va
 
 		/* Wait for the correct clock */
 		i := 0
-		for ok := true; ok != ready; i++ {
+		for {
 			<-channel
-			ready, cnt = logger.GetCurrentVCSafe().CompareBroadcastClock(incomingClock, incomingPid)
+			recvClock := logger.GetCurrentVCSafe()
+			ready, cnt = recvClock.CompareBroadcastClock(incomingClock, incomingPid)
+			// fmt.Println("recvClock ", recvClock, " incomingClock ", incomingClock, " ready ", ready)
 			iLog = iLog + fmt.Sprint("K: ", key) + fmt.Sprint(" count ", cnt) +
 				fmt.Sprint(" Comparison: ", ready) + fmt.Sprint(":", i) + "\n"
+			if ready {
+				fmt.Println("leaving")
+				break
+			}
+			i++
 		}
 
 		/* Remove channel from the pool */
