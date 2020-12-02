@@ -27,6 +27,7 @@ var port string
 var eLog string
 var iLog string
 var noReplicas int
+var delay int
 var conns []*rpc.Client
 var logger *govec.GoLog
 var db *mongo.Database
@@ -51,6 +52,7 @@ func main() {
 	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
+	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
 	if err != nil {
 		util.PrintErr(noStr, err)

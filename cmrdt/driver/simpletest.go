@@ -25,7 +25,7 @@ func simpleTest(no int, noKeys int, noVals int) {
 			util.PrintErr("DRIVER", err)
 		}
 		latencies[no][k] = time.Now().UnixNano() - t
-		time.Sleep(time.Duration(delay) * time.Millisecond)
+		// time.Sleep(time.Duration(getRand()) * time.Millisecond)
 		k++
 		// }
 
@@ -39,7 +39,7 @@ func simpleTest(no int, noKeys int, noVals int) {
 				util.PrintErr("DRIVER", err)
 			}
 			latencies[no][k] = time.Now().UnixNano() - t
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			// time.Sleep(time.Duration(getRand()) * time.Millisecond)
 			k++
 		}
 	}

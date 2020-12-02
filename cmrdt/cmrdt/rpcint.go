@@ -8,6 +8,7 @@ package main
 import (
 	"fmt"
 	"net/rpc"
+	"time"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
@@ -59,6 +60,9 @@ func broadcast(args *util.RPCExtArgs, insert bool) []*rpc.Call {
 	for i, client := range conns {
 		if i == no {
 			flag = true
+		}
+		if delay > 0 {
+			time.Sleep(time.Duration(delay) * time.Millisecond)
 		}
 
 		if client != nil {
@@ -116,6 +120,7 @@ func waitForTurn(incomingClock vclock.VClock, incomingPid string, key string, va
 	eLog = eLog + fmt.Sprint("K: ", key) + fmt.Sprint(" count ", cnt) +
 		fmt.Sprint(" Comparison: ", ready) + "\n"
 
+	// ready = true
 	if ready == false {
 		/* Make a channel to communicate on with this RPC call */
 		channel := make(chan vclock.VClock, 10)
@@ -128,9 +133,9 @@ func waitForTurn(incomingClock vclock.VClock, incomingPid string, key string, va
 		/* Wait for the correct clock */
 		i := 0
 		for ok := true; ok != ready; i++ {
-			recvClock := <-channel
-			ready, cnt = logger.GetCurrentVCSafe().CompareBroadcastClock(recvClock, incomingPid)
-			iLog = iLog + fmt.Sprint("K: ", key) + fmt.Sprint("count", cnt) +
+			<-channel
+			ready, cnt = logger.GetCurrentVCSafe().CompareBroadcastClock(incomingClock, incomingPid)
+			iLog = iLog + fmt.Sprint("K: ", key) + fmt.Sprint(" count ", cnt) +
 				fmt.Sprint(" Comparison: ", ready) + fmt.Sprint(":", i) + "\n"
 		}
 

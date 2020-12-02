@@ -1,8 +1,10 @@
 package main
 
 import (
+	"math/rand"
 	"os"
 	"strconv"
+	"time"
 
 	"../../util"
 )
@@ -43,4 +45,13 @@ func main() {
 	// wikiTest()
 
 	select {}
+}
+
+// https://golang.cafe/blog/golang-random-number-generator.html
+func getRand() int {
+	rand.Seed(time.Now().UnixNano())
+	min := 10
+	max := 100
+	res := rand.Intn(max-min+1) + min
+	return res
 }
