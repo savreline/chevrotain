@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"time"
 
 	"../../util"
 	"github.com/savreline/GoVector/govec"
@@ -11,24 +12,36 @@ import (
 // InsertKey inserts the given key with an empty array for values
 func (t *RPCExt) InsertKey(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord("Keys", args.Key, posCollection, nil)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
 // RemoveKey removes the given key
 func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord("Keys", args.Key, negCollection, nil)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
 // InsertValue inserts value into the given key
 func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord(args.Key, args.Value, posCollection, nil)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
 // RemoveValue removes value from the given key
 func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord(args.Key, args.Value, negCollection, nil)
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
 	return nil
 }
 
@@ -66,13 +79,15 @@ func InsertLocalRecord(key string, value string, collection string, record *util
 	addTicks(record.Timestamp)
 
 	/* Print to console */
-	if collection == posCollection && key == "Keys" {
-		util.PrintMsg(noStr, "Inserted Key "+value)
-	} else if collection == negCollection && key == "Keys" {
-		util.PrintMsg(noStr, "Removed Key "+value)
-	} else if collection == posCollection {
-		util.PrintMsg(noStr, "Inserted Value "+value+" on key "+key)
-	} else {
-		util.PrintMsg(noStr, "Removed Value "+value+" on key "+key)
+	if verbose {
+		if collection == posCollection && key == "Keys" {
+			util.PrintMsg(noStr, "Inserted Key "+value)
+		} else if collection == negCollection && key == "Keys" {
+			util.PrintMsg(noStr, "Removed Key "+value)
+		} else if collection == posCollection {
+			util.PrintMsg(noStr, "Inserted Value "+value+" on key "+key)
+		} else {
+			util.PrintMsg(noStr, "Removed Value "+value+" on key "+key)
+		}
 	}
 }

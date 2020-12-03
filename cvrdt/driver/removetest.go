@@ -8,7 +8,7 @@ import (
 
 func removeTest(no int) {
 	/* Connect to the Replica and Connect the Replica */
-	conn := util.ConnectDriver(ports[no])
+	conn := util.ConnectDriver(ports[no], t)
 	var result int
 
 	/* Inserts: insert 2 keys, 2 values for the first key */

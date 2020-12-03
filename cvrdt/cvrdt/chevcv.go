@@ -37,6 +37,7 @@ var chanState = make(chan bool)
 var chanTick = make(chan bool)
 var chanGC = make(chan bool)
 var ticks [][]int
+var delay int
 
 // RPCExt is the RPC object that receives commands from the driver
 type RPCExt int
@@ -54,6 +55,7 @@ func main() {
 	noStr = os.Args[2]
 	port = os.Args[3]
 	dbPort := os.Args[4]
+	delay, err = strconv.Atoi(os.Args[5])
 	conns = make([]*rpc.Client, noReplicas)
 	ticks = make([][]int, noReplicas)
 	if err != nil {

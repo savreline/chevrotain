@@ -21,7 +21,7 @@ func loadPages(startPage string, no int) {
 	maxDepth := 3
 
 	/* Connect to the Replica and Connect the Replica */
-	conn := util.ConnectDriver(ports[no])
+	conn := util.ConnectDriver(ports[no], t)
 	var result int
 
 	/* Init Queue */

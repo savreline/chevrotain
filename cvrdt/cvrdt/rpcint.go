@@ -44,7 +44,6 @@ func (t *RPCInt) TickClock(args *TickArgs, reply *int) error {
 
 // GetCurrentSnapShot merges the positive and negative datasets into one collection
 func GetCurrentSnapShot() error {
-	fmt.Println("Garbage Collecting")
 	mergeCollections()
 	return nil
 }
@@ -92,7 +91,7 @@ func sendTick() {
 func runGC() {
 	<-chanGC
 	for {
-		time.Sleep(time.Duration(10000) * time.Millisecond)
+		time.Sleep(time.Duration(timeInt) * time.Millisecond)
 		GetCurrentSnapShot()
 	}
 }
@@ -116,7 +115,9 @@ func broadcast(state StateArgs, tick TickArgs, name string, msg string) ([]*rpc.
 			} else {
 				destNo = i + 1
 			}
-			fmt.Println(msg, no, "->", destNo)
+			if verbose {
+				fmt.Println(msg, no, "->", destNo)
+			}
 			if name == "RPCInt.MergeState" {
 				calls[i] = client.Go(name, state, &results[i], nil)
 			} else {

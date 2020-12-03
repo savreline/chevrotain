@@ -13,7 +13,7 @@ import (
 
 func simpleTest(no int, noKeys int, noVals int, noop bool) {
 	/* Connect to the Replica and Connect the Replica */
-	conn := util.ConnectDriver(ports[no])
+	conn := util.ConnectDriver(ports[no], t)
 	k := 0
 	t := time.Now().UnixNano()
 

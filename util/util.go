@@ -107,10 +107,10 @@ func RPCClient(no string, port string) *rpc.Client {
 }
 
 // ConnectDriver connects driver to a replica
-func ConnectDriver(port string) *rpc.Client {
+func ConnectDriver(port string, t int) *rpc.Client {
 	var result int
 	conn := RPCClient("DRIVER", port)
-	err := conn.Call("RPCExt.ConnectReplica", InitArgs{Settings: [2]int{0, 0}, TimeInt: 5000}, &result)
+	err := conn.Call("RPCExt.ConnectReplica", InitArgs{Settings: [2]int{0, 0}, TimeInt: t}, &result)
 	if err != nil {
 		PrintErr("DRIVER", err)
 	}

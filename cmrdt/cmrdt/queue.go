@@ -345,8 +345,8 @@ func checkIfDiffVals(first *ListNode) bool {
 // count number of operations of each type and eliminate accordinly
 func elimOps(first *ListNode) []map[string]int {
 	/* Init maps */
-	ops := make([]map[string]int, 5)
-	for i := 1; i < 5; i++ {
+	ops := make([]map[string]int, 10)
+	for i := 1; i < 10; i++ {
 		ops[i] = make(map[string]int)
 	}
 

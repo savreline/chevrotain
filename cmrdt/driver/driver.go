@@ -14,11 +14,13 @@ var ports []string
 var delay int
 var lock sync.Mutex
 var wg sync.WaitGroup
+var t int
 
 func main() {
 	/* Parse Command Line Arguments */
 	var err error
 	delay, err = strconv.Atoi(os.Args[1])
+	t, err = strconv.Atoi(os.Args[2])
 	if err != nil {
 		util.PrintErr("DRIVER", err)
 	}
