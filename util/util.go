@@ -10,7 +10,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/savreline/GoVector/govec/vclock"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
@@ -18,20 +17,20 @@ import (
 
 // CmRecord is a CmRDT DB Record
 type CmRecord struct {
-	Name   string   `json:"name"`
+	Key    string   `json:"key"`
 	Values []string `json:"values"`
 }
 
-// CvRecord is a CvRDT DB Record
-type CvRecord struct {
-	Name   string       `json:"name"`
-	Values []ValueEntry `json:"values"`
+// CvDoc is a CvRDT DB Document
+type CvDoc struct {
+	Key    string     `json:"key"`
+	Values []CvRecord `json:"values"`
 }
 
-// ValueEntry is a value along with the timestamp
-type ValueEntry struct {
-	Value     string        `json:"name"`
-	Timestamp vclock.VClock `json:"time"`
+// CvRecord is a value along with the timestamp
+type CvRecord struct {
+	Value     string `json:"value"`
+	Timestamp int    `json:"timestamp"`
 }
 
 // RPCExtArgs are the arguments to any RPCExt Call
@@ -41,9 +40,21 @@ type RPCExtArgs struct {
 
 // InitArgs are the arguments to Init RPCExt Call
 type InitArgs struct {
-	Settings [2]int
-	TimeInt  int
+	Bias    [2]bool
+	TimeInt int
 }
+
+// OpCode is an operation code
+type OpCode int
+
+// OpCodes
+const (
+	IK OpCode = iota + 1
+	IV
+	RK
+	RV
+	NO
+)
 
 // ConnectDb to MongoDB on the given port, as per https://www.mongodb.com/golang
 func ConnectDb(no string, port string) (*mongo.Client, context.Context) {
@@ -106,46 +117,49 @@ func RPCClient(no string, port string) *rpc.Client {
 	return client
 }
 
-// ConnectDriver connects driver to a replica
-func ConnectDriver(port string, t int) *rpc.Client {
+// ConnectClient connects driver to a replica
+func ConnectClient(port string, t int) *rpc.Client {
 	var result int
-	conn := RPCClient("DRIVER", port)
-	err := conn.Call("RPCExt.ConnectReplica", InitArgs{Settings: [2]int{0, 0}, TimeInt: t}, &result)
+	conn := RPCClient("CLIENT", port)
+	err := conn.Call("RPCExt.InitReplica", InitArgs{Bias: [2]bool{true, true}, TimeInt: t}, &result)
 	if err != nil {
-		PrintErr("DRIVER", err)
+		PrintErr("CLIENT", err)
 	}
 	return conn
 }
 
-// Terminate is a command from the driver to terminate a replica
-func Terminate(port string, conn *rpc.Client, delay int) {
+// TerminateReplica is a command from the driver to terminate a replica
+func TerminateReplica(port string, conn *rpc.Client, delay int) {
 	time.Sleep(time.Duration(delay) * time.Second)
 	var result int
 	err := conn.Call("RPCExt.TerminateReplica", RPCExtArgs{}, &result)
 	if err != nil {
-		PrintErr("DRIVER", err)
+		PrintErr("CLIENT", err)
 	}
-	PrintMsg("DRIVER", "Done on "+port)
+	PrintMsg("CLIENT", "Done on "+port)
 }
 
 // DownloadCvState gets the current database snapshot for CvRDT
-// https://godoc.org/go.mongodb.org/mongo-driver/mongo#Collection.Find
-// https://github.com/mongodb/mongo-go-driver
-func DownloadCvState(col *mongo.Collection, drop string) []CvRecord {
-	var result []CvRecord
+func DownloadCvState(col *mongo.Collection, who string, drop string) []CvDoc {
+	var res []CvDoc
 
-	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	/* Download all key docs */
+	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
 	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
-		PrintErr("CHECKER", err)
+		PrintErr(who, err)
 	}
-	if err = cursor.All(context.TODO(), &result); err != nil {
-		PrintErr("CHECKER", err)
+
+	/* Save downloaded info into res */
+	if err = cursor.All(context.TODO(), &res); err != nil {
+		PrintErr(who, err)
 	}
+
+	/* Drop the collection if asked */
 	if drop == "1" {
 		col.Drop(context.TODO())
 	}
-	return result
+	return res
 }
 
 // DownloadCmState gets the current database snapshot for CmRDT
@@ -168,7 +182,7 @@ func DownloadCmState(col *mongo.Collection, drop string) []CmRecord {
 
 // PrintMsg prints message to console from a replica
 func PrintMsg(no string, msg string) {
-	if no == "DRIVER" || no == "CHECKER" {
+	if no == "CLIENT" || no == "TESTER" {
 		fmt.Println(no + ": " + msg)
 	} else {
 		fmt.Println("REPLICA " + no + ": " + msg)
@@ -177,7 +191,7 @@ func PrintMsg(no string, msg string) {
 
 // PrintErr prints error to console from a replica and exits
 func PrintErr(no string, err error) {
-	if no == "DRIVER" || no == "CHECKER" {
+	if no == "CLIENT" || no == "TESTER" {
 		fmt.Println(no+": ", err)
 	} else {
 		fmt.Println("REPLICA "+no+": ", err)
@@ -185,11 +199,20 @@ func PrintErr(no string, err error) {
 	os.Exit(1)
 }
 
-// https://golang.cafe/blog/golang-random-number-generator.html
+// GetRand generates a random number to emulate connection delays
 func GetRand(no int) int {
+	// https://golang.cafe/blog/golang-random-number-generator.html
 	rand.Seed(time.Now().UnixNano())
 	min := int(0.8 * float32(no))
 	max := int(1.2 * float32(no))
 	res := rand.Intn(max-min+1) + min
 	return res
+}
+
+// Max returns the maximum of a and b
+func Max(a int, b int) int {
+	if a > b {
+		return a
+	}
+	return b
 }

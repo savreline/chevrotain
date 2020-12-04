@@ -4,65 +4,77 @@ import (
 	"context"
 	"time"
 
-	"../../util"
-	"github.com/savreline/GoVector/govec"
+	"../util"
 	"go.mongodb.org/mongo-driver/bson"
 )
 
 // InsertKey inserts the given key with an empty array for values
 func (t *RPCExt) InsertKey(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord("Keys", args.Key, posCollection, nil)
-	if delay > 0 {
-		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
-	}
+	emulateDelay()
 	return nil
 }
 
 // RemoveKey removes the given key
 func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord("Keys", args.Key, negCollection, nil)
-	if delay > 0 {
-		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
-	}
+	emulateDelay()
 	return nil
 }
 
 // InsertValue inserts value into the given key
 func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord(args.Key, args.Value, posCollection, nil)
-	if delay > 0 {
-		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
-	}
+	emulateDelay()
 	return nil
 }
 
 // RemoveValue removes value from the given key
 func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 	InsertLocalRecord(args.Key, args.Value, negCollection, nil)
-	if delay > 0 {
-		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
-	}
+	emulateDelay()
 	return nil
 }
 
+// emulates link delay in all RPC responses
+func emulateDelay() {
+	if delay > 0 {
+		time.Sleep(time.Duration(util.GetRand(delay)) * time.Millisecond)
+	}
+}
+
 // InsertLocalRecord inserts the record in either positive collection (add) or negative collection (remove)
-func InsertLocalRecord(key string, value string, collection string, record *util.ValueEntry) {
-	/* In no ready to go record is supplied, tick the clock and make one */
+func InsertLocalRecord(key string, value string, collection string, record *util.CvRecord) {
+	/* In no ready to go record is supplied, tick the clock and make one,
+	otherwise check if an exact identical entry already exists */
 	if record == nil {
-		timestamp := logger.LogLocalEvent("Inserting key "+key+" value "+value, govec.GetDefaultLogOptions())
-		record = &util.ValueEntry{Value: value, Timestamp: timestamp}
+		record = &util.CvRecord{Value: value, Timestamp: clock}
+	} else {
+		var res util.CvDoc
+		filter := bson.D{{Key: "key", Value: key},
+			{Key: "values", Value: bson.D{
+				{Key: "$elemMatch", Value: bson.D{
+					{Key: "value", Value: record.Value},
+					{Key: "timestamp", Value: record.Timestamp}}}}}}
+		err := db.Collection(collection).FindOne(context.TODO(), filter).Decode(&res)
+		if err == nil { // found the record, no need to do anything
+			return
+		}
 	}
 
-	/* Look for the key (which could be "Keys") and push the record in */
-	var filter = bson.D{{Key: "name", Value: key}}
+	/* Tick the clock */
+	clock++
+
+	/* Look for the key document (which could be "Keys") and push the record in */
+	var filter = bson.D{{Key: "key", Value: key}}
 	var update = bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: record}}}}
 
-	/* If key entry is found, no need to insert the key entry as well */
+	/* If key document is found, no need to insert the document as well */
 	var res util.CvRecord
 	err := db.Collection(collection).FindOne(context.TODO(), filter).Decode(&res)
 	if err != nil {
-		keyEntry := &util.CvRecord{Name: key, Values: []util.ValueEntry{}}
+		keyEntry := &util.CvDoc{Key: key, Values: []util.CvRecord{}}
 		_, err := db.Collection(collection).InsertOne(context.TODO(), keyEntry)
 		if err != nil {
 			util.PrintErr(noStr, err)
@@ -74,9 +86,6 @@ func InsertLocalRecord(key string, value string, collection string, record *util
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-
-	/* Add ticks */
-	addTicks(record.Timestamp)
 
 	/* Print to console */
 	if verbose {

@@ -20,3 +20,4 @@
 
 # Database dumps
 *.csv
+!ports.csv
