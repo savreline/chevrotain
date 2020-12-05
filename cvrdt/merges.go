@@ -1,7 +1,10 @@
 package main
 
 import (
+	"context"
+
 	"../util"
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 // merge either the positive or the negative collection
@@ -13,114 +16,110 @@ func mergeState(state []util.CvDoc, collection string) {
 	}
 }
 
-// // merge positive and negative collections
-// func mergeCollections() {
-// 	/* Download the positive collection */
-// 	cursor, err := db.Collection(posCollection).Find(context.TODO(), bson.D{})
-// 	if err != nil {
-// 		util.PrintErr(noStr, err)
-// 	}
+// merge positive and negative collections
+func mergeCollections() {
+	var err error
 
-// 	for cursor.Next(context.TODO()) {
-// 		/* Get the positive array */
-// 		var posEntry, negEntry util.CvDoc
-// 		if err := cursor.Decode(&posEntry); err != nil {
-// 			util.PrintErr(noStr, err)
-// 		}
+	/* Download the positive collection and negative collections (for efficiency) */
+	posState := util.DownloadCvState(db.Collection(posCollection), "REPLICA "+noStr, "0")
+	negState := util.DownloadCvState(db.Collection(negCollection), "REPLICA "+noStr, "0")
 
-// 		/* Try to find the negative array */
-// 		filter := bson.D{{Key: "name", Value: posEntry.Key}}
-// 		err = db.Collection(negCollection).FindOne(context.TODO(), filter).Decode(&negEntry)
-// 		if err != nil {
-// 			util.PrintErr(noStr, err)
-// 		}
+	/* Iterate over documents in the positive collection */
+	for posDoc := range posState { // util.CvDoc
 
-// 		/* Optimization: If not found, just copy the array directly */
+		/* Look for the corresponding doc in the negative collection */
+		var negDoc util.CvDoc
+		var found = false
+		for _, doc := range negState {
+			if posDoc.Key == doc.Key {
+				negDoc = doc
+				found = true
+			}
+		}
 
-// 		/* Record-by-record */
-// 		for _, posRecord := range posEntry.Values {
-// 			var insert = true
+		/* If negative doc not found, just go ahead and insert all records */
+		if !found {
+			for _, record := range posDoc.Values {
+				if posDoc.Key == "Keys" {
+					insertKey(record.Value)
+				} else {
+					insertValue(record.Value, posDoc.Key)
+			}
+			continue;
+		}
 
-// 			/* Determine if this record is below the current safe tick */
-// 			var skip = false
+		/* Iterate over records in the document */
+		for i := 0; i < len(posDoc.Values); {
+			record = posDoc.Values[i]
+			var insert = true
 
-// 			if !skip {
-// 				/* Try to find the record in the negative array */
-// 				negRecord, found := locateValEntry(negEntry.Values, posRecord.Value)
+			/* Get max times of all identical elements in positive and negative collections;
+			consider only elements below the current safe tick;
+			remove elements as they been proceed */
+			posTimestamp := getMaxTimestamp(posDoc.Values, record.Value)
+			negTimestamp := getMaxTimestamp(negDoc.Values, record.Value)
 
-// 				/* If found, decide on clocks */
-// 				if found {
-// 					cmp := true
+			/* Determine if the element needs to be inserted */
+			if posTimestamp < negTimestamp ||
+				(posTimestamp == negTimestamp && posDoc.Key == "Keys" && bias[0]) ||
+				(posTimestamp == negTimestamp && posDoc.Key != "Keys" && bias[1]) {
+				insert = false
+			}
 
-// 					/* If negative record is the last one, do not insert the item */
-// 					if cmp { // TODO: may have many records
-// 						insert = false
-// 					}
+			/* Delete all positive records as they been processed */
+			filter := bson.D{{Key: "key", Value: posDoc.Key}}
+			update := bson.D{{Key: "$pull", Value: bson.D{
+				{Key: "values", Value: bson.D{{
+					Key: "value", Value: bson.D{{
+						Key: "$eq", Value: record.Value}}}}}}}}
+			_, err := db.Collection(posCollection).UpdateOne(context.TODO(), filter, update)
+			if err != nil {
+				util.PrintErr(noStr, err)
+			}
 
-// 					/* If concurrent, decide as per rules */
-// 					if !cmp {
-// 						if bias[0] {
-// 							insert = false
-// 						}
-// 					}
+			/* Delete all positive records as they been processed */
+			_, err = db.Collection(negCollection).UpdateOne(context.TODO(), filter, update)
+			if err != nil {
+				util.PrintErr(noStr, err)
+			}
 
-// 					/* Delete positive record */
-// 					update := bson.D{{Key: "$pull", Value: bson.D{
-// 						{Key: "values", Value: bson.D{{
-// 							Key: "value", Value: bson.D{{
-// 								Key: "$eq", Value: posRecord.Value}}}}}}}}
-// 					_, err := db.Collection(posCollection).UpdateOne(context.TODO(), filter, update)
-// 					if err != nil {
-// 						util.PrintErr(noStr, err)
-// 					}
+			/* Insert or delete as required */
+			if insert && posDoc.Key == "Keys" {
+				insertKey(record.Value)
+			} else if insert && posDoc.Key != "Keys" {
+				insertValue(record.Value, posDoc.Key)
+			} else if !insert && posDoc.Key == "Keys" {
+				removeKey(record.Value)
+			} else {
+				removeValue(record.Value, posDoc.Key)
+			}
+		}
+	}
 
-// 					/* Delete negative record */
-// 					_, err = db.Collection(negCollection).UpdateOne(context.TODO(), filter, update)
-// 					if err != nil {
-// 						util.PrintErr(noStr, err)
-// 					}
-// 				}
+	/* Iterate over documents in the negative collection:
+	those documents didn't have a corresponding positve entry
+	and must be removed */
+	for negDoc := range negState { // util.CvDoc
+		for _, record := range negDoc.Values {
+			if && negDoc.Key == "Keys" {
+				removeKey(record.Value)
+			} else {
+				removeValue(record.Value, negDoc.Key)
+			}
+		}
+	}
+}
 
-// 				/* Insert new key into final collection (if need be) */
-// 				if insert && posEntry.Key == "Keys" {
-// 					var res util.CmRecord
-// 					filter := bson.D{{Key: "name", Value: posRecord.Value}}
-// 					err := db.Collection("kvs").FindOne(context.TODO(), filter).Decode(&res)
-// 					if err != nil {
-// 						record := util.CmRecord{Key: posRecord.Value, Values: []string{}}
-// 						_, err := db.Collection("kvs").InsertOne(context.TODO(), record)
-// 						if err != nil {
-// 							util.PrintErr(noStr, err)
-// 						}
-// 					}
-// 				}
-
-// 				/* Insert new value into final collection (if need be) */
-// 				if insert == true && posEntry.Key != "Keys" {
-// 					var res util.CvRecord
-// 					filterVal := bson.D{{Key: "name", Value: posEntry.Name}, // could be Keys
-// 						{Key: "values", Value: posRecord.Value}}
-// 					update := bson.D{{Key: "$push", Value: bson.D{
-// 						{Key: "values", Value: posRecord.Value}}}}
-// 					err := db.Collection("kvs").FindOne(context.TODO(), filterVal).Decode(&res)
-// 					if err != nil {
-// 						_, err := db.Collection("kvs").UpdateOne(context.TODO(), filter, update)
-// 						if err != nil {
-// 							util.PrintErr(noStr, err)
-// 						}
-// 					}
-// 				}
-// 			}
-// 		}
-// 	}
-// }
-
-// // check if the specified value entry in the value entry slice
-// func locateValEntry(arr []util.CvRecord, val string) (util.CvRecord, bool) {
-// 	for _, valEntry := range arr {
-// 		if valEntry.Value == val {
-// 			return valEntry, true
-// 		}
-// 	}
-// 	return util.CvRecord{}, false
-// }
+// return the maximum timestamp of the given element
+func getMaxTimestamp(arr []util.CvRecord, val string) int {
+	res := -1
+	j := 0
+	for i, record := range arr {
+		if record.Value == val && record.Timestamp > res {
+			res = record.Timestamp
+			arr[j] = arr[i]
+			j++
+		}
+	}
+	return res
+}

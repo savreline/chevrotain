@@ -15,8 +15,8 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// CmRecord is a CmRDT DB Record
-type CmRecord struct {
+// DbRecord is a Permament DB Record
+type DbRecord struct {
 	Key    string   `json:"key"`
 	Values []string `json:"values"`
 }
@@ -163,8 +163,8 @@ func DownloadCvState(col *mongo.Collection, who string, drop string) []CvDoc {
 }
 
 // DownloadCmState gets the current database snapshot for CmRDT
-func DownloadCmState(col *mongo.Collection, drop string) []CmRecord {
-	var result []CmRecord
+func DownloadCmState(col *mongo.Collection, drop string) []DbRecord {
+	var result []DbRecord
 
 	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
 	cursor, err := col.Find(context.TODO(), bson.D{}, opts)

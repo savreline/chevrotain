@@ -42,6 +42,9 @@ var timeInt int
 var chanSE = make(chan bool)
 var chanGC = make(chan bool)
 
+// Current safe clock tick agreed upon by all replicas
+var curSafeTick = 0
+
 // Emulated link delay
 var delay int
 

@@ -39,7 +39,7 @@ func runGC() {
 	<-chanGC
 	for {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
-		gc()
+		mergeCollections()
 	}
 }
 
@@ -78,7 +78,4 @@ func broadcast() {
 			client.Go("RPCInt.MergeState", state, &result, nil)
 		}
 	}
-}
-
-func gc() {
 }

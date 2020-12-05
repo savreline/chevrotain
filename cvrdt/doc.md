@@ -41,7 +41,24 @@
 * **mergeState**
     1. merge a collection: iterate over docs and record, call InsertLocalRecord
 * **mergeCollections**
-Note: there is a remote possibility of duplicate entries during merge state, those will be ignored during merge collections
+    1. download both collections
+    2. iterate over the documents in the positive collection
+        * grab a pointer to the document in the negative collection
+        * iterate over the records in the document
+            * find all instances in positive and negative collections
+            and determine the respective max timestamps
+            * based on timestamps and settings bias, determine if the element
+            need to be inserted or removed
+            * remove all instances of the element from either collection
+            * remove all instances of the element from the positive set iterating over
+            * insert/remove the element into permament collection as need be
+    3. iterate over the remaining documents in the negative collection
+        * remove those key/values from the permament collection
+
+    Notes: 
+    1. there is a remote possibility of multiple documents with the same key, code can be adjusted to
+    handle those when merging collections
+    2. if remove wins, remove the element in all cases
 
 #### client.go
 1. parse command line arguments: delay between sending commands, replica settings time interval
