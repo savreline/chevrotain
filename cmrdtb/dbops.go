@@ -95,14 +95,14 @@ func lookup() {
 
 	/* Insert keys */
 	for _, record := range keysDoc.Values {
-		insertSKey(record.Value)
+		util.InsertSKey(db.Collection(sCollection), noStr, record.Value)
 	}
 
 	/* Insert values, if the corresponding key exists */
 	for _, doc := range state {
 		for _, record := range doc.Values {
 			if checkMembership(keysDoc.Values, doc.Key) {
-				insertSValue(doc.Key, record.Value)
+				util.InsertSValue(db.Collection(sCollection), noStr, doc.Key, record.Value)
 			}
 		}
 	}
@@ -116,41 +116,4 @@ func checkMembership(arr []util.DRecord, value string) bool {
 		}
 	}
 	return false
-}
-
-// inserts a key into the static "lookup" collection
-func insertSKey(key string) {
-	/* Check if the record exists */
-	var dbResult util.SRecord
-	filter := bson.D{{Key: "key", Value: key}}
-	err := db.Collection(sCollection).FindOne(context.TODO(), filter).Decode(&dbResult)
-
-	/* Do the insert */
-	if err != nil { // error exists, so didn't find it, so insert
-		record := util.SRecord{Key: key, Values: []string{}}
-		_, err = db.Collection(sCollection).InsertOne(context.TODO(), record)
-		if err != nil {
-			util.PrintErr(noStr, err)
-		}
-	}
-}
-
-// inserts a value into the static "lookup" collection
-func insertSValue(key string, value string) {
-	/* Check if the record exists */
-	var dbResult util.SRecord
-	filter := bson.D{{Key: "key", Value: key},
-		{Key: "values", Value: bson.D{{Key: "$in", Value: []string{value}}}}}
-	err := db.Collection(sCollection).FindOne(context.TODO(), filter).Decode(&dbResult)
-
-	/* Do the insert */
-	if err != nil { // error exists, so didn't find it, so insert
-		filter := bson.D{{Key: "key", Value: key}}
-		update := bson.D{{Key: "$push", Value: bson.D{
-			{Key: "values", Value: value}}}}
-		_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
-		if err != nil {
-			util.PrintErr(noStr, err)
-		}
-	}
 }
