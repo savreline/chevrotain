@@ -3,6 +3,9 @@ package util
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"sort"
+	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -82,6 +85,46 @@ func PrintSState(state []SRecord) {
 		fmt.Println(record)
 	}
 	fmt.Println()
+}
+
+// SaveDStateToCSV saves dynamic state to CSV
+func SaveDStateToCSV(state []DDoc, no int, pn string) {
+	var str string
+
+	for _, doc := range state {
+		// sort.Strings(a[i].Values)
+		str = str + doc.Key
+		for _, val := range doc.Values {
+			str = str + "," + fmt.Sprint(val)
+		}
+		str = str + "\n"
+	}
+
+	/* Write to CSV */
+	err := ioutil.WriteFile("Repl"+pn+strconv.Itoa(no)+".csv", []byte(str), 0644)
+	if err != nil {
+		PrintErr("CHECKER", err)
+	}
+}
+
+// SaveSStateToCSV saves static state to CSV
+func SaveSStateToCSV(state []SRecord, no int) {
+	var str string
+
+	for _, record := range state {
+		sort.Strings(record.Values)
+		str = str + record.Key
+		for _, val := range record.Values {
+			str = str + "," + fmt.Sprint(val)
+		}
+		str = str + "\n"
+	}
+
+	/* Write to CSV */
+	err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str), 0644)
+	if err != nil {
+		PrintErr("CHECKER", err)
+	}
 }
 
 // InsertSKey inserts the given key into the static collection
