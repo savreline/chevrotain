@@ -3,6 +3,7 @@ package util
 import (
 	"context"
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -15,33 +16,33 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// DbRecord is a Permament DB Record
-type DbRecord struct {
+// SRecord is a static Db record
+type SRecord struct {
 	Key    string   `json:"key"`
 	Values []string `json:"values"`
 }
 
-// CvDoc is a CvRDT DB Document
-type CvDoc struct {
-	Key    string     `json:"key"`
-	Values []CvRecord `json:"values"`
+// DDoc is a dynamic Db document
+type DDoc struct {
+	Key    string    `json:"key"`
+	Values []DRecord `json:"values"`
 }
 
-// CvRecord is a value along with the timestamp
-type CvRecord struct {
-	Value     string `json:"value"`
-	Timestamp int    `json:"timestamp"`
+// DRecord is a dynamic Db record (id is timestamp in the case of CvRDT)
+type DRecord struct {
+	Value string `json:"value"`
+	ID    int    `json:"id"`
 }
 
-// RPCExtArgs are the arguments to any RPCExt Call
-type RPCExtArgs struct {
-	Key, Value string
-}
-
-// InitArgs are the arguments to Init RPCExt Call
+// InitArgs are the arguments to Init/Terminate RPCExt Calls
 type InitArgs struct {
 	Bias    [2]bool
 	TimeInt int
+}
+
+// RPCExtArgs are the arguments to any other RPCExt Call
+type RPCExtArgs struct {
+	Key, Value string
 }
 
 // OpCode is an operation code
@@ -55,6 +56,24 @@ const (
 	RV
 	NO
 )
+
+// LookupOpCode translate operation code from string to op code
+func LookupOpCode(opCode OpCode, noStr string) string {
+	if opCode == IK {
+		return "IK"
+	} else if opCode == IV {
+		return "IV"
+	} else if opCode == RK {
+		return "RK"
+	} else if opCode == RV {
+		return "RV"
+	} else if opCode == NO {
+		return "No-Op"
+	} else {
+		PrintErr(noStr, errors.New("LookupOpCode: unknown operation"))
+		return ""
+	}
+}
 
 // ConnectDb to MongoDB on the given port, as per https://www.mongodb.com/golang
 func ConnectDb(no string, port string) (*mongo.Client, context.Context) {
@@ -74,6 +93,18 @@ func ConnectDb(no string, port string) (*mongo.Client, context.Context) {
 	}
 
 	return client, ctx
+}
+
+// ConnectLocalDb connects a replica to the local Db for testing purposes
+func ConnectLocalDb() *mongo.Database {
+	noStr := "1"
+	dbPort := "27018"
+
+	/* Connect to MongoDB */
+	dbClient, _ := ConnectDb(noStr, dbPort)
+	db := dbClient.Database("chev")
+	PrintMsg(noStr, "Connected to DB on "+dbPort)
+	return db
 }
 
 // ParseGroupMembersCVS parses the supplied CVS group member file
@@ -139,9 +170,9 @@ func TerminateReplica(port string, conn *rpc.Client, delay int) {
 	PrintMsg("CLIENT", "Done on "+port)
 }
 
-// DownloadCvState gets the current database snapshot for CvRDT
-func DownloadCvState(col *mongo.Collection, who string, drop string) []CvDoc {
-	var res []CvDoc
+// DownloadDState downloads the contents of any dynamic collection
+func DownloadDState(col *mongo.Collection, who string, drop string) []DDoc {
+	var res []DDoc
 
 	/* Download all key docs */
 	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
@@ -162,22 +193,38 @@ func DownloadCvState(col *mongo.Collection, who string, drop string) []CvDoc {
 	return res
 }
 
-// DownloadCmState gets the current database snapshot for CmRDT
-func DownloadCmState(col *mongo.Collection, drop string) []DbRecord {
-	var result []DbRecord
+// DownloadSState downloads the contents of any static collection
+func DownloadSState(col *mongo.Collection, who string, drop string) []SRecord {
+	var result []SRecord
 
-	opts := options.Find().SetSort(bson.D{{Key: "name", Value: 1}})
+	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
 	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
-		PrintErr("CHECKER", err)
+		PrintErr(who, err)
 	}
 	if err = cursor.All(context.TODO(), &result); err != nil {
-		PrintErr("CHECKER", err)
+		PrintErr(who, err)
 	}
 	if drop == "1" {
 		col.Drop(context.TODO())
 	}
 	return result
+}
+
+// PrintDState prints a dynamic state to the console
+func PrintDState(state []DDoc) {
+	for _, doc := range state {
+		fmt.Println(doc)
+	}
+	fmt.Println()
+}
+
+// PrintSState prints a static state to the console
+func PrintSState(state []SRecord) {
+	for _, record := range state {
+		fmt.Println(record)
+	}
+	fmt.Println()
 }
 
 // PrintMsg prints message to console from a replica
@@ -207,6 +254,13 @@ func GetRand(no int) int {
 	max := int(1.2 * float32(no))
 	res := rand.Intn(max-min+1) + min
 	return res
+}
+
+// EmulateDelay emulates link delay in all RPC responses
+func EmulateDelay(delay int) {
+	if delay > 0 {
+		time.Sleep(time.Duration(GetRand(delay)) * time.Millisecond)
+	}
 }
 
 // Max returns the maximum of a and b
