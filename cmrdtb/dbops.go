@@ -101,19 +101,9 @@ func lookup() {
 	/* Insert values, if the corresponding key exists */
 	for _, doc := range state {
 		for _, record := range doc.Values {
-			if checkMembership(keysDoc.Values, doc.Key) {
+			if util.CheckMembership(keysDoc.Values, doc.Key) {
 				util.InsertSValue(db.Collection(sCollection), noStr, doc.Key, record.Value)
 			}
 		}
 	}
-}
-
-// return true if an entry with the given value is found in a slice of records
-func checkMembership(arr []util.DRecord, value string) bool {
-	for _, record := range arr {
-		if record.Value == value {
-			return true
-		}
-	}
-	return false
 }

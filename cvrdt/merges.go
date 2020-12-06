@@ -18,8 +18,6 @@ func mergeState(state []util.DDoc, collection string) {
 
 // merge positive and negative collections during garbage collection
 func mergeCollections() {
-	var err error
-
 	/* Download the positive collection and negative collections (for efficiency) */
 	posState := util.DownloadDState(db.Collection(posCollection), "REPLICA "+noStr, "0")
 	negState := util.DownloadDState(db.Collection(negCollection), "REPLICA "+noStr, "0")
@@ -43,56 +41,44 @@ func mergeCollections() {
 				if posDoc.Key == "Keys" {
 					insertKey(record.Value)
 				} else {
-					insertValue(record.Value, posDoc.Key)
+					insertValue(posDoc.Key, record.Value)
 				}
-				continue
+				deleteDRecord(posDoc.Key, record, posCollection)
+			}
+			continue
+		}
+
+		/* Iterate over records in the document */
+		for i := 0; i < len(posDoc.Values); i++ {
+			record := posDoc.Values[i]
+			var insert = true
+
+			/* Get max times of all identical elements in positive and negative collections;
+			consider only elements below the current safe tick;
+			remove elements as they been proceed */
+			posTimestamp := getMaxTimestamp(posDoc.Values, record.Value)
+			negTimestamp := getMaxTimestamp(negDoc.Values, record.Value)
+
+			/* Determine if the element needs to be inserted */
+			if posTimestamp < negTimestamp ||
+				(posTimestamp == negTimestamp && posDoc.Key == "Keys" && bias[0]) ||
+				(posTimestamp == negTimestamp && posDoc.Key != "Keys" && bias[1]) {
+				insert = false
 			}
 
-			/* Iterate over records in the document */
-			for i := 0; i < len(posDoc.Values); {
-				record := posDoc.Values[i]
-				var insert = true
+			/* Delete all dynamic records as they been processed */
+			deleteDRecord(posDoc.Key, record, posCollection)
+			deleteDRecord(posDoc.Key, record, negCollection)
 
-				/* Get max times of all identical elements in positive and negative collections;
-				consider only elements below the current safe tick;
-				remove elements as they been proceed */
-				posTimestamp := getMaxTimestamp(posDoc.Values, record.Value)
-				negTimestamp := getMaxTimestamp(negDoc.Values, record.Value)
-
-				/* Determine if the element needs to be inserted */
-				if posTimestamp < negTimestamp ||
-					(posTimestamp == negTimestamp && posDoc.Key == "Keys" && bias[0]) ||
-					(posTimestamp == negTimestamp && posDoc.Key != "Keys" && bias[1]) {
-					insert = false
-				}
-
-				/* Delete all positive records as they been processed */
-				filter := bson.D{{Key: "key", Value: posDoc.Key}}
-				update := bson.D{{Key: "$pull", Value: bson.D{
-					{Key: "values", Value: bson.D{{
-						Key: "value", Value: bson.D{{
-							Key: "$eq", Value: record.Value}}}}}}}}
-				_, err = db.Collection(posCollection).UpdateOne(context.TODO(), filter, update)
-				if err != nil {
-					util.PrintErr(noStr, err)
-				}
-
-				/* Delete all positive records as they been processed */
-				_, err = db.Collection(negCollection).UpdateOne(context.TODO(), filter, update)
-				if err != nil {
-					util.PrintErr(noStr, err)
-				}
-
-				/* Insert or delete as required */
-				if insert && posDoc.Key == "Keys" {
-					insertKey(record.Value)
-				} else if insert && posDoc.Key != "Keys" {
-					insertValue(record.Value, posDoc.Key)
-				} else if !insert && posDoc.Key == "Keys" {
-					removeKey(record.Value)
-				} else {
-					removeValue(record.Value, posDoc.Key)
-				}
+			/* Insert or delete into static collection as required */
+			if insert && posDoc.Key == "Keys" {
+				insertKey(record.Value)
+			} else if insert && posDoc.Key != "Keys" {
+				insertValue(record.Value, posDoc.Key)
+			} else if !insert && posDoc.Key == "Keys" {
+				removeKey(record.Value)
+			} else {
+				removeValue(record.Value, posDoc.Key)
 			}
 		}
 
@@ -106,6 +92,7 @@ func mergeCollections() {
 				} else {
 					removeValue(record.Value, negDoc.Key)
 				}
+				deleteDRecord(posDoc.Key, record, negCollection)
 			}
 		}
 	}
@@ -114,13 +101,23 @@ func mergeCollections() {
 // return the maximum timestamp of the given element
 func getMaxTimestamp(arr []util.DRecord, val string) int {
 	res := -1
-	j := 0
-	for i, record := range arr {
+	for _, record := range arr {
 		if record.Value == val && record.ID > res {
 			res = record.ID
-			arr[j] = arr[i]
-			j++
 		}
 	}
 	return res
+}
+
+// deletes a processed recored from the dynamic database
+func deleteDRecord(key string, record util.DRecord, collection string) {
+	filter := bson.D{{Key: "key", Value: key}}
+	update := bson.D{{Key: "$pull", Value: bson.D{
+		{Key: "values", Value: bson.D{{
+			Key: "value", Value: bson.D{{
+				Key: "$eq", Value: record.Value}}}}}}}}
+	_, err := db.Collection(collection).UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		util.PrintErr(noStr, err)
+	}
 }

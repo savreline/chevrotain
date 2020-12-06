@@ -109,8 +109,19 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 		{Key: "values", Value: value}}
 	err := col.FindOne(context.TODO(), filter).Decode(&dbResult)
 
-	/* Do the insert */
 	if err != nil { // error exists, so didn't find it, so insert
+		/* Check if the document to be updated exists, if not, make one */
+		filter = bson.D{{Key: "key", Value: key}}
+		err = col.FindOne(context.TODO(), filter).Decode(&dbResult)
+		if err != nil {
+			keyEntry := &SRecord{Key: key, Values: []string{}}
+			_, err := col.InsertOne(context.TODO(), keyEntry)
+			if err != nil {
+				PrintErr(who, err)
+			}
+		}
+
+		/* Do the update */
 		filter := bson.D{{Key: "key", Value: key}}
 		update := bson.D{{Key: "$push", Value: bson.D{
 			{Key: "values", Value: value}}}}
@@ -119,4 +130,14 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 			PrintErr(who, err)
 		}
 	}
+}
+
+// CheckMembership return true if an entry with the given value is found in a slice of records
+func CheckMembership(arr []DRecord, value string) bool {
+	for _, record := range arr {
+		if record.Value == value {
+			return true
+		}
+	}
+	return false
 }
