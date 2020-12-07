@@ -35,10 +35,9 @@ var delay int // emulated link delay
 var bias [2]bool
 var timeInt int
 
-// Channels that activate the state updates and garbage collection
-// processes once the replica has been initialized
+// Channel that activate the state updates processes once
+// the replica has been initialized
 var chanSU = make(chan bool)
-var chanGC = make(chan bool)
 
 // Current safe clock tick agreed upon by all replicas
 var curSafeTick = 0
@@ -92,7 +91,6 @@ func main() {
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
 	go runSU()
-	go runGC()
 	select {}
 }
 
@@ -103,9 +101,8 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	bias = args.Bias
 	timeInt = args.TimeInt
 
-	/* Activate background processes */
+	/* Activate background process */
 	chanSU <- true
-	chanGC <- true
 
 	/* Make RPC Connections */
 	for i, port := range ports {

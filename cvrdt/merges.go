@@ -38,6 +38,9 @@ func mergeCollections() {
 		/* If negative doc not found, just go ahead and insert all records */
 		if !found {
 			for _, record := range posDoc.Values {
+				if record.ID > curSafeTick {
+					continue
+				}
 				if posDoc.Key == "Keys" {
 					insertKey(record.Value)
 				} else {
@@ -52,6 +55,9 @@ func mergeCollections() {
 		for i := 0; i < len(posDoc.Values); i++ {
 			record := posDoc.Values[i]
 			var insert = true
+			if record.ID > curSafeTick {
+				continue
+			}
 
 			/* Get max times of all identical elements in positive and negative collections;
 			consider only elements below the current safe tick;
@@ -87,6 +93,9 @@ func mergeCollections() {
 		and must be removed */
 		for _, negDoc := range negState { // util.DDoc
 			for _, record := range negDoc.Values {
+				if record.ID > curSafeTick {
+					continue
+				}
 				if negDoc.Key == "Keys" {
 					removeKey(record.Value)
 				} else {

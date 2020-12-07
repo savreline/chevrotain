@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/rpc"
 	"time"
 
 	"../util"
@@ -12,6 +13,7 @@ type StateArgs struct {
 	PosState, NegState []util.DDoc
 	SrcPid             string
 	Timestamp          int
+	Tick               int
 }
 
 // InsertKey inserts the given key into the positive collection
@@ -47,9 +49,20 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 	if verbose {
 		util.PrintMsg(noStr, "Merging state from "+args.SrcPid)
 	}
+
+	/* Merge clock and state */
 	clock = util.Max(clock, args.Timestamp)
 	mergeState(args.PosState, posCollection)
 	mergeState(args.NegState, negCollection)
+
+	/* If notified by the main replica about the current safe tick, accept it
+	and reply with own clock (this will never run on the main replicas as it
+	cannot notify itself) */
+	if args.Tick != -1 {
+		curSafeTick = args.Tick
+		mergeCollections()
+		*reply = clock
+	}
 	util.EmulateDelay(delay)
 	return nil
 }
@@ -59,27 +72,32 @@ func runSU() {
 	<-chanSU
 	for {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
-		broadcast()
-	}
-}
+		calls, results := broadcast()
 
-// runs garbage collection at intervals specified by timeInt
-func runGC() {
-	<-chanGC
-	for {
-		time.Sleep(time.Duration(timeInt) * time.Millisecond)
-		mergeCollections()
+		/* If this is the main replica, wait for the calls to complete
+		and update the curSafeTick tick that way */
+		if no == 1 {
+			curSafeTick = waitForBroadcastToFinish(calls, results)
+			mergeCollections()
+		}
 	}
 }
 
 // broadcasts state to all other replicas
-func broadcast() {
-	var result int
+func broadcast() ([]*rpc.Call, []int) {
 	var destNo int
 	var flag = false
+	var calls = make([]*rpc.Call, len(conns))
+	var results = make([]int, len(conns))
 
 	/* Tick the clock */
 	clock++
+
+	/* If the main replica, broadcast the current safe tick */
+	tick := -1
+	if no == 1 {
+		tick = curSafeTick
+	}
 
 	/* Download current state */
 	posState := util.DownloadDState(db.Collection(posCollection), "REPLICA "+noStr, "0")
@@ -88,7 +106,8 @@ func broadcast() {
 		PosState:  posState,
 		NegState:  negState,
 		SrcPid:    noStr,
-		Timestamp: clock}
+		Timestamp: clock,
+		Tick:      tick}
 
 	/* Broadcast */
 	for i, client := range conns {
@@ -104,7 +123,22 @@ func broadcast() {
 			if verbose {
 				fmt.Println("RPC Merge State", no, "->", destNo)
 			}
-			client.Go("RPCInt.MergeState", state, &result, nil)
+			calls[i] = client.Go("RPCInt.MergeState", state, &results[i], nil)
 		}
 	}
+	return calls, results
+}
+
+// ensure broadcast completes
+func waitForBroadcastToFinish(calls []*rpc.Call, results []int) int {
+	result := -1
+	for i, call := range calls {
+		if call != nil {
+			<-call.Done
+			if results[i] > result {
+				result = results[i]
+			}
+		}
+	}
+	return result
 }

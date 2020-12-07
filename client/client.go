@@ -37,13 +37,14 @@ func main() {
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		go simpleTest(i, 5, 5)
+		go test1(i, 5, 5)
 	}
+	wikiTest()
 	select {}
 }
 
 // send the command
-func sendCmd(key int, val int, cnt int, cmdType util.OpCode,
+func sendCmd(key string, val string, cnt int, cmdType util.OpCode,
 	conn *rpc.Client, latencies map[int]int64, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
@@ -52,13 +53,13 @@ func sendCmd(key int, val int, cnt int, cmdType util.OpCode,
 	/* Send command and record time */
 	t := time.Now().UnixNano()
 	if cmdType == util.IK {
-		conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: strconv.Itoa(key)}, &result)
+		conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: key}, &result)
 	} else if cmdType == util.IV {
-		conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
+		conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: key, Value: val}, &result)
 	} else if cmdType == util.RK {
-		conn.Call("RPCExt.RemoveKey", util.RPCExtArgs{Key: strconv.Itoa(key)}, &result)
+		conn.Call("RPCExt.RemoveKey", util.RPCExtArgs{Key: key}, &result)
 	} else {
-		conn.Call("RPCExt.RemoveValue", util.RPCExtArgs{Key: strconv.Itoa(key), Value: strconv.Itoa(val)}, &result)
+		conn.Call("RPCExt.RemoveValue", util.RPCExtArgs{Key: key, Value: val}, &result)
 	}
 	latencies[cnt] = time.Now().UnixNano() - t
 
