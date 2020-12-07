@@ -31,7 +31,7 @@ func waitForTurn(args *BroadcastArgs) {
 			fmt.Sprint(" Comparison: ", ready) + "\n"
 	}
 
-	if ready == false {
+	if !ready {
 		/* Make a channel to communicate on with this RPC call */
 		channel := make(chan bool, 100)
 

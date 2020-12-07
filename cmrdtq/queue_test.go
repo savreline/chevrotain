@@ -2,96 +2,16 @@ package main
 
 import (
 	"fmt"
+	"testing"
 
+	"../util"
 	"github.com/savreline/GoVector/govec/vclock"
 )
 
 var maps []map[string]uint64
 var opNodes []OpNode
 
-/* To be pasted into main
-// queueTest123()
-// queueTest321()
-// queueTest132()
-// queueTest13524()
-// queueTest24531()
-queueTestAdv()
-// queueTestConc1()
-// queueTestConc2()
-// processConcOps()
-printQueue()
-fmt.Println(eLog)
-os.Exit(0)
-*/
-
-func initBasicExamples() {
-	maps = make([]map[string]uint64, 5)
-	opNodes = make([]OpNode, 5)
-	for i := 0; i < 5; i++ {
-		maps[i] = map[string]uint64{
-			"R1": uint64(i + 1),
-			"R2": 0,
-			"R3": 0,
-		}
-		opNodes[i] = OpNode{
-			Type:      IK,
-			Key:       "",
-			Value:     "",
-			Timestamp: maps[i],
-			Pid:       noStr,
-			ConcOp:    false}
-	}
-}
-
-func queueTest123() {
-	initBasicExamples()
-	for i := 0; i < 3; i++ {
-		addToQueue(opNodes[i])
-		printQueue()
-		eLog = eLog + "\n"
-	}
-}
-
-func queueTest321() {
-	initBasicExamples()
-	for i := 2; i >= 0; i-- {
-		addToQueue(opNodes[i])
-		printQueue()
-		eLog = eLog + "\n"
-	}
-}
-
-func queueTest132() {
-	initBasicExamples()
-	x := []int{0, 2, 1}
-	for _, num := range x {
-		addToQueue(opNodes[num])
-		printQueue()
-		eLog = eLog + "\n"
-	}
-}
-
-func queueTest13524() {
-	initBasicExamples()
-	x := []int{0, 2, 4, 1, 3}
-	for _, num := range x {
-		addToQueue(opNodes[num])
-		printQueue()
-		eLog = eLog + "\n"
-	}
-}
-
-func queueTest24531() {
-	initBasicExamples()
-	x := []int{1, 3, 4, 2, 0}
-	for _, num := range x {
-		addToQueue(opNodes[num])
-		printQueue()
-		eLog = eLog + "\n"
-	}
-}
-
-func clockCmpTest() {
+func TestClockCmp(t *testing.T) {
 	map1 := map[string]uint64{
 		"R1": 2,
 		"R2": 2,
@@ -110,7 +30,101 @@ func clockCmpTest() {
 	fmt.Println(clock.CopyFromMap(map1).CompareClocks(map2))
 }
 
-// Advanced Test
+func Test123(t *testing.T) {
+	initBasicExamples()
+	for i := 0; i < 3; i++ {
+		addToQueue(opNodes[i])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+func Test321(t *testing.T) {
+	initBasicExamples()
+	for i := 2; i >= 0; i-- {
+		addToQueue(opNodes[i])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+func Test132(t *testing.T) {
+	initBasicExamples()
+	x := []int{0, 2, 1}
+	for _, num := range x {
+		addToQueue(opNodes[num])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+func Test13524(t *testing.T) {
+	initBasicExamples()
+	x := []int{0, 2, 4, 1, 3}
+	for _, num := range x {
+		addToQueue(opNodes[num])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+func Test24531(t *testing.T) {
+	initBasicExamples()
+	x := []int{1, 3, 4, 2, 0}
+	for _, num := range x {
+		addToQueue(opNodes[num])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+func TestQueueAdv(t *testing.T) {
+	initAdvExamples()
+	for i := 0; i < 8; i++ {
+		addToQueue(opNodes[i])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+func TestConcQueue1(t *testing.T) {
+	initConc1Examples()
+	for i := 0; i < 8; i++ {
+		addToQueue(opNodes[i])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+func TestConcQueue2(t *testing.T) {
+	initConc2Examples()
+	for i := 0; i < 8; i++ {
+		addToQueue(opNodes[i])
+		printQueue()
+		eLog = eLog + "\n"
+	}
+}
+
+// initialization of examples
+func initBasicExamples() {
+	maps = make([]map[string]uint64, 5)
+	opNodes = make([]OpNode, 5)
+	for i := 0; i < 5; i++ {
+		maps[i] = map[string]uint64{
+			"R1": uint64(i + 1),
+			"R2": 0,
+			"R3": 0,
+		}
+		opNodes[i] = OpNode{
+			Type:      util.IK,
+			Key:       "",
+			Value:     "",
+			Timestamp: maps[i],
+			Pid:       noStr,
+			ConcOp:    false}
+	}
+}
+
 func initAdvExamples() {
 	maps = make([]map[string]uint64, 8)
 	opNodes = make([]OpNode, 8)
@@ -150,7 +164,7 @@ func initAdvExamples() {
 	}
 	for i := 0; i < 5; i++ {
 		opNodes[i] = OpNode{
-			Type:      IK,
+			Type:      util.IK,
 			Key:       "1",
 			Value:     "1000",
 			Timestamp: maps[i],
@@ -158,21 +172,21 @@ func initAdvExamples() {
 			ConcOp:    false}
 	}
 	opNodes[5] = OpNode{
-		Type:      IV,
+		Type:      util.IV,
 		Key:       "2",
 		Value:     "2000",
 		Timestamp: maps[5],
 		Pid:       noStr,
 		ConcOp:    false}
 	opNodes[6] = OpNode{
-		Type:      RK,
+		Type:      util.RK,
 		Key:       "3",
 		Value:     "3000",
 		Timestamp: maps[6],
 		Pid:       noStr,
 		ConcOp:    false}
 	opNodes[7] = OpNode{
-		Type:      RV,
+		Type:      util.RV,
 		Key:       "4",
 		Value:     "5000",
 		Timestamp: maps[7],
@@ -180,16 +194,6 @@ func initAdvExamples() {
 		ConcOp:    false}
 }
 
-func queueTestAdv() {
-	initAdvExamples()
-	for i := 0; i < 8; i++ {
-		addToQueue(opNodes[i])
-		printQueue()
-		eLog = eLog + "\n"
-	}
-}
-
-// Concurrent Test No. 1
 func initConc1Examples() {
 	maps = make([]map[string]uint64, 8)
 	opNodes = make([]OpNode, 8)
@@ -235,7 +239,7 @@ func initConc1Examples() {
 	}
 	for i := 0; i < 5; i++ {
 		opNodes[i] = OpNode{
-			Type:      IK,
+			Type:      util.IK,
 			Key:       "1",
 			Value:     "1000",
 			Timestamp: maps[i],
@@ -243,21 +247,21 @@ func initConc1Examples() {
 			ConcOp:    false}
 	}
 	opNodes[5] = OpNode{
-		Type:      IV,
+		Type:      util.IV,
 		Key:       "2",
 		Value:     "2000",
 		Timestamp: maps[5],
 		Pid:       noStr,
 		ConcOp:    false}
 	opNodes[6] = OpNode{
-		Type:      RK,
+		Type:      util.RK,
 		Key:       "3",
 		Value:     "3000",
 		Timestamp: maps[6],
 		Pid:       noStr,
 		ConcOp:    false}
 	opNodes[7] = OpNode{
-		Type:      RV,
+		Type:      util.RV,
 		Key:       "4",
 		Value:     "5000",
 		Timestamp: maps[7],
@@ -265,16 +269,6 @@ func initConc1Examples() {
 		ConcOp:    false}
 }
 
-func queueTestConc1() {
-	initConc1Examples()
-	for i := 0; i < 8; i++ {
-		addToQueue(opNodes[i])
-		printQueue()
-		eLog = eLog + "\n"
-	}
-}
-
-// Concurrent Test No. 2
 func initConc2Examples() {
 	maps = make([]map[string]uint64, 8)
 	opNodes = make([]OpNode, 8)
@@ -320,7 +314,7 @@ func initConc2Examples() {
 	}
 	for i := 0; i < 5; i++ {
 		opNodes[i] = OpNode{
-			Type:      IK,
+			Type:      util.IK,
 			Key:       "1",
 			Value:     "1000",
 			Timestamp: maps[i],
@@ -328,33 +322,24 @@ func initConc2Examples() {
 			ConcOp:    false}
 	}
 	opNodes[5] = OpNode{
-		Type:      IV,
+		Type:      util.IV,
 		Key:       "2",
 		Value:     "2000",
 		Timestamp: maps[5],
 		Pid:       noStr,
 		ConcOp:    false}
 	opNodes[6] = OpNode{
-		Type:      RK,
+		Type:      util.RK,
 		Key:       "3",
 		Value:     "3000",
 		Timestamp: maps[6],
 		Pid:       noStr,
 		ConcOp:    false}
 	opNodes[7] = OpNode{
-		Type:      RV,
+		Type:      util.RV,
 		Key:       "4",
 		Value:     "5000",
 		Timestamp: maps[7],
 		Pid:       noStr,
 		ConcOp:    false}
-}
-
-func queueTestConc2() {
-	initConc2Examples()
-	for i := 0; i < 8; i++ {
-		addToQueue(opNodes[i])
-		printQueue()
-		eLog = eLog + "\n"
-	}
 }
