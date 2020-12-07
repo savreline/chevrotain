@@ -13,8 +13,8 @@ type BroadcastArgs struct {
 	OpType     util.OpCode
 	Key, Value string
 	SrcPid     string
-	Ids        []int
 	Clock      vclock.VClock
+	Ids        []int
 }
 
 // InsertKey inserts the given key with an empty array for values

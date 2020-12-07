@@ -133,13 +133,13 @@ func processQueueHelper() {
 		}
 
 		/* Run the associated op */
-		if opNode.Type == util.IK {
+		if opNode.OpType == util.IK {
 			insertKey(opNode.Key)
-		} else if opNode.Type == util.IV {
+		} else if opNode.OpType == util.IV {
 			insertValue(opNode.Key, opNode.Value)
-		} else if opNode.Type == util.RK {
+		} else if opNode.OpType == util.RK {
 			removeKey(opNode.Key)
-		} else if opNode.Type == util.RV {
+		} else if opNode.OpType == util.RV {
 			removeValue(opNode.Key, opNode.Value)
 		}
 
@@ -256,9 +256,9 @@ func processSingleOpBlock(n *ListNode) {
 
 // shortcut no. 1: all operations are the same
 func checkIfSameOp(first *ListNode) bool {
-	val := first.Data.Type
+	val := first.Data.OpType
 	for n := first; ; n = n.Next {
-		if n.Data.Type != val {
+		if n.Data.OpType != val {
 			return false
 		}
 		if n.Data.ConcOp == false {
@@ -307,7 +307,7 @@ func elimOps(first *ListNode) []map[string]int {
 	/* Build up counts */
 	for n := first; ; n = n.Next {
 		val := n.Data.Key + ":" + n.Data.Value
-		ops[n.Data.Type][val]++
+		ops[n.Data.OpType][val]++
 		if n.Data.ConcOp == false {
 			break
 		}
@@ -342,11 +342,11 @@ func orderBlock(ops []map[string]int) {
 		for k := range ops[id] {
 			args := strings.SplitN(k, ":", -1)
 			opNode := OpNode{
-				Type:      util.OpCode(id),
+				OpType:    util.OpCode(id),
 				Key:       args[0],
 				Value:     args[1],
 				Timestamp: make(map[string]uint64),
-				Pid:       "0",
+				SrcPid:    "0",
 				ConcOp:    false}
 
 			/* If this is the first op in a block, must link previous block */

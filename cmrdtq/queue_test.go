@@ -116,11 +116,11 @@ func initBasicExamples() {
 			"R3": 0,
 		}
 		opNodes[i] = OpNode{
-			Type:      util.IK,
+			OpType:    util.IK,
 			Key:       "",
 			Value:     "",
 			Timestamp: maps[i],
-			Pid:       noStr,
+			SrcPid:    noStr,
 			ConcOp:    false}
 	}
 }
@@ -164,33 +164,33 @@ func initAdvExamples() {
 	}
 	for i := 0; i < 5; i++ {
 		opNodes[i] = OpNode{
-			Type:      util.IK,
+			OpType:    util.IK,
 			Key:       "1",
 			Value:     "1000",
 			Timestamp: maps[i],
-			Pid:       noStr,
+			SrcPid:    noStr,
 			ConcOp:    false}
 	}
 	opNodes[5] = OpNode{
-		Type:      util.IV,
+		OpType:    util.IV,
 		Key:       "2",
 		Value:     "2000",
 		Timestamp: maps[5],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 	opNodes[6] = OpNode{
-		Type:      util.RK,
+		OpType:    util.RK,
 		Key:       "3",
 		Value:     "3000",
 		Timestamp: maps[6],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 	opNodes[7] = OpNode{
-		Type:      util.RV,
+		OpType:    util.RV,
 		Key:       "4",
 		Value:     "5000",
 		Timestamp: maps[7],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 }
 
@@ -239,33 +239,33 @@ func initConc1Examples() {
 	}
 	for i := 0; i < 5; i++ {
 		opNodes[i] = OpNode{
-			Type:      util.IK,
+			OpType:    util.IK,
 			Key:       "1",
 			Value:     "1000",
 			Timestamp: maps[i],
-			Pid:       noStr,
+			SrcPid:    noStr,
 			ConcOp:    false}
 	}
 	opNodes[5] = OpNode{
-		Type:      util.IV,
+		OpType:    util.IV,
 		Key:       "2",
 		Value:     "2000",
 		Timestamp: maps[5],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 	opNodes[6] = OpNode{
-		Type:      util.RK,
+		OpType:    util.RK,
 		Key:       "3",
 		Value:     "3000",
 		Timestamp: maps[6],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 	opNodes[7] = OpNode{
-		Type:      util.RV,
+		OpType:    util.RV,
 		Key:       "4",
 		Value:     "5000",
 		Timestamp: maps[7],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 }
 
@@ -314,32 +314,32 @@ func initConc2Examples() {
 	}
 	for i := 0; i < 5; i++ {
 		opNodes[i] = OpNode{
-			Type:      util.IK,
+			OpType:    util.IK,
 			Key:       "1",
 			Value:     "1000",
 			Timestamp: maps[i],
-			Pid:       noStr,
+			SrcPid:    noStr,
 			ConcOp:    false}
 	}
 	opNodes[5] = OpNode{
-		Type:      util.IV,
+		OpType:    util.IV,
 		Key:       "2",
 		Value:     "2000",
 		Timestamp: maps[5],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 	opNodes[6] = OpNode{
-		Type:      util.RK,
+		OpType:    util.RK,
 		Key:       "3",
 		Value:     "3000",
 		Timestamp: maps[6],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 	opNodes[7] = OpNode{
-		Type:      util.RV,
+		OpType:    util.RV,
 		Key:       "4",
 		Value:     "5000",
 		Timestamp: maps[7],
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 }

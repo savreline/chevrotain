@@ -13,10 +13,10 @@ import (
 // OpNode contains all information about a particular operations
 // and represents the operation in the queue
 type OpNode struct {
-	Type       util.OpCode
+	OpType     util.OpCode
 	Key, Value string
+	SrcPid     string
 	Timestamp  vclock.VClock
-	Pid        string
 	ConcOp     bool
 }
 
@@ -52,11 +52,11 @@ func processExtCall(args util.RPCExtArgs, opCode util.OpCode) {
 
 	/* Package the operation into an OpNode struct */
 	opNode := OpNode{
-		Type:      opCode,
+		OpType:    opCode,
 		Key:       args.Key,
 		Value:     args.Value,
 		Timestamp: logger.GetCurrentVC().Copy(),
-		Pid:       noStr,
+		SrcPid:    noStr,
 		ConcOp:    false}
 	logger.StopBroadcast() // timestamp saved, ok to release the clock lock
 

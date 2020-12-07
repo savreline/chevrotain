@@ -13,9 +13,9 @@ func (t *RPCInt) ProcessIntCall(args *OpNode, reply *int) error {
 	/* Merge the incoming clock */
 	var msg string
 	if args.Value == "" {
-		msg = "IN InsKey " + args.Key + " from " + args.Pid
+		msg = "IN InsKey " + args.Key + " from " + args.SrcPid
 	} else {
-		msg = "IN InsVal " + args.Key + ":" + args.Value + " from " + args.Pid
+		msg = "IN InsVal " + args.Key + ":" + args.Value + " from " + args.SrcPid
 	}
 	logger.MergeIncomingClock(msg, args.Timestamp, govec.GetDefaultLogOptions().Priority)
 
