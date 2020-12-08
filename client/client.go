@@ -39,7 +39,7 @@ func main() {
 	for i := 0; i < noReplicas; i++ {
 		go test1(i, 5, 5)
 	}
-	wikiTest()
+	// wikiTest()
 	select {}
 }
 

@@ -23,7 +23,7 @@ func (t *RPCInt) InsertKey(args *util.RPCExtArgs, reply *int) error {
 // InsertValue inserts the given value into the local db
 func (t *RPCInt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 	/* Define filters */
-	filter := bson.D{{Key: "name", Value: args.Key}}
+	filter := bson.D{{Key: "key", Value: args.Key}}
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: args.Value}}}}
 
@@ -40,7 +40,7 @@ func (t *RPCInt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 
 // RemoveKey removes the given key from the local db
 func (t *RPCInt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
-	filter := bson.D{{Key: "name", Value: args.Key}}
+	filter := bson.D{{Key: "key", Value: args.Key}}
 	_, err := db.Collection(sCollection).DeleteOne(context.TODO(), filter)
 	if err != nil {
 		util.PrintErr(noStr, err)
@@ -54,7 +54,7 @@ func (t *RPCInt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 // RemoveValue the given value from the local db
 func (t *RPCInt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 	/* Define filters */
-	filter := bson.D{{Key: "name", Value: args.Key}}
+	filter := bson.D{{Key: "key", Value: args.Key}}
 	update := bson.D{{Key: "$pull", Value: bson.D{
 		{Key: "values", Value: args.Value}}}}
 

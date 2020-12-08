@@ -31,6 +31,10 @@ type RPCExt int
 // RPCInt is the RPC object for internal replica-to-replica communication
 type RPCInt int
 
+// Dummy variables to call RPCInt methods "locally" to insert data into the local database
+var result int
+var rpcint RPCInt
+
 // Makes connection to the database, starts up the RPC server
 func main() {
 	var err error
@@ -81,5 +85,10 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	for i, port := range ports {
 		conns[i] = util.RPCClient(noStr, port)
 	}
+	return nil
+}
+
+// TerminateReplica in this implementation is just a place holder
+func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	return nil
 }

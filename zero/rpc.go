@@ -9,6 +9,7 @@ import (
 
 // InsertKey inserts the given key with an empty array for values
 func (t *RPCExt) InsertKey(args *util.RPCExtArgs, reply *int) error {
+	rpcint.InsertKey(args, &result)
 	calls := broadcast(args, false)
 	waitForBroadcastToFinish(calls)
 	util.EmulateDelay(delay)
@@ -17,6 +18,7 @@ func (t *RPCExt) InsertKey(args *util.RPCExtArgs, reply *int) error {
 
 // InsertValue inserts value into the given key
 func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
+	rpcint.InsertValue(args, &result)
 	calls := broadcast(args, false)
 	waitForBroadcastToFinish(calls)
 	util.EmulateDelay(delay)
@@ -25,6 +27,7 @@ func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 
 // RemoveKey removes the given key
 func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
+	rpcint.RemoveKey(args, &result)
 	calls := broadcast(args, true)
 	waitForBroadcastToFinish(calls)
 	util.EmulateDelay(delay)
@@ -33,6 +36,7 @@ func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 
 // RemoveValue removes the given value from the given key
 func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
+	rpcint.RemoveValue(args, &result)
 	calls := broadcast(args, true)
 	waitForBroadcastToFinish(calls)
 	util.EmulateDelay(delay)
@@ -62,9 +66,9 @@ func broadcast(args *util.RPCExtArgs, remove bool) []*rpc.Call {
 			if args.Value == "" && !remove {
 				calls[i] = client.Go("RPCInt.InsertKey", args, &result, nil)
 			} else if args.Value != "" && !remove {
-				calls[i] = client.Go("RPCInt.RemoveKey", args, &result, nil)
-			} else if args.Value == "" && remove {
 				calls[i] = client.Go("RPCInt.InsertValue", args, &result, nil)
+			} else if args.Value == "" && remove {
+				calls[i] = client.Go("RPCInt.RemoveKey", args, &result, nil)
 			} else {
 				calls[i] = client.Go("RPCInt.RemoveValue", args, &result, nil)
 			}
