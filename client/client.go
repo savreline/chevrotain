@@ -15,6 +15,7 @@ import (
 
 // Global variables
 var ports []string
+var ips []string
 var delay int
 var timeInt int    // time interval to initialize the replica with
 var verbose = true // save detailed latency information to csv?
@@ -29,7 +30,7 @@ func main() {
 	}
 
 	/* Parse group membership */
-	ports, _, err = util.ParseGroupMembersCVS("../ports.csv", "")
+	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", "")
 	if err != nil {
 		util.PrintErr("CLIENT", err)
 	}

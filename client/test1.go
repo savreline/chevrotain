@@ -10,7 +10,7 @@ import (
 
 func test1(no int, noKeys int, noVals int) {
 	/* Connect to the replica and Connect the replica */
-	conn := util.ConnectClient(ports[no], timeInt)
+	conn := util.ConnectClient(ips[no], ports[no], timeInt)
 	cnt := 0
 
 	/* init map of latencies and associated wait group */

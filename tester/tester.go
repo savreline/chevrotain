@@ -13,7 +13,7 @@ func main() {
 	/* Parse args and group membership info */
 	drop := os.Args[1]
 	impl := os.Args[2]
-	_, dbPorts, err := util.ParseGroupMembersCVS("../ports.csv", "")
+	ips, _, dbPorts, err := util.ParseGroupMembersCVS("../ports.csv", "")
 	if err != nil {
 		util.PrintErr("TESTER", err)
 	}
@@ -27,7 +27,7 @@ func main() {
 
 	/* Connect to databases */
 	for i, dbPort := range dbPorts {
-		dbClient, _ := util.ConnectDb("TESTER", dbPort)
+		dbClient, _ := util.ConnectDb("TESTER", ips[i], dbPort)
 		colsP[i] = dbClient.Database("chev").Collection("kvsp")
 		colsN[i] = dbClient.Database("chev").Collection("kvsn")
 		cols[i] = dbClient.Database("chev").Collection("kvs")

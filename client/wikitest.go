@@ -23,7 +23,7 @@ func loadPages(startPage string, no int) {
 	maxDepth := 3
 
 	/* Connect to the Replica and Connect the Replica */
-	conn := util.ConnectClient(ports[no], timeInt)
+	conn := util.ConnectClient(ips[no], ports[no], timeInt)
 	cnt := 0
 
 	/* init map of latencies and associated wait group */

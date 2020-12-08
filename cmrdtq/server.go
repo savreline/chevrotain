@@ -25,6 +25,7 @@ var no int
 var noStr string
 var noReplicas int
 var ports []string
+var ips []string
 var eLog string
 var verbose = true      // print to info console?
 var conns []*rpc.Client // RPC connections to other replicas
@@ -74,7 +75,7 @@ func main() {
 	}
 
 	/* Parse group member information */
-	ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
+	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
@@ -88,7 +89,7 @@ func main() {
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
 	/* Connect to MongoDB */
-	dbClient, _ := util.ConnectDb(noStr, dbPort)
+	dbClient, _ := util.ConnectDb(noStr, "locahost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
 
@@ -121,7 +122,7 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 
 	/* Make RPC Connections */
 	for i, port := range ports {
-		conns[i] = util.RPCClient(noStr, port)
+		conns[i] = util.RPCClient(noStr, ips[i], port)
 	}
 	return nil
 }

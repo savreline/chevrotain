@@ -21,8 +21,8 @@ type RPCExtArgs struct {
 }
 
 // ConnectDb to MongoDB on the given port, as per https://www.mongodb.com/golang
-func ConnectDb(no string, port string) (*mongo.Client, context.Context) {
-	urlString := "mongodb://localhost:" + port + "/"
+func ConnectDb(no string, ip string, port string) (*mongo.Client, context.Context) {
+	urlString := "mongodb://" + ip + ":" + port + "/"
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(urlString))
 	if err != nil {
@@ -46,16 +46,16 @@ func ConnectLocalDb() *mongo.Database {
 	dbPort := "27018"
 
 	/* Connect to MongoDB */
-	dbClient, _ := ConnectDb(noStr, dbPort)
+	dbClient, _ := ConnectDb(noStr, "localhost", dbPort)
 	db := dbClient.Database("chev")
 	PrintMsg(noStr, "Connected to DB on "+dbPort)
 	return db
 }
 
 // ConnectClient connects driver to a replica
-func ConnectClient(port string, t int) *rpc.Client {
+func ConnectClient(ip string, port string, t int) *rpc.Client {
 	var result int
-	conn := RPCClient("CLIENT", port)
+	conn := RPCClient("CLIENT", ip, port)
 	err := conn.Call("RPCExt.InitReplica", InitArgs{Bias: [2]bool{true, true}, TimeInt: t}, &result)
 	if err != nil {
 		PrintErr("CLIENT", err)
@@ -64,13 +64,14 @@ func ConnectClient(port string, t int) *rpc.Client {
 }
 
 // RPCClient makes an RPC connection to the given port
-func RPCClient(no string, port string) *rpc.Client {
-	client, err := rpc.Dial("tcp", "127.0.0.1:"+port)
+func RPCClient(no string, ip string, port string) *rpc.Client {
+	dest := ip + ":" + port
+	client, err := rpc.Dial("tcp", dest)
 	if err != nil {
 		PrintErr(no, err)
 	}
 
-	PrintMsg(no, "Connection made to "+port)
+	PrintMsg(no, "Connection made to "+dest)
 	return client
 }
 

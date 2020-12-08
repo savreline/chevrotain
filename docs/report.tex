@@ -1,0 +1,204 @@
+\documentclass[12pt]{article}
+\usepackage{amssymb}
+\usepackage{amsmath, amscd}
+\usepackage{changepage}
+%\usepackage{fullpage}
+\usepackage{parskip}
+\usepackage{graphicx}
+\usepackage{enumitem}
+\usepackage{multicol}
+\usepackage{ragged2e}
+\usepackage{subfig} %Figure into table 
+\usepackage{float} %Figure wrap
+\usepackage{stmaryrd} %Maps from
+\usepackage{sectsty}
+\usepackage{setspace}
+\usepackage[makeroom]{cancel}
+\usepackage{environ}
+\usepackage{tikz}
+\usepackage{fancyhdr}
+\usepackage{color}
+\usepackage{framed}
+\usepackage{listings}
+\usepackage{hyperref}
+\usepackage[left=1in, right=1in, top=1in, bottom=1in]{geometry}
+%\pagestyle{fancy}
+\setlength\parindent{0pt}
+\allowdisplaybreaks
+\input xy 
+\xyoption{all}
+%\allsectionsfont{\centering}
+
+%%% HEADER, FOOTER %%%
+\fancyhead{}
+\lhead{Title}
+\chead{}
+\rhead{Page: \thepage}
+%\renewcommand{\footrulewidth}{0.4pt}
+\renewcommand{\headrulewidth}{0.4pt}
+
+%%% FORMATING %%%
+\newcommand{\itab}[1]{\hspace{0em}\rlap{#1}}
+\newcommand{\tab}[2]{\hspace{#2\textwidth}\rlap{#1}}
+\newcommand\movein[2]{\begin{adjustwidth}{#1cm}{}#2\end{adjustwidth}}
+
+%%% MATH %%%
+\newcommand\set[1]{\left\{#1\right\}}
+\newcommand\bracket[1]{\left(#1\right)}
+\newcommand\sqbracket[1]{\left[#1\right]}
+\newcommand\norm[1]{\left\|#1\right\|}
+\newcommand\abs[1]{\left|#1\right|}
+\newcommand\ip[1]{\left\langle#1\right\rangle}
+\newcommand\ep{\hfill$\square$}
+\newcommand\real{\mathbb{R}}
+\newcommand\ints{\mathbb{Z}}
+\newcommand\complex{\mathbb{C}}
+\newcommand\e{\mathbb{E}}
+\newcommand\var{\text{Var}}
+
+%%% TITLES %%%
+\newcommand\defn{\textbf{Definition. }}
+\newcommand\thm{\textbf{Theorem. }}
+\newcommand\eg{\textbf{Example. }}
+\newcommand\ex{\textbf{Exercise. }}
+\newcommand\cor{\textbf{Corollary. }}
+\newcommand\pf{\textit{Proof. }}
+\newcommand\rmk{\textit{Remark. }}
+\newcommand\prop{\textbf{Proposition. }}
+
+%%% COLOURS %%%
+\definecolor{dkgreen}{rgb}{0,0.6,0}
+\definecolor{gray}{rgb}{0.5,0.5,0.5}
+\definecolor{mauve}{rgb}{0.58,0,0.82}
+\definecolor{bananamania}{rgb}{0.98, 0.91, 0.71}
+\definecolor{mycolor}{rgb}{0.96,0.96,0.96}
+\definecolor{gr}{rgb}{0,0,0.2}
+
+%%% SPACE, UNDERLINE, ARROW %%%
+\newcommand{\vsp}[1]{\vspace{#1ex}}
+\newcommand{\ddu}[1]{\underline{\underline{#1}}}
+\newcommand{\hsp}{\-\ \hspace{1ex}}
+
+\makeatletter
+\newcommand{\xRightarrow}[2][]{\ext@arrow 0359\Rightarrowfill@{#1}{#2}}
+\makeatother
+
+%%% BOXES %%%
+\newcommand\centerbox[2]{
+\begin{center}
+\fbox   {\begin{minipage} {#1 in} \vspace{1ex}
+        \begin{center} #2 \vspace{1ex}  \end{center}
+        \end{minipage}
+        }
+\end{center}}
+
+\newcommand\rightbox[2]{
+\fbox   {\begin{minipage}{#1 in} \vspace{1ex}
+            #2  \vspace{1ex}
+        \end{minipage}
+        }
+        }
+
+\newcommand\clrbox[1]{
+\fcolorbox{gray}{mycolor}   {\begin{minipage}[t]{1.0\textwidth}
+                            #1   
+                            \end{minipage}
+                            }
+                            }
+                            
+\NewEnviron{elaboration}{\par
+\begin{tikzpicture}
+\node[rectangle,minimum width=1\textwidth] (m) {\begin{minipage}{1\textwidth}\BODY\end{minipage}};
+\draw[dashed] (m.south west) rectangle (m.north east);
+\end{tikzpicture}
+}
+
+\NewEnviron{elaboration2}{\par
+\begin{tikzpicture}
+\node[rectangle,minimum width=1\textwidth] (m) {\begin{minipage}{1\textwidth}\BODY\end{minipage}};
+\draw[solid] (m.south west) rectangle (m.north east);
+\end{tikzpicture}
+}
+
+%%% TABLES %%%
+\usepackage{array}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+
+\newcommand\tableproof[6]{
+    \centering
+    \begin{tabular} { C{#1cm}  C{#2cm}  C{#3cm}}
+                        #4 & #5 & #6 \\
+    \end{tabular}
+    \justifying
+}
+
+%%% CODE %%%
+\lstset{frame=single,
+  backgroundcolor=\color{bananamania},
+  language=Java,
+  aboveskip=3mm,
+  belowskip=3mm,
+  showstringspaces=false,
+  columns=flexible,
+  numbers=left,
+  basicstyle={\small\ttfamily},
+  numberstyle=\tiny\color{gray},
+  keywordstyle=\color{blue},
+  commentstyle=\color{dkgreen},
+  stringstyle=\color{mauve},
+  breaklines=true,
+  breakatwhitespace=true,
+  tabsize=3
+}
+
+%%% LINKS %%%
+\hypersetup{
+    colorlinks,
+    citecolor=black,
+    filecolor=black,
+    linkcolor=black,
+    urlcolor=black
+}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\title{\textbf{{\vspace{-10ex}}}}
+\author{\vspace{-10ex}}
+\date{\vspace{-10ex}}
+
+\begin{document}
+\abovedisplayskip=5pt
+\belowdisplayskip=5pt
+
+\begin{center}
+{\Large\textbf{Chevrotain: A Conflict-free Replicated Data Type Key-Value Store}}
+\end{center}
+
+\section{Introduction}
+
+
+\newpage
+\section{Background}
+\subsection{State-Based Convergent Replicated Data Types (CvRDT)}
+\subsection{Op-Based Commutative Replicated Data Types (CmRDT)}
+
+\newpage
+\section{Design} %Implementation %Execution/System Model
+
+\newpage
+\section{Evaluation}
+
+\newpage
+\section{Related Work}
+
+\newpage
+\section{Future Work}
+
+\newpage
+\section{Conclusion}
+
+\newpage
+\section*{References}
+
+\end{document}

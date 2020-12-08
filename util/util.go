@@ -41,17 +41,18 @@ func LookupOpCode(opCode OpCode, noStr string) string {
 }
 
 // ParseGroupMembersCVS parses the supplied CVS group member file
-func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) {
+func ParseGroupMembersCVS(file string, port string) ([]string, []string, []string, error) {
 	// adapted from https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
 	f, err := os.Open(file)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, nil, err
 	}
 	defer f.Close()
 
 	csvr := csv.NewReader(f)
 	clPorts := []string{}
 	dbPorts := []string{}
+	ips := []string{}
 
 	for {
 		row, err := csvr.Read()
@@ -59,13 +60,14 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, error) 
 			if err == io.EOF {
 				err = nil
 			}
-			return clPorts, dbPorts, nil
+			return ips, clPorts, dbPorts, nil
 		}
 
 		/* Remove own port from results if appropriate */
-		if row[0] != port {
-			clPorts = append(clPorts, row[0])
-			dbPorts = append(dbPorts, row[1])
+		if row[1] != port {
+			ips = append(ips, row[0])
+			clPorts = append(clPorts, row[1])
+			dbPorts = append(dbPorts, row[2])
 		}
 	}
 }

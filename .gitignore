@@ -18,6 +18,9 @@
 *.txt
 *.log
 
+# Tex
+*.aux
+
 # Database dumps
 *.csv
 !ports.csv
