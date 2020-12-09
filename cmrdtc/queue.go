@@ -94,24 +94,22 @@ func addToQueue(node OpNode) {
 		}
 	}
 
-finish:
+finish: // update the length, process the queue if its length is greater than max len and release the lock
 	queueLen++
-	lock.Unlock()
 	if queueLen > MAXQUEUELEN {
+		eLog = eLog + "\nAn Iteration via max length\n"
 		processQueue()
 	}
+	lock.Unlock()
 }
 
 // process some of the operations that are queued up
 func processQueue() {
-	eLog = eLog + "\nAn Iteration\n"
-	lock.Lock()
 	printQueue()
 	processConcOps()
 	printQueue()
 	processQueueHelper()
 	printQueue()
-	lock.Unlock()
 }
 
 // this method does the actual processing of queue operations

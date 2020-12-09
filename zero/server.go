@@ -21,7 +21,7 @@ var noStr string
 var ports []string
 var ips []string
 var eLog string
-var verbose = true      // print to info console?
+var verbose bool        // print to info console?
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var delay int // emulated link delay
@@ -46,6 +46,11 @@ func main() {
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
+	if os.Args[5] == "v" {
+		verbose = true
+	} else {
+		verbose = false
+	}
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}

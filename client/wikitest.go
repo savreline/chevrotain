@@ -26,8 +26,9 @@ func loadPages(startPage string, no int) {
 	conn := util.ConnectClient(ips[no], ports[no], timeInt)
 	cnt := 0
 
-	/* init map of latencies and associated wait group */
+	/* init map of latencies, associated wait group and lock */
 	latencies := make(map[int]int64)
+	var lock sync.Mutex
 	var wg sync.WaitGroup
 
 	/* Record starting time */
@@ -71,7 +72,7 @@ func loadPages(startPage string, no int) {
 
 		/* Insert Key */
 		cnt++
-		go sendCmd(curPage, "", cnt, util.IK, conn, latencies, &wg)
+		go sendCmd(curPage, "", cnt, util.IK, conn, latencies, &lock, &wg)
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 
 		/* Add to Queue and Insert Value */
@@ -80,7 +81,7 @@ func loadPages(startPage string, no int) {
 
 			/* Insert Value */
 			cnt++
-			go sendCmd(curPage, linkedPages[j], cnt, util.IV, conn, latencies, &wg)
+			go sendCmd(curPage, linkedPages[j], cnt, util.IV, conn, latencies, &lock, &wg)
 			time.Sleep(time.Duration(delay) * time.Millisecond)
 		}
 	}

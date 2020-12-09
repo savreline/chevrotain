@@ -38,7 +38,7 @@ func main() {
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		go test1(i, 5, 5)
+		go test1(i, 50, 20, true)
 	}
 	// wikiTest()
 	select {}
@@ -46,7 +46,7 @@ func main() {
 
 // send the command
 func sendCmd(key string, val string, cnt int, cmdType util.OpCode,
-	conn *rpc.Client, latencies map[int]int64, wg *sync.WaitGroup) {
+	conn *rpc.Client, latencies map[int]int64, lock *sync.Mutex, wg *sync.WaitGroup) {
 	wg.Add(1)
 	defer wg.Done()
 	var result int
@@ -62,7 +62,9 @@ func sendCmd(key string, val string, cnt int, cmdType util.OpCode,
 	} else {
 		conn.Call("RPCExt.RemoveValue", util.RPCExtArgs{Key: key, Value: val}, &result)
 	}
+	lock.Lock()
 	latencies[cnt] = time.Now().UnixNano() - t
+	lock.Unlock()
 
 	/* Print progress to console */
 	if cnt%100 == 0 {

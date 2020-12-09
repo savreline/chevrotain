@@ -22,7 +22,7 @@ func insertKey(key string) {
 // insert the given value into the local db
 func insertValue(key string, value string) {
 	/* Define filters */
-	filter := bson.D{{Key: "name", Value: key}}
+	filter := bson.D{{Key: "key", Value: key}}
 	update := bson.D{{Key: "$push", Value: bson.D{
 		{Key: "values", Value: value}}}}
 
@@ -38,7 +38,7 @@ func insertValue(key string, value string) {
 
 // removes the given key from the local db
 func removeKey(key string) {
-	filter := bson.D{{Key: "name", Value: key}}
+	filter := bson.D{{Key: "key", Value: key}}
 	_, err := db.Collection(sCollection).DeleteOne(context.TODO(), filter)
 	if err != nil {
 		util.PrintErr(noStr, err)
@@ -51,7 +51,7 @@ func removeKey(key string) {
 // removes the given value from the local db
 func removeValue(key string, value string) {
 	/* Define filters */
-	filter := bson.D{{Key: "name", Value: key}}
+	filter := bson.D{{Key: "key", Value: key}}
 	update := bson.D{{Key: "$pull", Value: bson.D{
 		{Key: "values", Value: value}}}}
 

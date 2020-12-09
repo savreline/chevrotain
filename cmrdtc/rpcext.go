@@ -69,13 +69,28 @@ func processExtCall(args util.RPCExtArgs, opCode util.OpCode) {
 	util.EmulateDelay(delay)
 }
 
+// periodically clear the queue, even if there aren't that many elements on it
+func runPr() {
+	<-chanPr
+	for {
+		time.Sleep(time.Duration(timeInt) * time.Millisecond)
+		eLog = eLog + "\nAn Iteration via timeout\n"
+		lock.Lock()
+		processQueue()
+		lock.Unlock()
+	}
+}
+
 // periodically broadcast no ops to keep clocks reasonably close
 func runNoOps() {
-	time.Sleep(time.Duration(timeInt) * time.Millisecond)
-	if !sent {
-		processExtCall(util.RPCExtArgs{Key: "", Value: ""}, util.NO)
+	<-chanNO
+	for {
+		time.Sleep(time.Duration(2500) * time.Millisecond)
+		if !sent {
+			processExtCall(util.RPCExtArgs{Key: "", Value: ""}, util.NO)
+		}
+		sent = false // start a new time interval
 	}
-	sent = false // start a new time interval
 }
 
 // broadcast an operation

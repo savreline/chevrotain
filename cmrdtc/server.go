@@ -27,7 +27,7 @@ var noReplicas int
 var ports []string
 var ips []string
 var eLog string
-var verbose = true      // print to info console?
+var verbose bool        // print to info console?
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var logger *govec.GoLog
@@ -44,10 +44,12 @@ var timeInt int
 var chanNO = make(chan bool)
 var sent = false
 
-// Head of the operation queue and the associated lock
+// Head of the operation queue, the associated lock and channel
+// that activates periodic processing of the queue
 var queue *ListNode
 var lock sync.Mutex
 var queueLen = 0
+var chanPr = make(chan bool)
 
 // Lists of clock ticks seen thus far from other replicas and
 // the current safe clock tick
@@ -70,6 +72,11 @@ func main() {
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
+	if os.Args[5] == "v" {
+		verbose = true
+	} else {
+		verbose = false
+	}
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
@@ -89,7 +96,7 @@ func main() {
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
 	/* Connect to MongoDB */
-	dbClient, _ := util.ConnectDb(noStr, "locahost", dbPort)
+	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
 
@@ -107,6 +114,7 @@ func main() {
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
 	go runNoOps()
+	go runPr()
 	select {}
 }
 
@@ -119,6 +127,7 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 
 	/* Activate background processes */
 	chanNO <- true
+	chanPr <- true
 
 	/* Make RPC Connections */
 	for i, port := range ports {
