@@ -1,6 +1,7 @@
 # Chevrotain
+Folder-by-folder description
 
-## cvrdt, cmrdto, cmrdtc, zero
+## CvRDT, CmRDTO, CmRDTC, Zero
 Those folders contain the server code for the three implemernations of CRDTs studied in this project, as well as the "zero" implementation which makes no attemps to achieve any consistency
 
 * **cvrdt**: implementation of cvrdt
@@ -22,35 +23,37 @@ for example `go run . 1 8001 27017 100` (the *databasePort* and *emulatedDelay* 
     2. merge collections (i.e. positive and negative collection according to logical clocks)
 * **queue.go (CmRDTC only)**: all methods that manage and process the OpNode queue, including insertion of incoming OpNode and processing of blocks of concurrent operations
 
-## client
+In some implementations **rpcext.go** and **rpcint.go** are combined into **rpc.go**.
+
+## Client
 implementation of client that sends commands to cvrdt/cmrdt servers along with various test sets of commands
 
 start client by running `go run . [delayBetweenCommands] [timeSetting]` \
-where *delayBetweenCommands* is the time interval between commands send by the client (in ms)
+where *delayBetweenCommands* is the time interval between commands send by the client (in ms) \
 where *timeSetting* is the time interval between states exchanges by CvRDT replicas (in ms)
 
 specific tests packages are implemented in `test1.go`, `test2.go` and `wikitest.go`
 
-## tester
+## Tester
 a program that checks consistency of replica's databases after a test run, downloads the database into CSV files labelled by replicas' numbers
 
 start client by running `go run . [drop] [cvrdt]` \
-if *drop* is equal to 1, then tester will clear all databases to prepare the replicas for the following run
+if *drop* is equal to 1, then tester will clear all databases to prepare the replicas for the following run \
 if *cvrdt* is equal to cv, then tester will additionally download the positive and negative collections of the CvRDT servers and save those to CSV
 
-## crawler
+## Crawler
 a program that downloads Wikipedia pages to be used as test sets
 
 start crawler by running `go run . [maxNoLinks] [maxDepth]` \
-where *maxNoLinks* is the maximum number of outgoing links to follow from any given page
+where *maxNoLinks* is the maximum number of outgoing links to follow from any given page \
 where *maxDepth* is the maximum depth of the 
 
-## util
+## Util
 methods that are believed to be common to all implementations, perhaps more could be extracted into this package; however, it might start to obscure the code's readability
 
 * **util.go**: generic methods, such as parsing CSV file, finding max/mins, etc.
 * **connops.go**: connection operations (e.g. connect one replica to another, connect a replica to a local database) that are common to all implementations
 * **dbsops.go**: basic database operations that are common to all implementations
 
-## docs
+## Docs
 MATLAB code that is used to generate figures, LaTeX report code, random notes, etc.
