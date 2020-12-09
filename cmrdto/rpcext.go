@@ -23,14 +23,14 @@ func (t *RPCExt) InsertKey(args *util.RPCExtArgs, reply *int) error {
 	return nil
 }
 
-// RemoveKey removes the given key
-func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
+// InsertValue inserts value into the given key
+func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 	processExtCall(args.Key, args.Value, util.IV)
 	return nil
 }
 
-// InsertValue inserts value into the given key
-func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
+// RemoveKey removes the given key
+func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 	processExtCall(args.Key, args.Value, util.RK)
 	return nil
 }
@@ -47,7 +47,12 @@ func processExtCall(key string, value string, opType util.OpCode) {
 	clock := logger.StartBroadcast(msg, govec.GetDefaultLogOptions())
 
 	/* Prepare-updates */
-	ids := prepareUpdates(key, value, opType)
+	var ids []int
+	if opType == util.RK {
+		ids = prepareUpdates("Keys", key, opType)
+	} else {
+		ids = prepareUpdates(key, value, opType)
+	}
 
 	/* Broadcast */
 	broadcast(BroadcastArgs{

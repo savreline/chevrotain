@@ -42,6 +42,7 @@ func waitForTurn(args *BroadcastArgs) {
 
 		/* Wait for the correct clock */
 		for i := 0; ; i++ {
+			// fmt.Println("waiting")
 			<-channel
 			myClock = logger.GetCurrentVCSafe()
 			ready = myClock.CompareBroadcastClock(args.Clock)
@@ -51,6 +52,7 @@ func waitForTurn(args *BroadcastArgs) {
 					fmt.Sprint(" Comparison: ", ready) + fmt.Sprint(" Iteration: ", i) + "\n"
 			}
 			if ready {
+				// fmt.Println("!!! LEAVING !!!")
 				break
 			}
 		}

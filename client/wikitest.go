@@ -10,14 +10,8 @@ import (
 	"../util"
 )
 
-func wikiTest() {
-	go loadPages("Java", 0)
-	go loadPages("C--", 1)
-	go loadPages("C++", 2)
-}
-
 // https://stackoverflow.com/questions/12518876/how-to-check-if-a-file-exists-in-go
-func loadPages(startPage string, no int) {
+func wikiTest(startPage string, no int) {
 	pathHead := "../crawler/" + startPage + "/"
 	lastPage := startPage
 	maxDepth := 3

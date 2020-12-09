@@ -34,7 +34,7 @@ func insert(key string, value string, id int) {
 	/* Print to console */
 	if verbose && key == "Keys" {
 		util.PrintMsg(noStr, "Inserted Key "+value)
-	} else {
+	} else if verbose {
 		util.PrintMsg(noStr, "Inserted Value "+value+" on key "+key)
 	}
 }
@@ -55,7 +55,7 @@ func remove(key string, value string, ids []int) {
 	/* Print to console */
 	if verbose && key == "Keys" {
 		util.PrintMsg(noStr, "Removed Key "+value)
-	} else {
+	} else if verbose {
 		util.PrintMsg(noStr, "Removed Value "+value+" on key "+key)
 	}
 }

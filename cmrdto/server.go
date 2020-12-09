@@ -27,7 +27,7 @@ var ports []string
 var ips []string
 var eLog string
 var iLog string
-var verbose = true      // print to info console?
+var verbose bool        // print to info console?
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var logger *govec.GoLog
@@ -55,6 +55,11 @@ func main() {
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
+	if os.Args[5] == "v" {
+		verbose = true
+	} else {
+		verbose = false
+	}
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
@@ -109,6 +114,12 @@ func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	lookup()
 	if verbose {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
+		if err != nil {
+			util.PrintErr(noStr, err)
+		}
+	}
+	if verbose {
+		err := ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, err)
 		}

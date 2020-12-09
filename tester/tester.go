@@ -22,6 +22,7 @@ func main() {
 	/* Init data structures */
 	colsP := make([]*mongo.Collection, noReplicas)
 	colsN := make([]*mongo.Collection, noReplicas)
+	colsD := make([]*mongo.Collection, noReplicas)
 	cols := make([]*mongo.Collection, noReplicas)
 	results := make([][]util.SRecord, noReplicas)
 
@@ -30,6 +31,7 @@ func main() {
 		dbClient, _ := util.ConnectDb("TESTER", ips[i], dbPort)
 		colsP[i] = dbClient.Database("chev").Collection("kvsp")
 		colsN[i] = dbClient.Database("chev").Collection("kvsn")
+		colsD[i] = dbClient.Database("chev").Collection("kvsd")
 		cols[i] = dbClient.Database("chev").Collection("kvs")
 		util.PrintMsg("TESTER", "Connected to DB on port "+dbPort)
 	}
@@ -43,6 +45,12 @@ func main() {
 		for i, col := range colsN {
 			result := util.DownloadDState(col, "TESTER", drop)
 			util.SaveDStateToCSV(result, i, "N")
+		}
+	}
+	if impl == "cm" {
+		for i, col := range colsD {
+			result := util.DownloadDState(col, "TESTER", drop)
+			util.SaveDStateToCSV(result, i, "D")
 		}
 	}
 	for i, col := range cols {

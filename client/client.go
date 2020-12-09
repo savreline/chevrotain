@@ -40,7 +40,10 @@ func main() {
 	for i := 0; i < noReplicas; i++ {
 		go test1(i, 50, 20, true)
 	}
-	// wikiTest()
+	// startingPages := []string{"Java", "C++", "C--"}
+	for i := 0; i < noReplicas; i++ {
+		// go wikiTest(startingPages[i], i)
+	}
 	select {}
 }
 
