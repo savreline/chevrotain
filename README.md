@@ -5,8 +5,8 @@ Folder-by-folder description
 Those folders contain the server code for the three implemernations of CRDTs studied in this project, as well as the "zero" implementation which makes no attemps to achieve any consistency
 
 * **cvrdt**: implementation of cvrdt
-* **cmrdtb**: implementation of cmrdt via standard casual broadcast
-* **cmrdtq**: implementation of cmrdt via queueing operations
+* **cmrdto**: implementation of cmrdt via standard casual broadcast (optimistic)
+* **cmrdtc**: implementation of cmrdt via queueing operations (conservative)
 
 ### Starting the servers
 * `ports.csv` must list all ips addresses, ports and database ports for all replicas in the group (one line per replica, in this order, separated by commas)
