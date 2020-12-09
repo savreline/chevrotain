@@ -19,7 +19,7 @@ func insertLocalRecord(key string, value string, collection string, record *util
 			{Key: "values", Value: bson.D{
 				{Key: "$elemMatch", Value: bson.D{
 					{Key: "value", Value: record.Value},
-					{Key: "timestamp", Value: record.ID}}}}}}
+					{Key: "id", Value: record.ID}}}}}}
 		err := db.Collection(collection).FindOne(context.TODO(), filter).Decode(&res)
 		if err == nil { // found the record, no need to do anything
 			return

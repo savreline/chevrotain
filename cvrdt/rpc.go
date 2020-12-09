@@ -51,17 +51,21 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 	}
 
 	/* Merge clock and state */
+	lock.Lock()
 	clock = util.Max(clock, args.Timestamp)
 	mergeState(args.PosState, posCollection)
 	mergeState(args.NegState, negCollection)
+	lock.Unlock()
 
 	/* If notified by the main replica about the current safe tick, accept it
 	and reply with own clock (this will never run on the main replicas as it
 	cannot notify itself) */
-	if args.Tick != -1 {
+	if args.Tick != -1 && gc {
+		lock.Lock()
 		curSafeTick = args.Tick
 		mergeCollections()
 		*reply = clock
+		lock.Unlock()
 	}
 	util.EmulateDelay(delay)
 	return nil
@@ -76,9 +80,8 @@ func runSU() {
 
 		/* If this is the main replica, wait for the calls to complete
 		and update the curSafeTick tick that way */
-		if no == 1 {
+		if no == 1 && gc {
 			curSafeTick = waitForBroadcastToFinish(calls, results)
-			mergeCollections()
 		}
 	}
 }
@@ -125,6 +128,13 @@ func broadcast() ([]*rpc.Call, []int) {
 			}
 			calls[i] = client.Go("RPCInt.MergeState", state, &results[i], nil)
 		}
+	}
+
+	/* If the main replica, merge at this tick */
+	if no == 1 && gc {
+		lock.Lock()
+		mergeCollections()
+		lock.Unlock()
 	}
 	return calls, results
 }

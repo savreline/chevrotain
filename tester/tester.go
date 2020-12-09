@@ -83,6 +83,12 @@ func testEq(a, b []util.SRecord) (float32, float32) {
 	var errs, cnt float32
 
 	for i := range a {
+		/* This signal a substatintial discprenacy, rough estimates of errors to finish off somehow */
+		if i > len(b)-1 {
+			errs += float32(len(a[i].Values))
+			cnt += float32(len(a[i].Values))
+			return errs, cnt
+		}
 		sort.Strings(a[i].Values)
 		sort.Strings(b[i].Values)
 

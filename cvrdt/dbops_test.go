@@ -76,12 +76,13 @@ func TestStateMerges(t *testing.T) {
 	util.PrintDState(util.DownloadDState(db.Collection(negCollection1), "TESTER", "1"))
 }
 
-func TestColMerges1(t *testing.T) {
+func TestColMerges1A(t *testing.T) {
 	db = util.ConnectLocalDb()
 	noStr = "1"
 	clock = 1
+	curSafeTick = 7
 
-	/* All records distinct, all into positive collection */
+	/* All records distinct, all just in the positive collection */
 	insertLocalRecord("Keys", "100", posCollection, nil)
 	insertLocalRecord("Keys", "200", posCollection, nil)
 	insertLocalRecord("Keys", "300", posCollection, nil)
@@ -89,29 +90,105 @@ func TestColMerges1(t *testing.T) {
 	insertLocalRecord("100", "1001", posCollection, nil)
 	insertLocalRecord("200", "2000", posCollection, nil)
 	mergeCollections()
-	util.DownloadSState(db.Collection(posCollection), "TESTER", "1")
+	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
 	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+}
+
+func TestColMerges1B(t *testing.T) {
+	db = util.ConnectLocalDb()
+	noStr = "1"
+	clock = 1
+	curSafeTick = 8
+
+	/* All records distinct, one of the KEYS will appear in the negative collection */
+	insertLocalRecord("Keys", "100", posCollection, nil)
+	insertLocalRecord("Keys", "200", posCollection, nil)
+	insertLocalRecord("Keys", "300", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1001", posCollection, nil)
+	insertLocalRecord("200", "2000", posCollection, nil)
+	insertLocalRecord("Keys", "300", negCollection, nil)
+	mergeCollections()
+	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "1"))
+	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+}
+
+func TestColMerges1C(t *testing.T) {
+	db = util.ConnectLocalDb()
+	noStr = "1"
+	clock = 1
+	curSafeTick = 9
+
+	/* All records distinct, one of the KEYS and VALUES will appear in the negative collection */
+	insertLocalRecord("Keys", "100", posCollection, nil)
+	insertLocalRecord("Keys", "200", posCollection, nil)
+	insertLocalRecord("Keys", "300", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1001", posCollection, nil)
+	insertLocalRecord("200", "2000", posCollection, nil)
+	insertLocalRecord("Keys", "300", negCollection, nil)
+	insertLocalRecord("100", "1001", negCollection, nil)
+	mergeCollections()
+	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "1"))
+	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+}
+
+func TestColMerges1D(t *testing.T) {
+	db = util.ConnectLocalDb()
+	noStr = "1"
+	clock = 1
+	curSafeTick = 20
+
+	/* Extension of the previous scenarios */
+	insertLocalRecord("Keys", "100", posCollection, nil)
+	insertLocalRecord("Keys", "200", posCollection, nil)
+	insertLocalRecord("Keys", "300", posCollection, nil)
+	insertLocalRecord("Keys", "400", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1001", posCollection, nil)
+	insertLocalRecord("100", "1002", posCollection, nil)
+	insertLocalRecord("200", "2000", posCollection, nil)
+	insertLocalRecord("200", "2001", posCollection, nil)
+	insertLocalRecord("300", "3000", posCollection, nil)
+	insertLocalRecord("Keys", "400", negCollection, nil)
+	insertLocalRecord("100", "1002", negCollection, nil)
+	insertLocalRecord("100", "1001", negCollection, nil)
+	insertLocalRecord("200", "2001", negCollection, nil)
+	insertLocalRecord("300", "3000", negCollection, nil)
+	insertLocalRecord("Keys", "300", negCollection, nil)
+	mergeCollections()
+	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "1"))
+	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "0"))
 }
 
 func TestColMerges2(t *testing.T) {
 	db = util.ConnectLocalDb()
 	noStr = "1"
 	clock = 1
+	curSafeTick = 5
 
-	/* Key 100 will appear later in the positive collection
-	* Key 200 will appear later in the negative collection */
+	/* Key 100 will appear later in the negative collection
+	* Key 200 will appear later in the positive collection */
 	insertLocalRecord("Keys", "100", posCollection, nil)
 	insertLocalRecord("Keys", "100", negCollection, nil)
 	insertLocalRecord("Keys", "200", negCollection, nil)
 	insertLocalRecord("Keys", "200", posCollection, nil)
+	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "0"))
 	mergeCollections()
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+	util.DownloadDState(db.Collection(posCollection), "TESTER", "1")
+	util.DownloadDState(db.Collection(negCollection), "TESTER", "1")
+	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "0"))
 }
 
 func TestColMerges3(t *testing.T) {
 	db = util.ConnectLocalDb()
 	noStr = "1"
 	clock = 1
+	curSafeTick = 5
 
 	/* Key 100 will appear latest in the positive collection */
 	insertLocalRecord("Keys", "100", posCollection, nil)
@@ -126,6 +203,7 @@ func TestColMerges4(t *testing.T) {
 	db = util.ConnectLocalDb()
 	noStr = "1"
 	clock = 1
+	curSafeTick = 10
 
 	/* Value 1000 will appear later in the positive collection
 	* Value 2000 will appear later in the negative collection */
@@ -135,7 +213,11 @@ func TestColMerges4(t *testing.T) {
 	insertLocalRecord("Keys", "200", posCollection, nil)
 	insertLocalRecord("200", "2000", negCollection, nil)
 	insertLocalRecord("200", "2000", posCollection, nil)
+	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "0"))
 	mergeCollections()
+	util.DownloadDState(db.Collection(posCollection), "TESTER", "1")
+	util.DownloadDState(db.Collection(negCollection), "TESTER", "1")
 	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
 }
 
@@ -143,6 +225,7 @@ func TestColMerges5(t *testing.T) {
 	db = util.ConnectLocalDb()
 	noStr = "1"
 	clock = 1
+	curSafeTick = 10
 
 	/* Value 1000 will appear latest in the positive collection */
 	insertLocalRecord("Keys", "100", posCollection, nil)
@@ -150,7 +233,11 @@ func TestColMerges5(t *testing.T) {
 	insertLocalRecord("100", "1000", negCollection, nil)
 	insertLocalRecord("100", "1000", negCollection, nil)
 	insertLocalRecord("100", "1000", posCollection, nil)
+	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "0"))
 	mergeCollections()
+	util.DownloadDState(db.Collection(posCollection), "TESTER", "1")
+	util.DownloadDState(db.Collection(negCollection), "TESTER", "1")
 	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
 }
 

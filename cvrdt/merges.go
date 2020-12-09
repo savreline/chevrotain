@@ -80,11 +80,11 @@ func mergeCollections() {
 			if insert && posDoc.Key == "Keys" {
 				insertKey(record.Value)
 			} else if insert && posDoc.Key != "Keys" {
-				insertValue(record.Value, posDoc.Key)
+				insertValue(posDoc.Key, record.Value)
 			} else if !insert && posDoc.Key == "Keys" {
 				removeKey(record.Value)
 			} else {
-				removeValue(record.Value, posDoc.Key)
+				removeValue(posDoc.Key, record.Value)
 			}
 		}
 
@@ -101,7 +101,7 @@ func mergeCollections() {
 				} else {
 					removeValue(record.Value, negDoc.Key)
 				}
-				deleteDRecord(posDoc.Key, record, negCollection)
+				deleteDRecord(negDoc.Key, record, negCollection)
 			}
 		}
 	}

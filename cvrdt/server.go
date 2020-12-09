@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 	"os"
 	"strconv"
+	"sync"
 
 	"../util"
 
@@ -25,7 +26,8 @@ var noStr string
 var ports []string
 var ips []string
 var eLog string
-var verbose = true      // print to info console?
+var verbose bool        // print to info console?
+var gc bool             // run with garbage collection?
 var clock = 0           // lamport clock: tick on broadcast and every local db op
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
@@ -36,9 +38,11 @@ var delay int // emulated link delay
 var bias [2]bool
 var timeInt int
 
-// Channel that activate the state updates processes once
-// the replica has been initialized
+// Channel that activates the state updates processes once
+// the replica has been initialized, along with the lock that must
+// be acquired while merging states and/or merging collections
 var chanSU = make(chan bool)
+var lock sync.Mutex
 
 // Current safe clock tick agreed upon by all replicas
 var curSafeTick = 0
@@ -59,6 +63,16 @@ func main() {
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
+	if os.Args[5] == "v" {
+		verbose = true
+	} else {
+		verbose = false
+	}
+	if os.Args[6] == "y" {
+		gc = true
+	} else {
+		gc = false
+	}
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
@@ -114,6 +128,9 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 
 // TerminateReplica saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
+	// https://stackoverflow.com/questions/6878590/the-maximum-value-for-an-int-type-in-go
+	// curSafeTick = int(^uint(0) >> 1)
+	// mergeCollections()
 	if verbose {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {

@@ -8,6 +8,10 @@ Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'wiz_functions' (item size: 4) to 6000 items.
 Database file #1: report.bib
+I was expecting a `,' or a `}'---line 84 of file report.bib
+ : @misc{conflict-free 
+ :                     replicated data types,
+I'm skipping whatever remains of this entry
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'glb_str_end' (item size: 4) to 20 items.
 Reallocating 'glb_str_ptr' (item size: 4) to 20 items.
@@ -54,3 +58,4 @@ warning$ -- 0
 while$ -- 8
 width$ -- 0
 write$ -- 58
+(There was 1 error message)
