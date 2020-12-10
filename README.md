@@ -1,5 +1,5 @@
 # Chevrotain
-Folder-by-folder description
+Chevrotain is a replicated key value store that achieves eventual consistency through the use of a conflict-free replicated data types (CRDTs). This project implements and evaluates performances of three different design approaches to the implementation of Chevrotain. One of the approaches is based on a state-based CRDT model (CvRDT), while the other two approaches are based on an operation-based CRDT model (CmRDT), either with or without limited synchronization.
 
 ## CvRDT, CmRDTO, CmRDTC, Zero
 Those folders contain the server code for the three implemernations of CRDTs studied in this project, as well as the "zero" implementation which makes no attemps to achieve any consistency
