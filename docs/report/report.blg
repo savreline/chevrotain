@@ -8,54 +8,118 @@ Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'singl_function' (item size: 4) to 100 items.
 Reallocating 'wiz_functions' (item size: 4) to 6000 items.
 Database file #1: report.bib
-I was expecting a `,' or a `}'---line 84 of file report.bib
- : @misc{conflict-free 
- :                     replicated data types,
-I'm skipping whatever remains of this entry
 Reallocating 'singl_function' (item size: 4) to 100 items.
+Warning--no key, author in distributedclocks
+Warning--no author, editor, organization, or key in distributedclocks
+Warning--to sort, need author or key in distributedclocks
+Warning--no key, author in paxos
+Warning--no author, editor, organization, or key in paxos
+Warning--to sort, need author or key in paxos
+Warning--no key, author in crdt
+Warning--no author, editor, organization, or key in crdt
+Warning--to sort, need author or key in crdt
+Warning--no key, author in automerge
+Warning--no author, editor, organization, or key in automerge
+Warning--to sort, need author or key in automerge
+Warning--no key, author in cosmosdb
+Warning--no author, editor, organization, or key in cosmosdb
+Warning--to sort, need author or key in cosmosdb
+Warning--no key, author in roshi
+Warning--no author, editor, organization, or key in roshi
+Warning--to sort, need author or key in roshi
+Warning--no key, author in redis
+Warning--no author, editor, organization, or key in redis
+Warning--to sort, need author or key in redis
 Reallocating 'glb_str_end' (item size: 4) to 20 items.
 Reallocating 'glb_str_ptr' (item size: 4) to 20 items.
 Reallocating 'global_strs' (item size: 1) to 4000000 items.
+Warning--no key, author in automerge
+Warning--no key, author in automerge
+Warning--no key, author in cosmosdb
+Warning--no key, author in cosmosdb
+Warning--no key, author in crdt
+Warning--no key, author in crdt
+Warning--no key, author in distributedclocks
+Warning--no key, author in distributedclocks
+Warning--no key, author in paxos
+Warning--no key, author in paxos
+Warning--no key, author in redis
+Warning--no key, author in redis
+Warning--no key, author in roshi
+Warning--no key, author in roshi
 Reallocating 'singl_function' (item size: 4) to 100 items.
-You've used 1 entry,
+Warning--no key, author in automerge
+Warning--no author, editor, organization, or key in automerge
+Warning--empty author in automerge
+Warning--no key, author in cosmosdb
+Warning--no author, editor, organization, or key in cosmosdb
+Warning--empty author in cosmosdb
+Warning--no key, author in crdt
+Warning--no author, editor, organization, or key in crdt
+Warning--empty author in crdt
+Warning--no key, author in paxos
+Warning--no author, editor, organization, or key in paxos
+Warning--empty author in paxos
+Warning--no key, author in distributedclocks
+Warning--no author, editor, organization, or key in distributedclocks
+Warning--empty author in distributedclocks
+Warning--no key, author in redis
+Warning--no author, editor, organization, or key in redis
+Warning--empty author in redis
+Warning--no key, author in roshi
+Warning--no author, editor, organization, or key in roshi
+Warning--empty author in roshi
+Warning--no journal in brin1998anatomy
+Warning--no number and no volume in brin1998anatomy
+Warning--page numbers missing in both pages and numpages fields in brin1998anatomy
+Warning--empty publisher in li2012making
+Warning--empty address in li2012making
+Warning--no journal in shapiro2011comprehensive
+Warning--no number and no volume in shapiro2011comprehensive
+Warning--page numbers missing in both pages and numpages fields in shapiro2011comprehensive
+Warning--empty publisher in shapiro2011conflict
+Warning--empty address in shapiro2011conflict
+Warning--empty publisher in sovran2011transactional
+Warning--empty address in sovran2011transactional
+You've used 16 entries,
             5959 wiz_defined-function locations,
-            1336 strings with 14819 characters,
-and the built_in function-call counts, 987 in all, are:
-= -- 89
-> -- 38
+            1402 strings with 16775 characters,
+and the built_in function-call counts, 15466 in all, are:
+= -- 1655
+> -- 436
 < -- 0
-+ -- 13
-- -- 16
-* -- 73
-:= -- 124
-add.period$ -- 6
-call.type$ -- 1
-change.case$ -- 7
-chr.to.int$ -- 1
-cite$ -- 1
-duplicate$ -- 78
-empty$ -- 55
-format.name$ -- 20
-if$ -- 186
-int.to.chr$ -- 2
++ -- 157
+- -- 148
+* -- 1112
+:= -- 1406
+add.period$ -- 74
+call.type$ -- 16
+change.case$ -- 96
+chr.to.int$ -- 15
+cite$ -- 112
+duplicate$ -- 1511
+empty$ -- 1093
+format.name$ -- 183
+if$ -- 3652
+int.to.chr$ -- 3
 int.to.str$ -- 1
-missing$ -- 2
-newline$ -- 49
-num.names$ -- 8
-pop$ -- 27
+missing$ -- 37
+newline$ -- 194
+num.names$ -- 71
+pop$ -- 689
 preamble$ -- 1
-purify$ -- 15
+purify$ -- 237
 quote$ -- 0
-skip$ -- 29
+skip$ -- 510
 stack$ -- 0
-substring$ -- 56
-swap$ -- 8
+substring$ -- 1087
+swap$ -- 126
 text.length$ -- 0
 text.prefix$ -- 0
 top$ -- 0
-type$ -- 15
-warning$ -- 0
-while$ -- 8
+type$ -- 389
+warning$ -- 68
+while$ -- 64
 width$ -- 0
-write$ -- 58
-(There was 1 error message)
+write$ -- 323
+(There were 68 warnings)

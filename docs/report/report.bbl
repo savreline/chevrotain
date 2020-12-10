@@ -2,7 +2,7 @@
 %%% Do NOT edit. File created by BibTeX with style
 %%% ACM-Reference-Format-Journals [18-Jan-2012].
 
-\begin{thebibliography}{1}
+\begin{thebibliography}{16}
 
 %%% ====================================================================
 %%% NOTE TO THE USER: you can override these defaults by providing
@@ -37,6 +37,113 @@
 \providecommand\natexlab[1]{#1}
 \providecommand\showeprint[2][]{arXiv:#2}
 
+\bibitem[\protect\citeauthoryear{??}{aut}{2020}]%
+        {automerge}
+ \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{Automerge}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://github.com/automerge/automerge}
+\showURL{%
+\tempurl}
+
+
+\bibitem[\protect\citeauthoryear{??}{cos}{2020}]%
+        {cosmosdb}
+ \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{Azure Cosmos DB}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://azure.microsoft.com/en-us/services/cosmos-db/}
+\showURL{%
+\tempurl}
+
+
+\bibitem[\protect\citeauthoryear{??}{crd}{2020}]%
+        {crdt}
+ \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{Code: Conflict-free Replicated Data Types}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://crdt.tech/implementations}
+\showURL{%
+\tempurl}
+
+
+\bibitem[\protect\citeauthoryear{??}{pax}{2020}]%
+        {paxos}
+ \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{GoDoc: Paxos}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://godoc.org/github.com/kr/paxos}
+\showURL{%
+\tempurl}
+
+
+\bibitem[\protect\citeauthoryear{??}{dis}{2020}]%
+        {distributedclocks}
+ \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{GoVector}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://github.com/DistributedClocks/GoVector}
+\showURL{%
+\tempurl}
+
+
+\bibitem[\protect\citeauthoryear{??}{red}{2020}]%
+        {redis}
+ \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{Redis}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://redis.io/}
+\showURL{%
+\tempurl}
+
+
+\bibitem[\protect\citeauthoryear{??}{ros}{2020}]%
+        {roshi}
+ \bibinfo{year}{2020}\natexlab{}.
+\newblock \bibinfo{title}{Roshi}.
+\newblock
+\newblock
+\urldef\tempurl%
+\url{https://github.com/soundcloud/roshi}
+\showURL{%
+\tempurl}
+
+
+\bibitem[\protect\citeauthoryear{Baldoni and Raynal}{Baldoni and
+  Raynal}{2002}]%
+        {baldoni2002fundamentals}
+\bibfield{author}{\bibinfo{person}{Roberto Baldoni} {and}
+  \bibinfo{person}{Michel Raynal}.} \bibinfo{year}{2002}\natexlab{}.
+\newblock \showarticletitle{Fundamentals of distributed computing: A practical
+  tour of vector clock systems}.
+\newblock \bibinfo{journal}{\emph{IEEE Distributed Systems Online}}
+  \bibinfo{volume}{3}, \bibinfo{number}{2} (\bibinfo{year}{2002}),
+  \bibinfo{pages}{12}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Brin and Page}{Brin and Page}{1998}]%
+        {brin1998anatomy}
+\bibfield{author}{\bibinfo{person}{Sergey Brin} {and} \bibinfo{person}{Lawrence
+  Page}.} \bibinfo{year}{1998}\natexlab{}.
+\newblock \showarticletitle{The anatomy of a large-scale hypertextual web
+  search engine}.
+\newblock  (\bibinfo{year}{1998}).
+\newblock
+
+
 \bibitem[\protect\citeauthoryear{Davey and Priestley}{Davey and
   Priestley}{2002}]%
         {Davey:Lattices}
@@ -48,6 +155,82 @@
   \bibinfo{address}{Cambridge, UK;New York, NY;}.
 \newblock
 \showISBNx{0521784514;9780521784511;}
+
+
+\bibitem[\protect\citeauthoryear{Kraska, Hentschel, Alonso, and
+  Kossmann}{Kraska et~al\mbox{.}}{2009}]%
+        {kraska2009consistency}
+\bibfield{author}{\bibinfo{person}{Tim Kraska}, \bibinfo{person}{Martin
+  Hentschel}, \bibinfo{person}{Gustavo Alonso}, {and} \bibinfo{person}{Donald
+  Kossmann}.} \bibinfo{year}{2009}\natexlab{}.
+\newblock \showarticletitle{Consistency rationing in the cloud: pay only when
+  it matters}.
+\newblock \bibinfo{journal}{\emph{Proceedings of the VLDB Endowment}}
+  \bibinfo{volume}{2}, \bibinfo{number}{1} (\bibinfo{year}{2009}),
+  \bibinfo{pages}{253--264}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Li, Porto, Clement, Gehrke, Pregui{\c{c}}a,
+  and Rodrigues}{Li et~al\mbox{.}}{2012}]%
+        {li2012making}
+\bibfield{author}{\bibinfo{person}{Cheng Li}, \bibinfo{person}{Daniel Porto},
+  \bibinfo{person}{Allen Clement}, \bibinfo{person}{Johannes Gehrke},
+  \bibinfo{person}{Nuno Pregui{\c{c}}a}, {and} \bibinfo{person}{Rodrigo
+  Rodrigues}.} \bibinfo{year}{2012}\natexlab{}.
+\newblock \showarticletitle{Making geo-replicated systems fast as possible,
+  consistent when necessary}. In \bibinfo{booktitle}{\emph{Presented as part of
+  the 10th $\{$USENIX$\}$ Symposium on Operating Systems Design and
+  Implementation ($\{$OSDI$\}$ 12)}}. \bibinfo{pages}{265--278}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Shapiro, Pregui{\c{c}}a, Baquero, and
+  Zawirski}{Shapiro et~al\mbox{.}}{2011a}]%
+        {shapiro2011comprehensive}
+\bibfield{author}{\bibinfo{person}{Marc Shapiro}, \bibinfo{person}{Nuno
+  Pregui{\c{c}}a}, \bibinfo{person}{Carlos Baquero}, {and}
+  \bibinfo{person}{Marek Zawirski}.} \bibinfo{year}{2011}\natexlab{a}.
+\newblock \showarticletitle{A comprehensive study of convergent and commutative
+  replicated data types}.
+\newblock  (\bibinfo{year}{2011}).
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Shapiro, Pregui{\c{c}}a, Baquero, and
+  Zawirski}{Shapiro et~al\mbox{.}}{2011b}]%
+        {shapiro2011conflict}
+\bibfield{author}{\bibinfo{person}{Marc Shapiro}, \bibinfo{person}{Nuno
+  Pregui{\c{c}}a}, \bibinfo{person}{Carlos Baquero}, {and}
+  \bibinfo{person}{Marek Zawirski}.} \bibinfo{year}{2011}\natexlab{b}.
+\newblock \showarticletitle{Conflict-free replicated data types}. In
+  \bibinfo{booktitle}{\emph{Symposium on Self-Stabilizing Systems}}. Springer,
+  \bibinfo{pages}{386--400}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Sovran, Power, Aguilera, and Li}{Sovran
+  et~al\mbox{.}}{2011}]%
+        {sovran2011transactional}
+\bibfield{author}{\bibinfo{person}{Yair Sovran}, \bibinfo{person}{Russell
+  Power}, \bibinfo{person}{Marcos~K Aguilera}, {and} \bibinfo{person}{Jinyang
+  Li}.} \bibinfo{year}{2011}\natexlab{}.
+\newblock \showarticletitle{Transactional storage for geo-replicated systems}.
+  In \bibinfo{booktitle}{\emph{Proceedings of the Twenty-Third ACM Symposium on
+  Operating Systems Principles}}. \bibinfo{pages}{385--400}.
+\newblock
+
+
+\bibitem[\protect\citeauthoryear{Van~Renesse, Birman, and Maffeis}{Van~Renesse
+  et~al\mbox{.}}{1996}]%
+        {van1996horus}
+\bibfield{author}{\bibinfo{person}{Robbert Van~Renesse},
+  \bibinfo{person}{Kenneth~P Birman}, {and} \bibinfo{person}{Silvano Maffeis}.}
+  \bibinfo{year}{1996}\natexlab{}.
+\newblock \showarticletitle{Horus: A flexible group communication system}.
+\newblock \bibinfo{journal}{\emph{Commun. ACM}} \bibinfo{volume}{39},
+  \bibinfo{number}{4} (\bibinfo{year}{1996}), \bibinfo{pages}{76--83}.
+\newblock
 
 
 \end{thebibliography}
