@@ -111,7 +111,7 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 // TerminateReplica generates the "lookup" view collection of the database
 // and saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	// lookup()
+	lookup()
 	if verbose {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
