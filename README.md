@@ -33,9 +33,9 @@ start client by running `go run . [delayBetweenCommands] [timeSetting]`
 * where *delayBetweenCommands* is the time interval between commands send by the client (in ms)
 * where *timeSetting* is the time interval between states exchanges by CvRDT replicas (in ms) or is the time interval between sending no-ops in the CmRDTC implementation
 
-specific tests packages are implemented in `test1.go`, `test2.go` and `wikitest.go`
+specific tests packages are implemented in `maintest.go` and `wikitest.go`
 
-## Tester
+## Checker
 a program that checks consistency of replica's databases after a test run, downloads the database into CSV files labelled by replicas' numbers
 
 start client by running `go run . [drop] [cvrdt/cmrdt]`
@@ -47,7 +47,7 @@ a program that downloads Wikipedia pages to be used as test sets
 
 start crawler by running `go run . [maxNoLinks] [maxDepth]`
 * where *maxNoLinks* is the maximum number of outgoing links to follow from any given page
-* where *maxDepth* is the maximum depth of the 
+* where *maxDepth* is the maximum depth of the graph
 
 ## Util
 methods that are believed to be common to all implementations, perhaps more could be extracted into this package; however, it might start to obscure the code's readability

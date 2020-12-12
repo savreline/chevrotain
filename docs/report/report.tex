@@ -1,4 +1,4 @@
-\documentclass[sigconf,nonacm,10pt]{acmart}
+\documentclass[sigconf,nonacm,11pt]{acmart}
 
 \begin{document}
 \title{Chevrotain: A Conflict-free Replicated Data Type Key-Value Store}
@@ -19,7 +19,7 @@ Chevrotain is a replicated key value store that achieves eventual consistency th
 
 \maketitle
 
-\section{Introduction}
+\section{Introduction} 
 % Testing citation \cite{Davey:Lattices}
 % Testing referencing \ref{fig:sys}
 
@@ -32,7 +32,7 @@ In CRDTs, the distributed system is designed such that either the states of repl
 Key-value stores present a flexible data storage model that has widespread use, which allows Chevrotain to be appropriate tool for a variety of applications. We present one such application, a distributed web crawler, in section 5.
 
 This paper begins by briefly describing the mathematical foundations behind CRDTs in section 2. The designs of all proposed implementations of Chevrotain are then detailed in section 3. Section 4 presents the performance evaluation results, while sections 5-8 briefly survey applications, future work, related work and present the conclusion.
-
+ 
 \section{Background}
 \subsection{CvRDT}
 In state-based replication, each update that is executed at a replica modifies the state of that replica. Then, at specified intervals in time, every replica broadcasts its local state to the other replicas, which merge the received state into its own \cite{shapiro2011conflict}.
@@ -145,7 +145,7 @@ A typical workflow of the CmRDT-O implementation is shown in figure \ref{fig:cmr
 When removing a key or a value, the prepare-update method generates the ``removal'' set which contains the unique ids of all instances of the given element. The effect-update then removes all those instances from the local database. Finally, the element-ids pair is broadcast to all other replicas for removal by the effect-update methods there (in particular, all replicas will remove the exact same instances of the given element).
 Broadcasts are to be ordered according to the vector clocks and therefore the incoming broadcasts are held at each replica until the correct broadcast arrives. To achieve this, a channel is established to communicate with each incoming RPCInt call. The channel of any RPCInt call that is waiting on new broadcast messages to arrive is added to a dynamic pool. Whenever the correct broadcast message arrives, the updated local vector clock is broadcast to the channel pool to see if any of the waiting RPCInt calls can proceed next. The GoVector package was adapted to provide the vector clock functionality required for casual broadcasting \cite{distributedclocks}.
 
-Fixation of the removal set by the prepare-update method addresses type II conflicts. There cannot be a concurrent InsertKey and RemoveKey coming from the same replica as those would be ordered by vector clocks on that replica. Should there be a concurrent InsertKey and RemoveKey coming from different replicas, InsertKey will take precedence as the removal set associated with the call to RemoveKey will not include the just-generated unique id of the instance of the element to be inserted.
+Fixation of the removal set by the prepare-update method addresses the type II conflicts. There cannot be a concurrent InsertKey and RemoveKey coming from the same replica as those would be ordered by vector clocks on that replica. Should there be a concurrent InsertKey and RemoveKey coming from different replicas, InsertKey will take precedence as the removal set associated with the call to RemoveKey will not include the just-generated unique id of the instance of the element to be inserted.
 
 Type I conflicts are resolved by allowing an InsertValue to proceed to the local database even if the corresponding InsertKey has not arrived yet. Whenever an end-user wishes to start looking up keys or values in the database, the dynamic collection is transformed into what is referred to as the static collection by the lookup method. This method presents a simple view of the data without the unique ids and it also hides any inconsistencies. In particular, should the InsertKey method never arrive, the inserted value will not be copied over to the static collection and will not be displayed whenever a user looks it up in the database. RemoveKey and RemoveValue conflict is addressed in a similar way.
 
@@ -175,7 +175,7 @@ $$ \underbrace{\begin{bmatrix} 1\\0\\0 \end{bmatrix},
 \begin{bmatrix} 0\\1\\1 \end{bmatrix},
 \begin{bmatrix} 1\\2\\1 \end{bmatrix},
 \begin{bmatrix} 2\\2\\1 \end{bmatrix},
-\begin{bmatrix} 2\\2\\2 \end{bmatrix}}_{\text{only those are processed}},
+\begin{bmatrix} 2\\2\\2 \end{bmatrix}}_{\text{only those are processed at this time}}, 
 \begin{bmatrix} 3\\2\\2 \end{bmatrix},
 \begin{bmatrix} 3\\3\\2 \end{bmatrix}$$
 
@@ -191,16 +191,16 @@ If a block of concurrent operations falls into either of the above categories, i
 
 \section{Evaluation}
 \subsection{Methodology}
-The basic evaluation of throughput, latency and consistency of all implementations was carried out using three Microsoft Azure B2S VMs with 2 vCPUs, 4GB of RAM and a separate premium SSD drive dedicated to Chevrotain. The initial VMs were geographically distributed and situated in Central Canada, Southern UK and Japan.
+The basic evaluation of throughput, latency and consistency of all implementations was carried out using three Microsoft Azure Standard DS1 VMs running Windows 2019 Datacenter Server with 1 vCPUs, 4GB of RAM and a separate premium SSD drive dedicated to Chevrotain. The initial VMs were geographically distributed and situated in Central Canada, Southern UK and Japan East.
 
 A standard test set suite was used to collect all measurements: at the beginning of the test, 50 key insertion commands were sent to each replica, immediately followed by 20 value insertion commands on each key. In the middle of the test, some additional keys and key-value pairs were repeatedly inserted and removed. Finally, at the end of test, half of the values from each key and one-fourth of the keys were removed. The beginning and end portions of the test were meant to introduce type I conflicts, while the middle portion was meant to introduce type II conflicts. In all experiments, each test was done three times and reported results are the average of the three runs.
 
 The client sent all commands asynchronously and was responsible for recording round trip latencies of each RPCExt call. The client introduced set delays between subsequent sends to emulate various levels of throughput. A ``zero'' implementation was used as a baseline reference. This implementation still followed the system layout outlined in figure \ref{fig:sys}; however, once operations were received by the replicas, they were immediately applied to the local databases, without any additional processing to improve consistency.
 
-\subsection{Latency, Throughput and Consistency Results}
-Measurements of latency as a function of throughput are presented in figure \ref{fig:eval1}. Measurements of consistency as a function of throughput are presented in figure \ref{fig:eval2}. 
+A checker package was also put together. This package connects to the local copies of the databases at each replica and cross-checks them for consistency. The consistency results are reported as a percentage of entries that match across the databases. 
 
-A particular problem with achieving consistency in the CmRDT-C implementation is the maximum length of the queue. Ordering of OpNodes in the queue according to vector clocks is not unique and as the queue grows in size, this non-uniqueness becomes more problematic.
+\subsection{Throughput and Latency Results}
+Measurements of latency as a function of throughput for different implementations are presented in figure \ref{fig:eval1}.
 
 \begin{figure}[h]
   \centering
@@ -208,6 +208,11 @@ A particular problem with achieving consistency in the CmRDT-C implementation is
   \caption{Latency as a Function of Throughput}
   \label{fig:eval1}
 \end{figure}
+
+\subsection{Consistency Results}
+Measurements of consistency as a function of throughput are presented in figure \ref{fig:eval2}. 
+
+A particular problem with achieving consistency in the CmRDT-C implementation is the maximum length of the queue. Ordering of OpNodes in the queue according to vector clocks is not unique and as the queue grows in size, this non-uniqueness becomes more problematic.
 
 \begin{figure}[h]
   \centering
@@ -254,8 +259,8 @@ Other test suites should be explored to gather performance measurements and eval
 
 A more interesting web crawling experiment would be to have Chevrotain replicas situated in different geographical regions crawl web pages located in those regions and only occasionally exchange states between themselves. In particular, it would be interesting to see if there would be a performance gain in comparison to a web crawler situated in a single region crawling pages from all over the globe from there.
 
-\section{Related Work}
-There are several excellent CRDT libraries, most of them are written in JavaScript \cite{crdt}. Many of those are domain specific and not directly related to key-value stores, such as the \textbf{Automerge} library for JSON files \cite{automerge}. However, many modern databases either support or are adapted to support CRDT frameworks. One example is the \textbf{Microsoft Azure CosmosDB} that supports CRDTs and either uses a LWW policy to resolve conflicts or requires users to supply a custom JavaScript file that specifies conflict resolution semantics \cite{cosmosdb}. 
+\section{Related Work} %MongoDB!!!
+The use of CRDTs is very widespread and there are several excellent CRDT libraries, most of them are written in JavaScript \cite{crdt}. Many of those are domain specific and not directly related to key-value stores, such as the \textbf{Automerge} library for JSON files \cite{automerge}. However, many modern databases either support or are adapted to support CRDT frameworks. One example is the \textbf{Microsoft Azure CosmosDB} that supports CRDTs and either uses a LWW policy to resolve conflicts or requires users to supply a custom JavaScript file that specifies conflict resolution semantics \cite{cosmosdb}. 
 
 Perhaps the closest work to this project is \textbf{Roshi}, which is a Golang implementation of an event store based on a CRDT LWW-element-set with limited inline garbage collection \cite{roshi}. Moreover, Roshi is built on top of \textbf{Redis}, a distributed key-value store \cite{redis}. Roshi originated from the need to manage social media events in SoundCloud (for example, reposts of music tracks).
 
@@ -263,7 +268,7 @@ Perhaps the closest work to this project is \textbf{Roshi}, which is a Golang im
 Chevrotain is a replicated key value store that achieves eventual consistency through the use of a conflict-free replicated data types (CRDTs). In this paper, we studied three different implementations of Chevrotain, one of which was state-based and the other two were operation-based, either with or without limited synchronization. The unsynchronized operation-based implementation (CmRDT-O) performed best and was perhaps the easiest to work with. This is the only implementation that did not require any synchronization between replicas and did not require the end-user to specify a bias towards either the adds or removes of keys or values. The CvRDT implementation was the least performant and while being easiest to understand as a concept, came out to be surprisingly difficult to implement properly. The CmRDT-C implementation suffered from both, the logical and computational complexities of ordering OpNodes according to vector clocks on the queue.
 
 \section*{Acknowledgements}
-The author thanks Prof. Ivan Beschastnikh for his insight and feedback throughout this project and the permission to adopt the GoVector package for this project's needs. The author also appreciates the Microsoft Azure Education credit received from Prof. Beschastnikh and Microsoft Azure. Finally, the author acknowledges the use of UBC's MATLAB student license for analyzing performance data and constructing figures for this paper.
+The author thanks Prof. Ivan Beschastnikh for his insight and feedback throughout this project and the permission to adopt the GoVector package for this project's needs. The author also appreciates the Microsoft Azure Education credit received from Prof. Beschastnikh and Microsoft Azure. Finally, the author acknowledges the use of UBC's MATLAB student license for constructing the figures for this paper.
 
 \bibliographystyle{ACM-Reference-Format}
 \bibliography{report}
