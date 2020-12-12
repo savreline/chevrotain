@@ -13,7 +13,7 @@ func main() {
 	/* Parse args and group membership info */
 	drop := os.Args[1]
 	impl := os.Args[2]
-	ips, _, dbPorts, err := util.ParseGroupMembersCVS("../ports.csv", "")
+	ips, ports, dbPorts, err := util.ParseGroupMembersCVS("../ports.csv", "")
 	if err != nil {
 		util.PrintErr("TESTER", err)
 	}
@@ -49,6 +49,9 @@ func main() {
 	}
 	if impl == "cm" {
 		for i, col := range colsD {
+			var res int
+			conn := util.RPCClient("TESTER", ips[i], ports[i])
+			conn.Call("RPCExt.Lookup", util.RPCExtArgs{}, &res)
 			result := util.DownloadDState(col, "TESTER", drop)
 			util.SaveDStateToCSV(result, i, "D")
 		}

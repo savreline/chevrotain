@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -119,6 +120,7 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 // and saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	if verbose > 0 {
+		eLog = eLog + "\nFinal Clock:\n" + fmt.Sprint(logger.GetCurrentVC())
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, err)
@@ -130,6 +132,5 @@ func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 			util.PrintErr(noStr, err)
 		}
 	}
-	lookup()
 	return nil
 }

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"golang.org/x/sys/windows"
+
 	"../util"
 	"github.com/savreline/GoVector/govec"
 )
@@ -25,15 +27,10 @@ func waitForTurn(args *BroadcastArgs) {
 	/* Check if this RPC call needs to wait */
 	myClock := logger.GetCurrentVCSafe()
 	ready := myClock.CompareBroadcastClock(args.Clock)
-	if verbose > 0 {
-		eLog = eLog + fmt.Sprint("K:", args.Key) + fmt.Sprint(" V:", args.Value) +
-			fmt.Sprint(" My clock ", myClock) + fmt.Sprint(" Incoming clock ", args.Clock) +
-			fmt.Sprint(" Comparison: ", ready) + "\n"
-	}
 
 	if !ready {
 		/* Make a channel to communicate on with this RPC call */
-		channel := make(chan bool, 100)
+		channel := make(chan bool, 5000)
 
 		/* Add the channel to the pool */
 		lock.Lock()
@@ -42,19 +39,23 @@ func waitForTurn(args *BroadcastArgs) {
 
 		/* Wait for the correct clock */
 		for i := 0; ; i++ {
-			// fmt.Println("waiting")
+			if verbose > 0 {
+				eLog = eLog + fmt.Sprint(windows.GetCurrentThreadId()) +
+					fmt.Sprint(" IC ", args.Clock) +
+					fmt.Sprint(" I: ", i) + "\n"
+			}
 			<-channel
 			myClock = logger.GetCurrentVCSafe()
 			ready = myClock.CompareBroadcastClock(args.Clock)
-			if verbose > 0 {
-				iLog = iLog + fmt.Sprint("K:", args.Key) + fmt.Sprint(" V:", args.Value) +
-					fmt.Sprint(" My clock: ", myClock) + fmt.Sprint(" Incoming clock: ", args.Clock) +
-					fmt.Sprint(" Comparison: ", ready) + fmt.Sprint(" Iteration: ", i) + "\n"
-			}
 			if ready {
-				// fmt.Println("!!! LEAVING !!!")
 				break
 			}
+		}
+
+		if verbose > 0 {
+			iLog = iLog + fmt.Sprint(windows.GetCurrentThreadId()) +
+				fmt.Sprint(" IC ", args.Clock) +
+				" Out of loop, waiting for lock\n"
 		}
 
 		/* Remove the channel from the pool */
