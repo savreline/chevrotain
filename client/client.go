@@ -22,6 +22,7 @@ var verbose = true // save detailed latency information to csv?
 
 func main() {
 	/* Parse command line arguments */
+	var wg sync.WaitGroup
 	var err error
 	delay, err = strconv.Atoi(os.Args[1])
 	timeInt, err = strconv.Atoi(os.Args[2])
@@ -38,19 +39,20 @@ func main() {
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		go test1(i, 50, 20, true)
+		wg.Add(1)
+		go test1(i, 50, 20, true, &wg)
 	}
 	// startingPages := []string{"Java", "C++", "C--"}
 	for i := 0; i < noReplicas; i++ {
+		//wg.Add(1)
 		// go wikiTest(startingPages[i], i)
 	}
-	select {}
+	wg.Wait()
 }
 
 // send the command
 func sendCmd(key string, val string, cnt int, cmdType util.OpCode,
 	conn *rpc.Client, latencies map[int]int64, lock *sync.Mutex, wg *sync.WaitGroup) {
-	wg.Add(1)
 	defer wg.Done()
 	var result int
 

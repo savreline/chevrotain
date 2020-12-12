@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
 
@@ -27,7 +28,7 @@ var ports []string
 var ips []string
 var eLog string
 var iLog string
-var verbose bool        // print to info console?
+var verbose int         // print to info console?
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var logger *govec.GoLog
@@ -55,11 +56,7 @@ func main() {
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
-	if os.Args[5] == "v" {
-		verbose = true
-	} else {
-		verbose = false
-	}
+	verbose, err = strconv.Atoi(os.Args[5])
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
@@ -97,6 +94,16 @@ func main() {
 	/* Start server */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
+
+	/* Save logs in case of Ctrl+C */
+	go func() { // https://stackoverflow.com/questions/8403862/do-actions-on-end-of-execution
+		channel := make(chan os.Signal)
+		signal.Notify(channel, os.Interrupt)
+		<-channel
+		var result int
+		rpcext.TerminateReplica(&util.RPCExtArgs{}, &result)
+		os.Exit(0)
+	}()
 	select {}
 }
 
@@ -111,18 +118,18 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 // TerminateReplica generates the "lookup" view collection of the database
 // and saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	lookup()
-	if verbose {
+	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, err)
 		}
 	}
-	if verbose {
+	if verbose > 0 {
 		err := ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, err)
 		}
 	}
+	lookup()
 	return nil
 }

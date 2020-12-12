@@ -8,7 +8,9 @@ import (
 	"../util"
 )
 
-func test1(no int, noKeys int, noVals int, removes bool) {
+func test1(no int, noKeys int, noVals int, removes bool, mainWg *sync.WaitGroup) {
+	defer mainWg.Done()
+
 	/* Connect to the replica and Connect the replica */
 	conn := util.ConnectClient(ips[no], ports[no], timeInt)
 	cnt := 0
@@ -25,12 +27,14 @@ func test1(no int, noKeys int, noVals int, removes bool) {
 	for i := 0; i < noKeys; i++ {
 		key := (no+1)*100 + i
 		cnt++
+		wg.Add(1)
 		go sendCmd(strconv.Itoa(key), "", cnt, util.IK, conn, latencies, &lock, &wg)
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 
 		for j := 0; j < noVals; j++ {
 			val := (no+1)*1000 + j
 			cnt++
+			wg.Add(1)
 			go sendCmd(strconv.Itoa(key), strconv.Itoa(val), cnt, util.IV, conn, latencies, &lock, &wg)
 			time.Sleep(time.Duration(delay) * time.Millisecond)
 		}
@@ -44,6 +48,7 @@ func test1(no int, noKeys int, noVals int, removes bool) {
 			for j := noVals / 2; j < noVals; j++ {
 				val := (no+1)*1000 + j
 				cnt++
+				wg.Add(1)
 				go sendCmd(strconv.Itoa(key), strconv.Itoa(val), cnt, util.RV, conn, latencies, &lock, &wg)
 				time.Sleep(time.Duration(delay) * time.Millisecond)
 			}
@@ -52,8 +57,8 @@ func test1(no int, noKeys int, noVals int, removes bool) {
 		/* Remove Keys: remove the last quater of the keys */
 		for i := 3 * noKeys / 4; i < noKeys; i++ {
 			key := (no+1)*100 + i
-
 			cnt++
+			wg.Add(1)
 			go sendCmd(strconv.Itoa(key), "", cnt, util.RK, conn, latencies, &lock, &wg)
 			time.Sleep(time.Duration(delay) * time.Millisecond)
 		}

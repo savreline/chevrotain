@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"net/rpc"
 
 	"../util"
 	"github.com/savreline/GoVector/govec"
@@ -55,7 +56,7 @@ func processExtCall(key string, value string, opType util.OpCode) {
 	}
 
 	/* Broadcast */
-	broadcast(BroadcastArgs{
+	calls := broadcast(BroadcastArgs{
 		OpType: opType,
 		Key:    key,
 		Value:  value,
@@ -69,14 +70,16 @@ func processExtCall(key string, value string, opType util.OpCode) {
 
 	/* Release the lock as effect updates are now complete */
 	logger.StopBroadcast()
+	waitForBroadcastToFinish(calls)
 	util.EmulateDelay(delay)
 }
 
 // broadcasts state to all other replicas
-func broadcast(args BroadcastArgs) {
+func broadcast(args BroadcastArgs) []*rpc.Call {
 	var result int
 	var destNo int
 	var flag = false
+	var calls = make([]*rpc.Call, len(conns))
 
 	/* Broadcast */
 	for i, client := range conns {
@@ -89,12 +92,13 @@ func broadcast(args BroadcastArgs) {
 			} else {
 				destNo = i + 1
 			}
-			if verbose {
+			if verbose > 1 {
 				fmt.Println("RPC Int", no, "->", destNo)
 			}
-			client.Go("RPCInt.ProcessIntCall", args, &result, nil)
+			calls[i] = client.Go("RPCInt.ProcessIntCall", args, &result, nil)
 		}
 	}
+	return calls
 }
 
 // prepapre-updates
@@ -118,5 +122,14 @@ func effectUpdates(key string, value string, ids []int, opType util.OpCode) {
 		remove("Keys", key, ids)
 	} else {
 		remove(key, value, ids)
+	}
+}
+
+// ensure broadcast completes
+func waitForBroadcastToFinish(calls []*rpc.Call) {
+	for _, call := range calls {
+		if call != nil {
+			<-call.Done
+		}
 	}
 }

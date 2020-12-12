@@ -25,7 +25,7 @@ func waitForTurn(args *BroadcastArgs) {
 	/* Check if this RPC call needs to wait */
 	myClock := logger.GetCurrentVCSafe()
 	ready := myClock.CompareBroadcastClock(args.Clock)
-	if verbose {
+	if verbose > 0 {
 		eLog = eLog + fmt.Sprint("K:", args.Key) + fmt.Sprint(" V:", args.Value) +
 			fmt.Sprint(" My clock ", myClock) + fmt.Sprint(" Incoming clock ", args.Clock) +
 			fmt.Sprint(" Comparison: ", ready) + "\n"
@@ -46,7 +46,7 @@ func waitForTurn(args *BroadcastArgs) {
 			<-channel
 			myClock = logger.GetCurrentVCSafe()
 			ready = myClock.CompareBroadcastClock(args.Clock)
-			if verbose {
+			if verbose > 0 {
 				iLog = iLog + fmt.Sprint("K:", args.Key) + fmt.Sprint(" V:", args.Value) +
 					fmt.Sprint(" My clock: ", myClock) + fmt.Sprint(" Incoming clock: ", args.Clock) +
 					fmt.Sprint(" Comparison: ", ready) + fmt.Sprint(" Iteration: ", i) + "\n"
