@@ -40,7 +40,7 @@ func ConnectDb(no string, ip string, port string) (*mongo.Client, context.Contex
 	return client, ctx
 }
 
-// ConnectLocalDb connects a replica to the local Db for testing purposes
+// ConnectLocalDb connects a replica to the local Db for smoke test purposes
 func ConnectLocalDb() *mongo.Database {
 	noStr := "1"
 	dbPort := "27018"

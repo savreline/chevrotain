@@ -66,7 +66,7 @@ type RPCInt int
 func main() {
 	var err error
 
-	/* Parse command link arguments */
+	/* Parse command line arguments */
 	no, err = strconv.Atoi(os.Args[1])
 	noStr = os.Args[1]
 	port := os.Args[2]
