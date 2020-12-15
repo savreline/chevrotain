@@ -2,33 +2,66 @@ package main
 
 import (
 	"fmt"
-	"io/ioutil"
 	"net/rpc"
 	"os"
-	"sort"
 	"strconv"
 	"sync"
 	"time"
 
 	"../util"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+// Constants
+const (
+	sCollection = "kvs"
+	noKeys      = 210
+	noVals      = 5
 )
 
 // Global variables
 var ports []string
 var ips []string
-var delay int
+var noPerRepl int
+var delay int      // delays between sending commands
 var timeInt int    // time interval to initialize the replica with
-var verbose = true // save detailed latency information to csv?
+var removes bool   // true if client is to test removes
+var mongotest bool // true if client is to test mongoDb's replication
+var cnt int        // operation counter
+var db *mongo.Database
+
+// Map of latencies, associated wait group and lock
+var latencies map[int]int64
+var lock sync.Mutex
+var wg sync.WaitGroup
+
+// Wait group of the main method
+var wgMain sync.WaitGroup
 
 func main() {
 	/* Parse command line arguments */
-	var wg sync.WaitGroup
 	var err error
 	delay, err = strconv.Atoi(os.Args[1])
 	timeInt, err = strconv.Atoi(os.Args[2])
+	if os.Args[3] == "y" {
+		mongotest = true
+		dbClient, _ := util.ConnectDb("1", "localhost", "27018")
+		db = dbClient.Database("chev")
+		util.PrintMsg("CLIENT", "Connected to DB")
+	} else {
+		mongotest = false
+	}
+	if os.Args[4] == "y" {
+		removes = true
+	} else {
+		removes = false
+	}
 	if err != nil {
 		util.PrintErr("CLIENT", err)
 	}
+
+	/* Init data structures */
+	latencies = make(map[int]int64)
 
 	/* Parse group membership */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", "")
@@ -36,74 +69,74 @@ func main() {
 		util.PrintErr("CLIENT", err)
 	}
 	noReplicas := len(ports)
+	noPerRepl = noKeys / noReplicas
 
 	/* Tests */
 	for i := 0; i < noReplicas; i++ {
-		wg.Add(1)
-		go test1(i, 50, 20, true, &wg)
+		wgMain.Add(1)
+		go maintest(i)
+	}
+	for i := 0; i < noReplicas; i++ {
+		// wgMain.Add(1)
+		// go quicktest(i)
 	}
 	// startingPages := []string{"Java", "C++", "C--"}
 	for i := 0; i < noReplicas; i++ {
-		//wg.Add(1)
+		// wgMain.Add(1)
 		// go wikiTest(startingPages[i], i)
 	}
-	wg.Wait()
+	wgMain.Wait()
+
+	/* Process collected performance data */
+	calcPerf()
+	fmt.Println("Count: ", cnt)
 }
 
 // send the command
-func sendCmd(key string, val string, cnt int, cmdType util.OpCode,
-	conn *rpc.Client, latencies map[int]int64, lock *sync.Mutex, wg *sync.WaitGroup) {
+func sendCmd(key string, val string, cmdType util.OpCode, conn *rpc.Client) {
+	wg.Add(1)
 	defer wg.Done()
 	var result int
 
 	/* Send command and record time */
 	t := time.Now().UnixNano()
-	if cmdType == util.IK {
+	if cmdType == util.IK && !mongotest {
 		conn.Call("RPCExt.InsertKey", util.RPCExtArgs{Key: key}, &result)
-	} else if cmdType == util.IV {
+	} else if cmdType == util.IV && !mongotest {
 		conn.Call("RPCExt.InsertValue", util.RPCExtArgs{Key: key, Value: val}, &result)
-	} else if cmdType == util.RK {
+	} else if cmdType == util.RK && !mongotest {
 		conn.Call("RPCExt.RemoveKey", util.RPCExtArgs{Key: key}, &result)
-	} else {
+	} else if cmdType == util.RV && !mongotest {
 		conn.Call("RPCExt.RemoveValue", util.RPCExtArgs{Key: key, Value: val}, &result)
+	} else if cmdType == util.IK {
+		util.InsertSKey(db.Collection(sCollection), "CLIENT", key)
+	} else if cmdType == util.IV {
+		util.InsertSValue(db.Collection(sCollection), "CLIENT", key, val)
+	} else if cmdType == util.RK {
+		// TODO
+	} else {
+		// TODO
 	}
-	lock.Lock()
-	latencies[cnt] = time.Now().UnixNano() - t
-	lock.Unlock()
 
-	/* Print progress to console */
+	/* Record latency and print progress to console */
+	lock.Lock()
+	cnt++
+	latencies[cnt] = time.Now().UnixNano() - t
 	if cnt%100 == 0 {
 		fmt.Println("Current: ", cnt)
 	}
+	lock.Unlock()
 }
 
 // process collected performance data
-func calcPerf(delta int64, cnt int, no int, latencies map[int]int64) {
+func calcPerf() {
 	/* Compute average */
-	var str string
 	var sum int64
-	keys := make([]int, 0, len(latencies))
 	for key := range latencies {
-		keys = append(keys, key)
 		sum += latencies[key]
 	}
 
 	/* Print latency */
 	avg := float32(sum) / 1000000 / float32(cnt)
-	timeElps := float32(delta) / 1000000
-	util.PrintMsg("CLIENT", "Time Elapsed to send ops is (ms): "+fmt.Sprint(timeElps))
-	util.PrintMsg("CLIENT", "Average latency to "+strconv.Itoa(no)+" is (ms):"+fmt.Sprint(avg))
-
-	/* Write latencies to CSV */
-	if verbose {
-		sort.Ints(keys)
-		for _, key := range keys {
-			num := int(float32(latencies[key]) / 1000000)
-			str = str + strconv.Itoa(key) + "," + strconv.Itoa(num) + "\n"
-		}
-		err := ioutil.WriteFile("Latencies"+strconv.Itoa(no)+".csv", []byte(str), 0644)
-		if err != nil {
-			util.PrintErr("CLIENT", err)
-		}
-	}
+	util.PrintMsg("CLIENT", "Average latency is (ms): "+fmt.Sprint(avg))
 }
