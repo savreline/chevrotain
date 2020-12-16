@@ -37,7 +37,7 @@ func main() {
 	}
 
 	/* Download results and save */
-	if impl == "cv" {
+	if impl == "cv" { // cv: need to download pos and neg collections
 		for i, col := range colsP {
 			result := util.DownloadDState(col, "TESTER", drop)
 			util.SaveDStateToCSV(result, i, "P")
@@ -47,7 +47,7 @@ func main() {
 			util.SaveDStateToCSV(result, i, "N")
 		}
 	}
-	if impl == "cm" {
+	if impl == "cm" { // cm: need to download dynamic collection and do lookup
 		for i, col := range colsD {
 			var res int
 			conn := util.RPCClient("TESTER", ips[i], ports[i])
@@ -56,13 +56,14 @@ func main() {
 			util.SaveDStateToCSV(result, i, "D")
 		}
 	}
-	for i, col := range cols {
+	for i, col := range cols { // all: get the static collection
 		results[i] = util.DownloadSState(col, "TESTER", drop)
 		util.SaveSStateToCSV(results[i], i)
 	}
 
 	/* Check Equality */
 	var i1, i2, i3 int
+	var sum float32
 	for i := 0; i < noReplicas; i++ {
 		if i != noReplicas-1 {
 			i1 = i
@@ -74,10 +75,13 @@ func main() {
 			i3 = noReplicas
 		}
 		errs, cnt := testEq(results[i1], results[i2])
+		avg := (cnt - errs) / cnt * 100
 		msg := fmt.Sprint("Number of diffs ", i1+1, " to ", i3, " is ", errs,
-			" and percent is ", (cnt-errs)/cnt*100)
+			" and percent is ", avg)
 		util.PrintMsg("CHECKER", msg)
+		sum += avg
 	}
+	util.PrintMsg("CHECKER", "Overall consistency is "+fmt.Sprint(sum/float32(noReplicas)))
 }
 
 // check databases for equality

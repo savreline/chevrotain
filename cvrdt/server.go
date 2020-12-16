@@ -38,10 +38,10 @@ var delay int // emulated link delay
 var bias [2]bool
 var timeInt int
 
-// Channel that activates the state updates processes once
+// Flag that activates the state updates processes once
 // the replica has been initialized, along with the lock that must
 // be acquired while merging states and/or merging collections
-var chanSU = make(chan bool)
+var flagSU = false
 var lock sync.Mutex
 
 // Current safe clock tick agreed upon by all replicas
@@ -87,10 +87,13 @@ func main() {
 	/* Init data structures */
 	conns = make([]*rpc.Client, noReplicas)
 
-	/* Connect to MongoDB */
+	/* Connect to MongoDB, Init collections (for performance) */
 	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
+	util.CreateCollection(db, noStr, posCollection)
+	util.CreateCollection(db, noStr, negCollection)
+	util.CreateCollection(db, noStr, sCollection)
 
 	/* Init RPC */
 	rpcext := new(RPCExt)
@@ -117,7 +120,7 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	timeInt = args.TimeInt
 
 	/* Activate background process */
-	chanSU <- true
+	flagSU = true
 
 	/* Make RPC Connections */
 	for i, port := range ports {

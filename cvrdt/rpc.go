@@ -73,15 +73,16 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 
 // broadcasts state to all other replicas at intervals specified by timeInt
 func runSU() {
-	<-chanSU
 	for {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
-		calls, results := broadcast()
+		if flagSU {
+			calls, results := broadcast()
 
-		/* If this is the main replica, wait for the calls to complete
-		and update the curSafeTick tick that way */
-		if no == 1 && gc {
-			curSafeTick = waitForBroadcastToFinish(calls, results)
+			/* If this is the main replica, wait for the calls to complete
+			and update the curSafeTick tick that way */
+			if no == 1 && gc {
+				curSafeTick = waitForBroadcastToFinish(calls, results)
+			}
 		}
 	}
 }

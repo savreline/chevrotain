@@ -65,10 +65,11 @@ func main() {
 	/* Init data structures */
 	conns = make([]*rpc.Client, noReplicas)
 
-	/* Connect to MongoDB */
+	/* Connect to MongoDB, Init collections (for performance) */
 	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
+	util.CreateCollection(db, noStr, sCollection)
 
 	/* Init RPC */
 	rpcext := new(RPCExt)

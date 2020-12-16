@@ -184,3 +184,27 @@ func CheckMembership(arr []DRecord, value string) bool {
 	}
 	return false
 }
+
+// CreateCollection checks if the specified collection exists, and creates one if that is not
+// the case https://stackoverflow.com/questions/46293070/how-to-check-if-collection-exists-or-not-mongodb-golang
+func CreateCollection(db *mongo.Database, who string, name string) {
+	cols, err := db.ListCollectionNames(context.TODO(), bson.D{})
+	if err != nil {
+		PrintErr(who, err)
+	}
+
+	found := false
+	for _, col := range cols {
+		if col == name {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		err = db.CreateCollection(context.TODO(), name)
+		if err != nil {
+			PrintErr(who, err)
+		}
+	}
+}

@@ -39,17 +39,17 @@ var delay int // emulated link delay
 var bias [2]bool
 var minTimeInt int
 
-// Channel that activates the background process that periodically
+// Flag that activates the background process that periodically
 // sends no-ops to other replicass once the replica has been initialized,
 // along with a flag which indicates if a no-op has been sent
-var chanNO = make(chan bool)
+var flagNO = false
 var sent = false
 
-// Head of the operation queue, the associated lock and channel
+// Head of the operation queue, the associated lock and flag
 // that activates periodic processing of the queue
 var queue *ListNode
 var lock sync.Mutex
-var chanPr = make(chan bool)
+var flagPQ = false
 var queueLen = 0
 var maxQueueLen int
 var timeInt int
@@ -97,10 +97,11 @@ func main() {
 	/* Init vector clocks */
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
-	/* Connect to MongoDB */
+	/* Connect to MongoDB, Init collections (for performance) */
 	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
+	util.CreateCollection(db, noStr, sCollection)
 
 	/* Init RPC */
 	rpcext := new(RPCExt)
@@ -115,8 +116,8 @@ func main() {
 	/* Start server and background processes */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
-	go runNoOps()
-	go runPr()
+	go runNO()
+	go runPQ()
 
 	/* Save logs in case of Ctrl+C */
 	go func() { // https://stackoverflow.com/questions/8403862/do-actions-on-end-of-execution
@@ -140,8 +141,8 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	lastT = time.Now().UnixNano()
 
 	/* Activate background processes */
-	chanNO <- true
-	chanPr <- true
+	flagNO = true
+	flagPQ = true
 
 	/* Make RPC Connections */
 	for i, port := range ports {
@@ -150,7 +151,7 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	return nil
 }
 
-// TerminateReplica saves the logs to disk
+// TerminateReplica saves the logs to disk and stops background processes
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
@@ -159,5 +160,9 @@ func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 		}
 	}
 	eLog = ""
+
+	/* Stop background processes */
+	flagNO = false
+	flagPQ = false
 	return nil
 }
