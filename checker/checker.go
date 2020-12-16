@@ -9,6 +9,13 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+// Constants
+const (
+	posCollection = "kvsp"
+	negCollection = "kvsn"
+	dCollection   = "kvsd"
+)
+
 func main() {
 	/* Parse args and group membership info */
 	drop := os.Args[1]
@@ -20,68 +27,75 @@ func main() {
 	noReplicas := len(dbPorts)
 
 	/* Init data structures */
-	colsP := make([]*mongo.Collection, noReplicas)
-	colsN := make([]*mongo.Collection, noReplicas)
-	colsD := make([]*mongo.Collection, noReplicas)
-	cols := make([]*mongo.Collection, noReplicas)
+	dbs := make([]*mongo.Database, noReplicas)
 	results := make([][]util.SRecord, noReplicas)
 
 	/* Connect to databases */
 	for i, dbPort := range dbPorts {
 		dbClient, _ := util.ConnectDb("TESTER", ips[i], dbPort)
-		colsP[i] = dbClient.Database("chev").Collection("kvsp")
-		colsN[i] = dbClient.Database("chev").Collection("kvsn")
-		colsD[i] = dbClient.Database("chev").Collection("kvsd")
-		cols[i] = dbClient.Database("chev").Collection("kvs")
+		dbs[i] = dbClient.Database("chev")
 		util.PrintMsg("TESTER", "Connected to DB on port "+dbPort)
 	}
 
 	/* Download results and save */
 	if impl == "cv" { // cv: need to download pos and neg collections
-		for i, col := range colsP {
-			result := util.DownloadDState(col, "TESTER", drop)
+		for i, db := range dbs {
+			result := util.DownloadDState(db, "TESTER", posCollection, drop)
 			util.SaveDStateToCSV(result, i, "P")
-		}
-		for i, col := range colsN {
-			result := util.DownloadDState(col, "TESTER", drop)
+			result = util.DownloadDState(db, "TESTER", negCollection, drop)
 			util.SaveDStateToCSV(result, i, "N")
 		}
 	}
 	if impl == "cm" { // cm: need to download dynamic collection and do lookup
-		for i, col := range colsD {
+		for i, db := range dbs {
 			var res int
 			conn := util.RPCClient("TESTER", ips[i], ports[i])
 			conn.Call("RPCExt.Lookup", util.RPCExtArgs{}, &res)
-			result := util.DownloadDState(col, "TESTER", drop)
+			result := util.DownloadDState(db, "TESTER", dCollection, drop)
 			util.SaveDStateToCSV(result, i, "D")
 		}
 	}
-	for i, col := range cols { // all: get the static collection
-		results[i] = util.DownloadSState(col, "TESTER", drop)
+	for i, db := range dbs { // all: get the static collection
+		results[i] = util.DownloadSState(db, "TESTER", drop)
 		util.SaveSStateToCSV(results[i], i)
 	}
 
+	/* Download the reference */
+	ref := util.DownloadMainTestRef()
+	// fmt.Println(ref)
+
 	/* Check Equality */
-	var i1, i2, i3 int
-	var sum float32
+	var i1, i2 int
+	var sum1, sum2 float32
 	for i := 0; i < noReplicas; i++ {
 		if i != noReplicas-1 {
-			i1 = i
-			i2 = i + 1
-			i3 = i + 2
+			i1 = i     // array index of first repl
+			i2 = i + 1 // array index of second repl
 		} else {
-			i1 = 0
-			i2 = noReplicas - 1
-			i3 = noReplicas
+			i1 = i
+			i2 = 0
 		}
+
+		/* Check against each other */
 		errs, cnt := testEq(results[i1], results[i2])
 		avg := (cnt - errs) / cnt * 100
-		msg := fmt.Sprint("Number of diffs ", i1+1, " to ", i3, " is ", errs,
+		msg := fmt.Sprint("Number of diffs ", i1+1, " to ", i2+1, " is ", errs,
 			" and percent is ", avg)
 		util.PrintMsg("CHECKER", msg)
-		sum += avg
+		sum1 += avg
+
+		/* Check against reference */
+		errs, cnt = testEq(ref, results[i1])
+		avg = (cnt - errs) / cnt * 100
+		msg = fmt.Sprint("Number of diffs ", i1+1, " to ref is ", errs,
+			" and percent is ", avg)
+		util.PrintMsg("CHECKER", msg)
+		sum2 += avg
 	}
-	util.PrintMsg("CHECKER", "Overall consistency is "+fmt.Sprint(sum/float32(noReplicas)))
+
+	/* Print overall consistencies to console */
+	util.PrintMsg("CHECKER", "Overall consistency against each other is "+fmt.Sprint(sum1/float32(noReplicas)))
+	util.PrintMsg("CHECKER", "Overall consistency against ref is "+fmt.Sprint(sum2/float32(noReplicas)))
 }
 
 // check databases for equality
@@ -99,11 +113,13 @@ func testEq(a, b []util.SRecord) (float32, float32) {
 		sort.Strings(a[i].Values)
 		sort.Strings(b[i].Values)
 
+		/* Check of keys */
 		if a[i].Key != b[i].Key {
 			errs++
 		}
 		cnt++
 
+		/* Check values */
 		for j, val := range a[i].Values {
 			if j >= len(b[i].Values) || val != b[i].Values[j] {
 				errs++

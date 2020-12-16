@@ -19,8 +19,8 @@ func mergeState(state []util.DDoc, collection string) {
 // merge positive and negative collections during garbage collection
 func mergeCollections() {
 	/* Download the positive collection and negative collections (for efficiency) */
-	posState := util.DownloadDState(db.Collection(posCollection), "REPLICA "+noStr, "0")
-	negState := util.DownloadDState(db.Collection(negCollection), "REPLICA "+noStr, "0")
+	posState := util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0")
+	negState := util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
 
 	/* Iterate over documents in the positive collection */
 	for _, posDoc := range posState { // util.DDoc

@@ -104,8 +104,8 @@ func broadcast() ([]*rpc.Call, []int) {
 	}
 
 	/* Download current state */
-	posState := util.DownloadDState(db.Collection(posCollection), "REPLICA "+noStr, "0")
-	negState := util.DownloadDState(db.Collection(negCollection), "REPLICA "+noStr, "0")
+	posState := util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0")
+	negState := util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
 	state := StateArgs{
 		PosState:  posState,
 		NegState:  negState,

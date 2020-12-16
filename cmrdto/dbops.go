@@ -83,7 +83,7 @@ func computeRemovalSet(key string, value string) []int {
 // Lookup generates the "lookup" view collection of the database
 func (t *RPCExt) Lookup(args *util.RPCExtArgs, reply *int) error {
 	/* Download state */
-	state := util.DownloadDState(db.Collection(dCollection), "TESTER", "0")
+	state := util.DownloadDState(db, "CHECKER", dCollection, "0")
 
 	/* Download the "keys" document */
 	var keysDoc util.DDoc

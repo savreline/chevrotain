@@ -2,8 +2,11 @@ package util
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"sort"
 	"strconv"
 
@@ -31,12 +34,12 @@ type DRecord struct {
 }
 
 // DownloadDState downloads the contents of any dynamic collection
-func DownloadDState(col *mongo.Collection, who string, drop string) []DDoc {
+func DownloadDState(db *mongo.Database, who string, name string, drop string) []DDoc {
 	var res []DDoc
 
 	/* Download all key docs */
 	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
-	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	cursor, err := db.Collection(name).Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
 		PrintErr(who, err)
 	}
@@ -46,27 +49,35 @@ func DownloadDState(col *mongo.Collection, who string, drop string) []DDoc {
 		PrintErr(who, err)
 	}
 
-	/* Drop the collection if asked */
+	/* Drop the collection if asked and initialize a new one */
 	if drop == "1" {
-		col.Drop(context.TODO())
+		db.Collection(name).Drop(context.TODO())
+		CreateCollection(db, who, name)
 	}
 	return res
 }
 
 // DownloadSState downloads the contents of any static collection
-func DownloadSState(col *mongo.Collection, who string, drop string) []SRecord {
+func DownloadSState(db *mongo.Database, who string, drop string) []SRecord {
 	var result []SRecord
+	name := "kvs"
 
+	/* Download all key docs */
 	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
-	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	cursor, err := db.Collection(name).Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
 		PrintErr(who, err)
 	}
+
+	/* Save downloaded info into res */
 	if err = cursor.All(context.TODO(), &result); err != nil {
 		PrintErr(who, err)
 	}
+
+	/* Drop the collection if asked and initialize a new one */
 	if drop == "1" {
-		col.Drop(context.TODO())
+		db.Collection(name).Drop(context.TODO())
+		CreateCollection(db, who, name)
 	}
 	return result
 }
@@ -124,6 +135,37 @@ func SaveSStateToCSV(state []SRecord, no int) {
 	err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str), 0644)
 	if err != nil {
 		PrintErr("CHECKER", err)
+	}
+}
+
+// DownloadMainTestRef returns the data contained in the CSV reference file as an
+// array of SRecords https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
+func DownloadMainTestRef() []SRecord {
+	f, err := os.Open("MainTestRef.csv")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	defer f.Close()
+
+	csvr := csv.NewReader(f)
+	res := []SRecord{}
+
+	for {
+		row, err := csvr.Read()
+		if err != nil {
+			if err == io.EOF {
+				return res
+			}
+		}
+
+		var record = SRecord{Key: row[0], Values: []string{}}
+		for i, element := range row {
+			if i != 0 {
+				record.Values = append(record.Values, element)
+			}
+		}
+		res = append(res, record)
 	}
 }
 
