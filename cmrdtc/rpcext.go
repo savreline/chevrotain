@@ -74,7 +74,7 @@ func runPr() {
 	<-chanPr
 	for {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
-		eLog = eLog + "\nAn Iteration via timeout\n"
+		eLog = eLog + "\nAn Iteration via timeout: " + fmt.Sprint(timeInt) + "\n"
 		lock.Lock()
 		processQueue()
 		lock.Unlock()
@@ -110,7 +110,7 @@ func broadcast(opNode OpNode) []*rpc.Call {
 			} else {
 				destNo = i + 1
 			}
-			if verbose {
+			if verbose > 1 {
 				fmt.Println("RPC Int", no, "->", destNo)
 			}
 			calls[i] = client.Go("RPCInt.ProcessIntCall", opNode, &result, nil)

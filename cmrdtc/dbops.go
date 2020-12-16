@@ -14,7 +14,7 @@ func insertKey(key string) {
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	if verbose {
+	if verbose > 1 {
 		util.PrintMsg(noStr, "Inserted Key "+key)
 	}
 }
@@ -31,7 +31,7 @@ func insertValue(key string, value string) {
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	if verbose {
+	if verbose > 1 {
 		util.PrintMsg(noStr, "Inserted Value "+value)
 	}
 }
@@ -43,7 +43,7 @@ func removeKey(key string) {
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	if verbose {
+	if verbose > 1 {
 		util.PrintMsg(noStr, "Deleted Key "+key)
 	}
 }
@@ -60,7 +60,7 @@ func removeValue(key string, value string) {
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
-	if verbose {
+	if verbose > 1 {
 		util.PrintMsg(noStr, "Deleted Value "+value)
 	}
 }

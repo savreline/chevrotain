@@ -5,8 +5,10 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"time"
 
 	"../util"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,7 +19,6 @@ import (
 // Constants
 const (
 	sCollection = "kvs"
-	MAXQUEUELEN = 20
 )
 
 // Global variables
@@ -27,16 +28,16 @@ var noReplicas int
 var ports []string
 var ips []string
 var eLog string
-var verbose bool        // print to info console?
+var verbose int         // print info console and to logs?
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var logger *govec.GoLog
 var delay int // emulated link delay
 
 // Settings: bias towards add or removes for keys and values
-// Settings: time interval between state updates
+// Settings: minimum time interval between calls to process the queue
 var bias [2]bool
-var timeInt int
+var minTimeInt int
 
 // Channel that activates the background process that periodically
 // sends no-ops to other replicass once the replica has been initialized,
@@ -48,8 +49,12 @@ var sent = false
 // that activates periodic processing of the queue
 var queue *ListNode
 var lock sync.Mutex
-var queueLen = 0
 var chanPr = make(chan bool)
+var queueLen = 0
+var maxQueueLen int
+var timeInt int
+var times []int // slice of last 10 time intervals between queue processings
+var lastT int64 // last time the queue was processed
 
 // Lists of clock ticks seen thus far from other replicas and
 // the current safe clock tick
@@ -72,11 +77,8 @@ func main() {
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
-	if os.Args[5] == "v" {
-		verbose = true
-	} else {
-		verbose = false
-	}
+	verbose, err = strconv.Atoi(os.Args[5])
+	maxQueueLen, err = strconv.Atoi(os.Args[6])
 	if err != nil {
 		util.PrintErr(noStr, err)
 	}
@@ -115,6 +117,16 @@ func main() {
 	go rpc.Accept(l)
 	go runNoOps()
 	go runPr()
+
+	/* Save logs in case of Ctrl+C */
+	go func() { // https://stackoverflow.com/questions/8403862/do-actions-on-end-of-execution
+		channel := make(chan os.Signal)
+		signal.Notify(channel, os.Interrupt)
+		<-channel
+		var result int
+		rpcext.TerminateReplica(&util.RPCExtArgs{}, &result)
+		os.Exit(0)
+	}()
 	select {}
 }
 
@@ -123,7 +135,9 @@ func main() {
 func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	/* Set up args */
 	bias = args.Bias
-	timeInt = args.TimeInt
+	minTimeInt = args.TimeInt
+	timeInt = minTimeInt
+	lastT = time.Now().UnixNano()
 
 	/* Activate background processes */
 	chanNO <- true
@@ -138,11 +152,12 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 
 // TerminateReplica saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	if verbose {
+	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, err)
 		}
 	}
+	eLog = ""
 	return nil
 }
