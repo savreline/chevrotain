@@ -80,7 +80,9 @@ func TestLookup(t *testing.T) {
 		insert(pair[0], pair[1], id)
 		id++
 	}
-	lookup()
+	var res int
+	rpcext := new(RPCExt)
+	rpcext.Lookup(&util.RPCExtArgs{}, &res)
 	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
 	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "1"))
 }

@@ -41,12 +41,12 @@ func DownloadDState(db *mongo.Database, who string, name string, drop string) []
 	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
 	cursor, err := db.Collection(name).Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadD[Find]", err)
 	}
 
 	/* Save downloaded info into res */
 	if err = cursor.All(context.TODO(), &res); err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadD[Cursor]", err)
 	}
 
 	/* Drop the collection if asked and initialize a new one */
@@ -66,12 +66,12 @@ func DownloadSState(db *mongo.Database, who string, drop string) []SRecord {
 	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
 	cursor, err := db.Collection(name).Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadS[Find]", err)
 	}
 
 	/* Save downloaded info into res */
 	if err = cursor.All(context.TODO(), &result); err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadS[Cursor]", err)
 	}
 
 	/* Drop the collection if asked and initialize a new one */
@@ -114,7 +114,7 @@ func SaveDStateToCSV(state []DDoc, no int, pn string) {
 	/* Write to CSV */
 	err := ioutil.WriteFile("Repl"+pn+strconv.Itoa(no)+".csv", []byte(str), 0644)
 	if err != nil {
-		PrintErr("CHECKER", err)
+		PrintErr("TESTER", "WriteDToCSV", err)
 	}
 }
 
@@ -134,7 +134,7 @@ func SaveSStateToCSV(state []SRecord, no int) {
 	/* Write to CSV */
 	err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str), 0644)
 	if err != nil {
-		PrintErr("CHECKER", err)
+		PrintErr("TESTER", "WriteSToCSV", err)
 	}
 }
 
@@ -181,7 +181,7 @@ func InsertSKey(col *mongo.Collection, who string, key string) {
 		record := SRecord{Key: key, Values: []string{}}
 		_, err := col.InsertOne(context.TODO(), record)
 		if err != nil {
-			PrintErr(who, err)
+			PrintErr(who, "IK-S:"+key, err)
 		}
 	}
 }
@@ -202,7 +202,7 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 			keyEntry := &SRecord{Key: key, Values: []string{}}
 			_, err := col.InsertOne(context.TODO(), keyEntry)
 			if err != nil {
-				PrintErr(who, err)
+				PrintErr(who, "IV-S:"+key+":"+value+" [find]", err)
 			}
 		}
 
@@ -212,7 +212,7 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 			{Key: "values", Value: value}}}}
 		_, err := col.UpdateOne(context.TODO(), filter, update)
 		if err != nil {
-			PrintErr(who, err)
+			PrintErr(who, "IV-S:"+key+":"+value+" [update]", err)
 		}
 	}
 }
@@ -232,7 +232,7 @@ func CheckMembership(arr []DRecord, value string) bool {
 func CreateCollection(db *mongo.Database, who string, name string) {
 	cols, err := db.ListCollectionNames(context.TODO(), bson.D{})
 	if err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "CreateCol:"+name+" [ListCol]", err)
 	}
 
 	found := false
@@ -246,7 +246,7 @@ func CreateCollection(db *mongo.Database, who string, name string) {
 	if !found {
 		err = db.CreateCollection(context.TODO(), name)
 		if err != nil {
-			PrintErr(who, err)
+			PrintErr(who, "CreateCol:"+name+" [Create]", err)
 		}
 	}
 }

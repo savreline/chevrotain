@@ -52,13 +52,13 @@ func main() {
 		verbose = false
 	}
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CmdLine", err)
 	}
 
 	/* Parse group member information */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "GroupInfo", err)
 	}
 	noReplicas := len(ports) + 1
 
@@ -78,7 +78,7 @@ func main() {
 	rpc.Register(rpcext)
 	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "InitRPC", err)
 	}
 
 	/* Start server */

@@ -35,7 +35,7 @@ func LookupOpCode(opCode OpCode, noStr string) string {
 	} else if opCode == NO {
 		return "No-Op"
 	} else {
-		PrintErr(noStr, errors.New("LookupOpCode: unknown operation"))
+		PrintErr(noStr, "LookupOpCode", errors.New("unknown operation"))
 		return ""
 	}
 }
@@ -74,7 +74,7 @@ func ParseGroupMembersCVS(file string, port string) ([]string, []string, []strin
 
 // PrintMsg prints message to console from a replica
 func PrintMsg(no string, msg string) {
-	if no == "CLIENT" || no == "TESTER" {
+	if no == "CLIENT" || no == "CHECKER" {
 		fmt.Println(no + ": " + msg)
 	} else {
 		fmt.Println("REPLICA " + no + ": " + msg)
@@ -82,8 +82,12 @@ func PrintMsg(no string, msg string) {
 }
 
 // PrintErr prints error to console from a replica and exits
-func PrintErr(no string, err error) {
-	if no == "CLIENT" || no == "TESTER" {
+func PrintErr(no string, msg string, err error) {
+	if (no == "CLIENT" || no == "CHECKER") && msg != "" {
+		fmt.Println(no+": "+msg+": ", err)
+	} else if (no != "CLIENT" && no != "CHECKER") && msg != "" {
+		fmt.Println("REPLICA "+no+": "+msg+": ", err)
+	} else if no == "CLIENT" || no == "CHECKER" {
 		fmt.Println(no+": ", err)
 	} else {
 		fmt.Println("REPLICA "+no+": ", err)

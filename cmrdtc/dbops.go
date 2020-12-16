@@ -12,7 +12,7 @@ func insertKey(key string) {
 	record := util.SRecord{Key: key, Values: []string{}}
 	_, err := db.Collection(sCollection).InsertOne(context.TODO(), record)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "IK:"+key, err)
 	}
 	if verbose > 1 {
 		util.PrintMsg(noStr, "Inserted Key "+key)
@@ -29,7 +29,7 @@ func insertValue(key string, value string) {
 	/* Do the update */
 	_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "IV:"+key+":"+value, err)
 	}
 	if verbose > 1 {
 		util.PrintMsg(noStr, "Inserted Value "+value)
@@ -41,7 +41,7 @@ func removeKey(key string) {
 	filter := bson.D{{Key: "key", Value: key}}
 	_, err := db.Collection(sCollection).DeleteOne(context.TODO(), filter)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "IK:"+key, err)
 	}
 	if verbose > 1 {
 		util.PrintMsg(noStr, "Deleted Key "+key)
@@ -58,7 +58,7 @@ func removeValue(key string, value string) {
 	/* Do the delete */
 	_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "RV:"+key+":"+value, err)
 	}
 	if verbose > 1 {
 		util.PrintMsg(noStr, "Deleted Value "+value)

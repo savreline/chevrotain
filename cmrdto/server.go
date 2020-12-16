@@ -59,13 +59,13 @@ func main() {
 	delay, err = strconv.Atoi(os.Args[4])
 	verbose, err = strconv.Atoi(os.Args[5])
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CmdLine", err)
 	}
 
 	/* Parse group member information */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "GroupInfo", err)
 	}
 	noReplicas := len(ports) + 1
 
@@ -91,7 +91,7 @@ func main() {
 	rpc.Register(rpcext)
 	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "RPCInit", err)
 	}
 
 	/* Start server */
@@ -125,13 +125,13 @@ func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 		eLog = eLog + "\nFinal Clock:\n" + fmt.Sprint(logger.GetCurrentVC())
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "WriteELog", err)
 		}
 	}
 	if verbose > 0 {
 		err := ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "WriteILog", err)
 		}
 	}
 	return nil

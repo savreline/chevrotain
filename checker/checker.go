@@ -17,12 +17,19 @@ const (
 )
 
 func main() {
-	/* Parse args and group membership info */
+	var err error
+
+	/* Parse command line arguments */
 	drop := os.Args[1]
 	impl := os.Args[2]
+	if err != nil {
+		util.PrintErr("CHECKER", "CmdLine", err)
+	}
+
+	/* Parse group member information */
 	ips, ports, dbPorts, err := util.ParseGroupMembersCVS("../ports.csv", "")
 	if err != nil {
-		util.PrintErr("TESTER", err)
+		util.PrintErr("CHECKER", "GroupInfo", err)
 	}
 	noReplicas := len(dbPorts)
 
@@ -32,37 +39,36 @@ func main() {
 
 	/* Connect to databases */
 	for i, dbPort := range dbPorts {
-		dbClient, _ := util.ConnectDb("TESTER", ips[i], dbPort)
+		dbClient, _ := util.ConnectDb("CHECKER", ips[i], dbPort)
 		dbs[i] = dbClient.Database("chev")
-		util.PrintMsg("TESTER", "Connected to DB on port "+dbPort)
+		util.PrintMsg("CHECKER", "Connected to DB on port "+dbPort)
 	}
 
 	/* Download results and save */
 	if impl == "cv" { // cv: need to download pos and neg collections
 		for i, db := range dbs {
-			result := util.DownloadDState(db, "TESTER", posCollection, drop)
+			result := util.DownloadDState(db, "CHECKER", posCollection, drop)
 			util.SaveDStateToCSV(result, i, "P")
-			result = util.DownloadDState(db, "TESTER", negCollection, drop)
+			result = util.DownloadDState(db, "CHECKER", negCollection, drop)
 			util.SaveDStateToCSV(result, i, "N")
 		}
 	}
 	if impl == "cm" { // cm: need to download dynamic collection and do lookup
 		for i, db := range dbs {
 			var res int
-			conn := util.RPCClient("TESTER", ips[i], ports[i])
+			conn := util.RPCClient("CHECKER", ips[i], ports[i])
 			conn.Call("RPCExt.Lookup", util.RPCExtArgs{}, &res)
-			result := util.DownloadDState(db, "TESTER", dCollection, drop)
+			result := util.DownloadDState(db, "CHECKER", dCollection, drop)
 			util.SaveDStateToCSV(result, i, "D")
 		}
 	}
 	for i, db := range dbs { // all: get the static collection
-		results[i] = util.DownloadSState(db, "TESTER", drop)
+		results[i] = util.DownloadSState(db, "CHECKER", drop)
 		util.SaveSStateToCSV(results[i], i)
 	}
 
 	/* Download the reference */
 	ref := util.DownloadMainTestRef()
-	// fmt.Println(ref)
 
 	/* Check Equality */
 	var i1, i2 int

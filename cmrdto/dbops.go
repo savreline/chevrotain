@@ -18,7 +18,7 @@ func insert(key string, value string, id int) {
 		doc := util.DDoc{Key: key, Values: []util.DRecord{}}
 		_, err = db.Collection(dCollection).InsertOne(context.TODO(), doc)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "I-D:"+key+":"+value+" [Find]", err)
 		}
 	}
 
@@ -28,7 +28,7 @@ func insert(key string, value string, id int) {
 		{Key: "values", Value: record}}}}
 	_, err = db.Collection(dCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "I-D:"+key+":"+value+" [Update]", err)
 	}
 
 	/* Print to console */
@@ -49,7 +49,7 @@ func remove(key string, value string, ids []int) {
 				{Key: "$in", Value: ids}}}}}}}}
 	_, err := db.Collection(dCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "R-D:"+key+":"+value, err)
 	}
 
 	/* Print to console */
@@ -67,7 +67,7 @@ func computeRemovalSet(key string, value string) []int {
 	filter := bson.D{{Key: "key", Value: key}}
 	err := db.Collection(dCollection).FindOne(context.TODO(), filter).Decode(&dbResult)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CompRS:"+key+":"+value, err)
 	}
 
 	/* Extract ids from the mathcing document */
@@ -90,7 +90,7 @@ func (t *RPCExt) Lookup(args *util.RPCExtArgs, reply *int) error {
 	filter := bson.D{{Key: "key", Value: "Keys"}}
 	err := db.Collection(dCollection).FindOne(context.TODO(), filter).Decode(&keysDoc)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "LookupKeys", err)
 	}
 
 	/* Insert keys */

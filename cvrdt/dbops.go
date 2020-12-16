@@ -37,7 +37,7 @@ func insertLocalRecord(key string, value string, collection string, record *util
 		keyEntry := &util.DDoc{Key: key, Values: []util.DRecord{}}
 		_, err := db.Collection(collection).InsertOne(context.TODO(), keyEntry)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "I-L:"+key+":"+value+" [Find]", err)
 		}
 	}
 
@@ -46,7 +46,7 @@ func insertLocalRecord(key string, value string, collection string, record *util
 		{Key: "values", Value: record}}}}
 	_, err = db.Collection(collection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "I-L:"+key+":"+value+" [Update]", err)
 	}
 
 	/* Print to console */
@@ -78,7 +78,7 @@ func removeKey(key string) {
 	filter := bson.D{{Key: "key", Value: key}}
 	_, err := db.Collection(sCollection).DeleteOne(context.TODO(), filter)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "RK-S:"+key, err)
 	}
 }
 
@@ -89,6 +89,6 @@ func removeValue(value string, key string) {
 		{Key: "values", Value: value}}}}
 	_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "RV-S:"+key+":"+value, err)
 	}
 }

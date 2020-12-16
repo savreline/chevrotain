@@ -127,6 +127,6 @@ func deleteDRecord(key string, record util.DRecord, collection string) {
 				Key: "$eq", Value: record.Value}}}}}}}}
 	_, err := db.Collection(collection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "Del-D:"+key+":"+record.Value, err)
 	}
 }

@@ -57,7 +57,7 @@ func main() {
 		removes = false
 	}
 	if err != nil {
-		util.PrintErr("CLIENT", err)
+		util.PrintErr("CLIENT", "CmdLine", err)
 	}
 
 	/* Init data structures */
@@ -66,7 +66,7 @@ func main() {
 	/* Parse group membership */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", "")
 	if err != nil {
-		util.PrintErr("CLIENT", err)
+		util.PrintErr("CLIENT", "GroupInfo", err)
 	}
 	noReplicas := len(ports)
 	noPerRepl = noKeys / noReplicas
