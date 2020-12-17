@@ -30,11 +30,11 @@ func waitForTurn(args *BroadcastArgs) {
 
 	if !ready {
 		/* Make a channel to communicate on with this RPC call */
-		channel := make(chan bool, 5000)
+		channel := make(chan bool, 100000)
 
 		/* Add the channel to the pool */
 		lock.Lock()
-		chans[channel] = channel
+		chans = append(chans, channel)
 		lock.Unlock()
 
 		/* Wait for the correct clock */
@@ -60,7 +60,8 @@ func waitForTurn(args *BroadcastArgs) {
 
 		/* Remove the channel from the pool */
 		lock.Lock()
-		delete(chans, channel)
+		close(channel)
+		removeChan(channel)
 		lock.Unlock()
 	}
 
@@ -78,4 +79,16 @@ func broadcastNewMerge() {
 		channel <- true
 	}
 	lock.Unlock()
+}
+
+// remove a channel from the pool
+// https://stackoverflow.com/questions/28699485/remove-elements-in-slice
+func removeChan(channel chan bool) {
+	for i := 0; i < len(chans); i++ {
+		if channel == chans[i] {
+			chans = append(chans[:i], chans[i+1:]...)
+			i--
+			break
+		}
+	}
 }

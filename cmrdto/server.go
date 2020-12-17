@@ -36,9 +36,9 @@ var logger *govec.GoLog
 var id int    // unique ids associated with elements
 var delay int // emulated link delay
 
-// Map of channels that are used for communication with waiting RPC Calls
+// Slice of channels that are used for communication with waiting RPC Calls
 // and the associated lock
-var chans map[chan bool]chan bool
+var chans []chan bool
 var lock sync.Mutex
 
 // RPCExt is the RPC object that receives commands from the client
@@ -71,7 +71,6 @@ func main() {
 
 	/* Init data structures */
 	conns = make([]*rpc.Client, noReplicas)
-	chans = make(map[chan bool]chan bool)
 	id = no * 100000
 
 	/* Init vector clocks */
