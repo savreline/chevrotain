@@ -23,11 +23,12 @@ const (
 var ports []string
 var ips []string
 var noPerRepl int
-var delay int      // delays between sending commands
-var timeInt int    // time interval to initialize the replica with
-var removes bool   // true if client is to test removes
-var mongotest bool // true if client is to test mongoDb's replication
-var cnt int        // operation counter
+var delay int         // delays between sending commands
+var timeInt int       // time interval to initialize the replica with
+var removes = false   // true if client is to test removes
+var mongotest = false // true if client is to test mongoDb's replication
+var term = false      // true if the replica is to be terminated after the test
+var cnt int           // operation counter
 var db *mongo.Database
 
 // Map of latencies, associated wait group and lock
@@ -48,13 +49,12 @@ func main() {
 		dbClient, _ := util.ConnectDb("1", "localhost", "27018")
 		db = dbClient.Database("chev")
 		util.PrintMsg("CLIENT", "Connected to DB")
-	} else {
-		mongotest = false
 	}
 	if os.Args[4] == "y" {
 		removes = true
-	} else {
-		removes = false
+	}
+	if os.Args[5] == "y" {
+		term = true
 	}
 	if err != nil {
 		util.PrintErr("CLIENT", "CmdLine", err)
@@ -113,9 +113,9 @@ func sendCmd(key string, val string, cmdType util.OpCode, conn *rpc.Client) {
 	} else if cmdType == util.IV {
 		util.InsertSValue(db.Collection(sCollection), "CLIENT", key, val)
 	} else if cmdType == util.RK {
-		// TODO
+		util.RemoveSKey(db.Collection(sCollection), "CLIENT", key)
 	} else {
-		// TODO
+		util.RemoveSValue(db.Collection(sCollection), "CLIENT", key, val)
 	}
 
 	/* Record latency and print progress to console */

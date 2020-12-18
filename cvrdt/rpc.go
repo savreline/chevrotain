@@ -46,7 +46,7 @@ func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 
 // MergeState merges incoming state with the current state at the replica
 func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
-	if verbose {
+	if verbose > 1 {
 		util.PrintMsg(noStr, "Merging state from "+args.SrcPid)
 	}
 
@@ -124,7 +124,7 @@ func broadcast() ([]*rpc.Call, []int) {
 			} else {
 				destNo = i + 1
 			}
-			if verbose {
+			if verbose > 1 {
 				fmt.Println("RPC Merge State", no, "->", destNo)
 			}
 			calls[i] = client.Go("RPCInt.MergeState", state, &results[i], nil)

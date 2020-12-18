@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"../util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -18,12 +20,23 @@ func mergeState(state []util.DDoc, collection string) {
 
 // merge positive and negative collections during garbage collection
 func mergeCollections() {
+	var posLen, negLen int
+	if verbose > 0 {
+		iLog = iLog + "Merging Collections on Tick: " + fmt.Sprint(curSafeTick) + "\n"
+		printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
+		printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
+		printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
+	}
+
 	/* Download the positive collection and negative collections (for efficiency) */
 	posState := util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0")
 	negState := util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
 
 	/* Iterate over documents in the positive collection */
 	for _, posDoc := range posState { // util.DDoc
+		if len(posDoc.Values) > 0 {
+			posLen++
+		}
 
 		/* Look for the corresponding doc in the negative collection */
 		var negDoc util.DDoc
@@ -42,8 +55,10 @@ func mergeCollections() {
 					continue
 				}
 				if posDoc.Key == "Keys" {
+					printToLog("IK:" + record.Value + ":" + "NoNeg")
 					insertKey(record.Value)
 				} else {
+					printToLog("IV:" + posDoc.Key + ":" + record.Value + ":" + "NoNeg")
 					insertValue(posDoc.Key, record.Value)
 				}
 				deleteDRecord(posDoc.Key, record, posCollection)
@@ -78,32 +93,60 @@ func mergeCollections() {
 
 			/* Insert or delete into static collection as required */
 			if insert && posDoc.Key == "Keys" {
+				printToLog("IK:" + record.Value + ":" +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				insertKey(record.Value)
 			} else if insert && posDoc.Key != "Keys" {
+				printToLog("IV:" + posDoc.Key + ":" + record.Value +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				insertValue(posDoc.Key, record.Value)
 			} else if !insert && posDoc.Key == "Keys" {
+				printToLog("RK:" + record.Value + ":" +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				removeKey(record.Value)
 			} else {
+				printToLog("RV:" + posDoc.Key + ":" + record.Value + ":" +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				removeValue(posDoc.Key, record.Value)
 			}
 		}
+	}
 
-		/* Iterate over documents in the negative collection:
-		those documents didn't have a corresponding positve entry
-		and must be removed */
-		for _, negDoc := range negState { // util.DDoc
-			for _, record := range negDoc.Values {
-				if record.ID > curSafeTick {
-					continue
-				}
-				if negDoc.Key == "Keys" {
-					removeKey(record.Value)
-				} else {
-					removeValue(record.Value, negDoc.Key)
-				}
-				deleteDRecord(negDoc.Key, record, negCollection)
-			}
+	/* Iterate over documents in the negative collection:
+	those documents didn't have a corresponding positve entry
+	and must be removed */
+	negState = util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
+	for _, negDoc := range negState { // util.DDoc
+		if len(negDoc.Values) > 0 {
+			negLen++
 		}
+
+		for _, record := range negDoc.Values {
+			if record.ID > curSafeTick {
+				continue
+			}
+			if negDoc.Key == "Keys" {
+				printToLog("RK:" + record.Value + ":" + "NoPos")
+				removeKey(record.Value)
+			} else {
+				printToLog("RV:" + negDoc.Key + ":" + record.Value + ":" + "NoPos")
+				removeValue(negDoc.Key, record.Value)
+			}
+			deleteDRecord(negDoc.Key, record, negCollection)
+		}
+	}
+
+	if posLen == 0 && negLen == 0 && printTime {
+		util.PrintMsg(noStr, "mergeCollections reached zero dynamic state after (s): "+
+			fmt.Sprint(float32(time.Now().UnixNano()-lastRPC)/float32(1000000000)))
+		printTime = false
+	}
+	if verbose > 0 {
+		util.PrintMsg(noStr, "state lengths are"+fmt.Sprint(posLen)+":"+fmt.Sprint(negLen))
+		iLog = iLog + "States After Merge on Tick: " + fmt.Sprint(curSafeTick) + "\n"
+		printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
+		printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
+		printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
 	}
 }
 

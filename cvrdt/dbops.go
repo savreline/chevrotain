@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"../util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -13,6 +15,8 @@ func insertLocalRecord(key string, value string, collection string, record *util
 	otherwise check if an exact identical entry already exists */
 	if record == nil {
 		record = &util.DRecord{Value: value, ID: clock}
+		lastRPC = time.Now().UnixNano()
+		printTime = true
 	} else {
 		var res util.DDoc
 		filter := bson.D{{Key: "key", Value: key},
@@ -50,7 +54,7 @@ func insertLocalRecord(key string, value string, collection string, record *util
 	}
 
 	/* Print to console */
-	if verbose {
+	if verbose > 1 {
 		if collection == posCollection && key == "Keys" {
 			util.PrintMsg(noStr, "Inserted Key "+value)
 		} else if collection == negCollection && key == "Keys" {
@@ -60,6 +64,11 @@ func insertLocalRecord(key string, value string, collection string, record *util
 		} else {
 			util.PrintMsg(noStr, "Removed Value "+value+" on key "+key)
 		}
+	}
+
+	/* Log this operation */
+	if verbose > 0 {
+		eLog = eLog + collection + ":" + key + ":" + value + "\t"
 	}
 }
 
@@ -75,20 +84,35 @@ func insertValue(key string, value string) {
 
 // removes key from the static collection
 func removeKey(key string) {
-	filter := bson.D{{Key: "key", Value: key}}
-	_, err := db.Collection(sCollection).DeleteOne(context.TODO(), filter)
-	if err != nil {
-		util.PrintErr(noStr, "RK-S:"+key, err)
-	}
+	util.RemoveSKey(db.Collection(sCollection), noStr, key)
 }
 
 // removes value from the static collection
-func removeValue(value string, key string) {
-	filter := bson.D{{Key: "key", Value: key}}
-	update := bson.D{{Key: "$pull", Value: bson.D{
-		{Key: "values", Value: value}}}}
-	_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
-	if err != nil {
-		util.PrintErr(noStr, "RV-S:"+key+":"+value, err)
+func removeValue(key string, value string) {
+	util.RemoveSValue(db.Collection(sCollection), noStr, key, value)
+}
+
+// prints a dynamic state to the log
+func printDState(state []util.DDoc, name string) {
+	iLog = iLog + name + "\n"
+	for _, doc := range state {
+		iLog = iLog + fmt.Sprint(doc) + "\n"
+	}
+	iLog = iLog + "\n"
+}
+
+// prints a static state to the log
+func printSState(state []util.SRecord) {
+	iLog = iLog + "STATIC\n"
+	for _, record := range state {
+		iLog = iLog + fmt.Sprint(record) + "\n"
+	}
+	iLog = iLog + "\n"
+}
+
+// log an insertion or a removal
+func printToLog(msg string) {
+	if verbose > 0 {
+		iLog = iLog + msg + "\n"
 	}
 }

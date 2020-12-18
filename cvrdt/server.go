@@ -26,12 +26,15 @@ var noStr string
 var ports []string
 var ips []string
 var eLog string
-var verbose bool        // print to info console?
-var gc bool             // run with garbage collection?
+var iLog string
+var verbose int         // print to info console?
+var gc = false          // run with garbage collection?
 var clock = 0           // lamport clock: tick on broadcast and every local db op
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
-var delay int // emulated link delay
+var delay int      // emulated link delay
+var lastRPC int64  // time of the last incoming RPCExt call
+var printTime bool // print time since last RPC call to console?
 
 // Settings: bias towards add or removes for keys and values
 // Settings: time interval between state updates
@@ -63,15 +66,9 @@ func main() {
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
-	if os.Args[5] == "v" {
-		verbose = true
-	} else {
-		verbose = false
-	}
+	verbose, err = strconv.Atoi(os.Args[5])
 	if os.Args[6] == "y" {
 		gc = true
-	} else {
-		gc = false
 	}
 	if err != nil {
 		util.PrintErr(noStr, "CmdLine", err)
@@ -134,8 +131,14 @@ func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	// https://stackoverflow.com/questions/6878590/the-maximum-value-for-an-int-type-in-go
 	// curSafeTick = int(^uint(0) >> 1)
 	// mergeCollections()
-	if verbose {
+	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
+		if err != nil {
+			util.PrintErr(noStr, "WriteELog", err)
+		}
+	}
+	if verbose > 0 {
+		err := ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
 		if err != nil {
 			util.PrintErr(noStr, "WriteELog", err)
 		}

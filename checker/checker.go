@@ -16,12 +16,18 @@ const (
 	dCollection   = "kvsd"
 )
 
+// Global variables
+var verbose = false // print mismatches to console?
+
 func main() {
 	var err error
 
 	/* Parse command line arguments */
 	drop := os.Args[1]
 	impl := os.Args[2]
+	if os.Args[3] == "y" {
+		verbose = true
+	}
 	if err != nil {
 		util.PrintErr("CHECKER", "CmdLine", err)
 	}
@@ -51,6 +57,8 @@ func main() {
 			util.SaveDStateToCSV(result, i, "P")
 			result = util.DownloadDState(db, "CHECKER", negCollection, drop)
 			util.SaveDStateToCSV(result, i, "N")
+			conn := util.RPCClient("CHECKER", ips[i], ports[i])
+			util.TerminateReplica(ports[i], conn, 1)
 		}
 	}
 	if impl == "cm" { // cm: need to download dynamic collection and do lookup
@@ -119,8 +127,11 @@ func testEq(a, b []util.SRecord) (float32, float32) {
 		sort.Strings(a[i].Values)
 		sort.Strings(b[i].Values)
 
-		/* Check of keys */
+		/* Check keys */
 		if a[i].Key != b[i].Key {
+			if verbose {
+				fmt.Println("Mismatch of keys: ", a[i].Key, ":", b[i].Key)
+			}
 			errs++
 		}
 		cnt++
@@ -128,6 +139,10 @@ func testEq(a, b []util.SRecord) (float32, float32) {
 		/* Check values */
 		for j, val := range a[i].Values {
 			if j >= len(b[i].Values) || val != b[i].Values[j] {
+				if verbose && j < len(b[i].Values) {
+					fmt.Println("Mismatch of values on key: ", a[i].Key,
+						":", b[i].Values, ":", b[i].Values[j])
+				}
 				errs++
 			}
 			cnt++

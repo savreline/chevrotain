@@ -62,7 +62,7 @@ func maintest(no int) {
 	wg.Wait()
 
 	/* Terminate */
-	if !mongotest {
+	if !mongotest && term {
 		util.TerminateReplica(ports[no], conn, 5)
 	}
 }

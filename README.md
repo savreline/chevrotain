@@ -30,11 +30,12 @@ In some implementations **rpcext.go** and **rpcint.go** are combined into **rpc.
 ## Client
 implementation of client that sends commands to cvrdt/cmrdt servers along with various test sets of commands
 
-start client by running `go run . [delayBetweenCommands] [timeSetting] [runMongoTest] [runRemoves]`
+start client by running `go run . [delayBetweenCommands] [timeSetting] [runMongoTest] [runRemoves] [terminateReplica]`
 * where *delayBetweenCommands* is the time interval between commands send by the client (in ms)
 * where *timeSetting* is the time interval between states exchanges by CvRDT replicas (in ms) or is the time interval between sending no-ops in the CmRDTC implementation
 * where *runMongoTest* set to **y** indicates that the client will run tests that test MongoDb's native replication framework
 * where *runRemoves* set to **y** indicates if the main test should test key/value removals as well (as opposed to just inserts)
+* where *terminateReplica* set to **y** indicates if the main test should terminate replica once it is done (which runs lookup in the case of CmRDT-O and writes logs to files in all implementations)
 
 specific tests packages are implemented in `maintest.go`, `quicktest.go` and `wikitest.go`
 

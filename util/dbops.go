@@ -217,6 +217,26 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 	}
 }
 
+// RemoveSKey removes the given key from the static collection
+func RemoveSKey(col *mongo.Collection, who string, key string) {
+	filter := bson.D{{Key: "key", Value: key}}
+	_, err := col.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		PrintErr(who, "RK-S:"+key, err)
+	}
+}
+
+// RemoveSValue removes the given value from the static collection
+func RemoveSValue(col *mongo.Collection, who string, key string, value string) {
+	filter := bson.D{{Key: "key", Value: key}}
+	update := bson.D{{Key: "$pull", Value: bson.D{
+		{Key: "values", Value: value}}}}
+	_, err := col.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		PrintErr(who, "RV-S:"+key+":"+value, err)
+	}
+}
+
 // CheckMembership return true if an entry with the given value is found in a slice of records
 func CheckMembership(arr []DRecord, value string) bool {
 	for _, record := range arr {
