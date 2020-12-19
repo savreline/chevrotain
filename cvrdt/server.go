@@ -47,8 +47,10 @@ var timeInt int
 var flagSU = false
 var lock sync.Mutex
 
-// Current safe clock tick agreed upon by all replicas
+// Current safe clock tick agreed upon by all replicas and
+// the current safe tick on this replica
 var curSafeTick = 0
+var mySafeTick = 0
 
 // RPCExt is the RPC object that receives commands from the client
 type RPCExt int

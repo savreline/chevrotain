@@ -68,7 +68,7 @@ func insertLocalRecord(key string, value string, collection string, record *util
 
 	/* Log this operation */
 	if verbose > 0 {
-		eLog = eLog + collection + ":" + key + ":" + value + "\t"
+		iLog = iLog + collection + ":" + key + ":" + value + ":" + fmt.Sprint(record.ID) + "\t"
 	}
 }
 
@@ -93,21 +93,23 @@ func removeValue(key string, value string) {
 }
 
 // prints a dynamic state to the log
-func printDState(state []util.DDoc, name string) {
-	iLog = iLog + name + "\n"
+func printDState(state []util.DDoc, name string) string {
+	res := name + "\n"
 	for _, doc := range state {
-		iLog = iLog + fmt.Sprint(doc) + "\n"
+		res = res + fmt.Sprint(doc) + "\n"
 	}
-	iLog = iLog + "\n"
+	res = res + "\n"
+	return res
 }
 
 // prints a static state to the log
-func printSState(state []util.SRecord) {
-	iLog = iLog + "STATIC\n"
+func printSState(state []util.SRecord) string {
+	res := "STATIC\n"
 	for _, record := range state {
-		iLog = iLog + fmt.Sprint(record) + "\n"
+		res = res + fmt.Sprint(record) + "\n"
 	}
-	iLog = iLog + "\n"
+	res = res + "\n"
+	return res
 }
 
 // log an insertion or a removal

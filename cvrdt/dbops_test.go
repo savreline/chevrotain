@@ -241,6 +241,25 @@ func TestColMerges5(t *testing.T) {
 	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
 }
 
+func TestSelectDeletes(t *testing.T) {
+	db = util.ConnectLocalDb()
+	noStr = "1"
+	clock = 1
+	curSafeTick = 3
+
+	insertLocalRecord("Keys", "100", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "0"))
+
+	record := util.DRecord{Value: "1000", ID: 3}
+	deleteDRecord("100", record, posCollection)
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "1"))
+}
+
 func TestArrayShifts(t *testing.T) {
 	arr := []int{1, 2, 3, 4, 5}
 

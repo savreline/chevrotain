@@ -64,7 +64,7 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 		lock.Lock()
 		curSafeTick = args.Tick
 		mergeCollections()
-		*reply = clock
+		*reply = mySafeTick
 		lock.Unlock()
 	}
 	util.EmulateDelay(delay)
@@ -97,6 +97,10 @@ func broadcast() ([]*rpc.Call, []int) {
 	/* Tick the clock */
 	clock++
 
+	/* Fix own safe tick right prior to the broadcast,
+	this way can only merge elements that been sent out */
+	mySafeTick = clock
+
 	/* If the main replica, broadcast the current safe tick */
 	tick := -1
 	if no == 1 {
@@ -112,6 +116,12 @@ func broadcast() ([]*rpc.Call, []int) {
 		SrcPid:    noStr,
 		Timestamp: clock,
 		Tick:      tick}
+
+	if verbose > 0 {
+		iLog = iLog + "\n\nSending State " + fmt.Sprint(mySafeTick) + ":" + fmt.Sprint(curSafeTick) + "\n"
+		iLog = iLog + printDState(posState, "POSITIVE")
+		iLog = iLog + printDState(negState, "NEGATIVE")
+	}
 
 	/* Broadcast */
 	for i, client := range conns {
@@ -142,11 +152,11 @@ func broadcast() ([]*rpc.Call, []int) {
 
 // ensure broadcast completes
 func waitForBroadcastToFinish(calls []*rpc.Call, results []int) int {
-	result := -1
+	result := mySafeTick
 	for i, call := range calls {
 		if call != nil {
 			<-call.Done
-			if results[i] > result {
+			if results[i] < result {
 				result = results[i]
 			}
 		}

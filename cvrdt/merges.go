@@ -22,10 +22,10 @@ func mergeState(state []util.DDoc, collection string) {
 func mergeCollections() {
 	var posLen, negLen int
 	if verbose > 0 {
-		iLog = iLog + "Merging Collections on Tick: " + fmt.Sprint(curSafeTick) + "\n"
-		printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
-		printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
-		printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
+		iLog = iLog + "\n\nMerging Collections on Tick: " + fmt.Sprint(curSafeTick) + "\n"
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
+		iLog = iLog + printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
 	}
 
 	/* Download the positive collection and negative collections (for efficiency) */
@@ -97,7 +97,7 @@ func mergeCollections() {
 					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				insertKey(record.Value)
 			} else if insert && posDoc.Key != "Keys" {
-				printToLog("IV:" + posDoc.Key + ":" + record.Value +
+				printToLog("IV:" + posDoc.Key + ":" + record.Value + ":" +
 					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				insertValue(posDoc.Key, record.Value)
 			} else if !insert && posDoc.Key == "Keys" {
@@ -142,11 +142,11 @@ func mergeCollections() {
 		printTime = false
 	}
 	if verbose > 0 {
-		util.PrintMsg(noStr, "state lengths are"+fmt.Sprint(posLen)+":"+fmt.Sprint(negLen))
+		util.PrintMsg(noStr, "state lengths are "+fmt.Sprint(posLen)+":"+fmt.Sprint(negLen))
 		iLog = iLog + "States After Merge on Tick: " + fmt.Sprint(curSafeTick) + "\n"
-		printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
-		printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
-		printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
+		iLog = iLog + printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
 	}
 }
 
@@ -154,7 +154,7 @@ func mergeCollections() {
 func getMaxTimestamp(arr []util.DRecord, val string) int {
 	res := -1
 	for _, record := range arr {
-		if record.Value == val && record.ID > res {
+		if record.Value == val && record.ID <= curSafeTick && record.ID > res {
 			res = record.ID
 		}
 	}
@@ -166,8 +166,8 @@ func deleteDRecord(key string, record util.DRecord, collection string) {
 	filter := bson.D{{Key: "key", Value: key}}
 	update := bson.D{{Key: "$pull", Value: bson.D{
 		{Key: "values", Value: bson.D{{
-			Key: "value", Value: bson.D{{
-				Key: "$eq", Value: record.Value}}}}}}}}
+			Key: "value", Value: bson.D{{Key: "$eq", Value: record.Value}}}, {
+			Key: "id", Value: bson.D{{Key: "$lte", Value: curSafeTick}}}}}}}}
 	_, err := db.Collection(collection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		util.PrintErr(noStr, "Del-D:"+key+":"+record.Value, err)
