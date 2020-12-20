@@ -29,28 +29,32 @@ var eLog string
 var iLog string
 var verbose int         // print to info console?
 var gc = false          // run with garbage collection?
-var clock = 0           // lamport clock: tick on broadcast and every local db op
+var clock = 0           // Lamport clock: tick on broadcast and every local db op
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
-var delay int      // emulated link delay
-var lastRPC int64  // time of the last incoming RPCExt call
-var printTime bool // print time since last RPC call to console?
+var delay int // emulated link delay
 
 // Settings: bias towards add or removes for keys and values
 // Settings: time interval between state updates
 var bias [2]bool
 var timeInt int
 
-// Flag that activates the state updates processes once
-// the replica has been initialized, along with the lock that must
+// Flag that activates the state update processes on the main replica
+// once it has been initialized, along with the lock that must
 // be acquired while merging states and/or merging collections
 var flagSU = false
 var lock sync.Mutex
 
 // Current safe clock tick agreed upon by all replicas and
-// the current safe tick on this replica
+// the current safe clock tick on this replica
 var curSafeTick = 0
 var mySafeTick = 0
+
+// time of the last incoming RPCExt call along with the flag which indicates
+// whether to print time since last RPC call to console, and is reset to false
+// once the lengths of positive and negative collections reach zero
+var lastRPC int64
+var printTime bool
 
 // RPCExt is the RPC object that receives commands from the client
 type RPCExt int
@@ -107,7 +111,9 @@ func main() {
 	/* Start server and background processes */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
-	go runSU()
+	if no == 1 {
+		go runSU()
+	}
 	select {}
 }
 

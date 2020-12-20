@@ -55,32 +55,36 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 	clock = util.Max(clock, args.Timestamp)
 	mergeState(args.PosState, posCollection)
 	mergeState(args.NegState, negCollection)
-	lock.Unlock()
 
-	/* If notified by the main replica about the current safe tick, accept it
-	and reply with own clock (this will never run on the main replicas as it
-	cannot notify itself) */
-	if args.Tick != -1 && gc {
-		lock.Lock()
-		curSafeTick = args.Tick
-		mergeCollections()
-		*reply = mySafeTick
-		lock.Unlock()
+	/* If notified by the main replica about the current safe tick, accept it,
+	merge collections, reply with own clock and broadcast own state */
+	if no != 1 && args.Tick != -1 {
+		if gc {
+			curSafeTick = args.Tick
+			mergeCollections()
+			*reply = mySafeTick
+		}
+		broadcast()
 	}
+
+	lock.Unlock()
 	util.EmulateDelay(delay)
 	return nil
 }
 
-// broadcasts state to all other replicas at intervals specified by timeInt
+// primary replica broadcasts state to all other replicas at intervals specified by timeInt
 func runSU() {
 	for {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
 		if flagSU {
+			lock.Lock()
 			calls, results := broadcast()
+			lock.Unlock()
 
-			/* If this is the main replica, wait for the calls to complete
-			and update the curSafeTick tick that way */
-			if no == 1 && gc {
+			/* Merge collections and wait for the calls to complete
+			to update the curSafeTick tick that way */
+			if gc {
+				mergeCollections()
 				curSafeTick = waitForBroadcastToFinish(calls, results)
 			}
 		}
@@ -101,7 +105,7 @@ func broadcast() ([]*rpc.Call, []int) {
 	this way can only merge elements that been sent out */
 	mySafeTick = clock
 
-	/* If the main replica, broadcast the current safe tick */
+	/* If this is the main replica, broadcast the current safe tick */
 	tick := -1
 	if no == 1 {
 		tick = curSafeTick
@@ -141,12 +145,6 @@ func broadcast() ([]*rpc.Call, []int) {
 		}
 	}
 
-	/* If the main replica, merge at this tick */
-	if no == 1 && gc {
-		lock.Lock()
-		mergeCollections()
-		lock.Unlock()
-	}
 	return calls, results
 }
 
