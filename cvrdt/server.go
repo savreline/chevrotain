@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -18,6 +19,7 @@ const (
 	posCollection = "kvsp"
 	negCollection = "kvsn"
 	sCollection   = "kvs"
+	TOTALOPS      = 1523
 )
 
 // Global variables
@@ -55,6 +57,12 @@ var mySafeTick = 0
 // once the lengths of positive and negative collections reach zero
 var lastRPC int64
 var printTime bool
+
+// variables that keep count of total number of database operations for
+// statistical purposes in the non-garbage collected version, fCount
+// fixes the count once the last incoming RPC call has been received
+var count int
+var fCount int
 
 // RPCExt is the RPC object that receives commands from the client
 type RPCExt int
@@ -136,9 +144,9 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 
 // TerminateReplica saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	// https://stackoverflow.com/questions/6878590/the-maximum-value-for-an-int-type-in-go
-	// curSafeTick = int(^uint(0) >> 1)
-	// mergeCollections()
+	if !gc {
+		util.PrintMsg(noStr, "Counts are "+fmt.Sprint(count)+":"+fmt.Sprint(fCount))
+	}
 	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {

@@ -70,6 +70,16 @@ func insertLocalRecord(key string, value string, collection string, record *util
 	if verbose > 0 {
 		iLog = iLog + collection + ":" + key + ":" + value + ":" + fmt.Sprint(record.ID) + "\t"
 	}
+
+	count++
+	if !gc && count == TOTALOPS {
+		// https://stackoverflow.com/questions/6878590/the-maximum-value-for-an-int-type-in-go
+		curSafeTick = int(^uint(0) >> 1)
+		fCount = count
+		mergeCollections()
+		util.PrintMsg(noStr, "Received all operations after (s): "+
+			fmt.Sprint(float32(time.Now().UnixNano()-lastRPC)/float32(1000000000))+":"+fmt.Sprint(count))
+	}
 }
 
 // insert key into the static collection
