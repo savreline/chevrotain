@@ -186,8 +186,11 @@ func InsertSKey(col *mongo.Collection, who string, key string) {
 	}
 }
 
-// InsertSValue inserts the given value into the static collection
-func InsertSValue(col *mongo.Collection, who string, key string, value string) {
+// InsertSValue inserts the given value into the static collection,
+// the force flag indicates if the value should be forced into the collection even
+// when the corresponding key doesn't exist (true when being used with the CvRDT and
+// CmRDT-O implementations, false otherwise)
+func InsertSValue(col *mongo.Collection, who string, key string, value string, force bool) {
 	/* Check if the record exists */
 	var dbResult SRecord
 	filter := bson.D{{Key: "key", Value: key},
@@ -195,14 +198,17 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 	err := col.FindOne(context.TODO(), filter).Decode(&dbResult)
 
 	if err != nil { // error exists, so didn't find it, so insert
+
 		/* Check if the document to be updated exists, if not, make one */
-		filter = bson.D{{Key: "key", Value: key}}
-		err = col.FindOne(context.TODO(), filter).Decode(&dbResult)
-		if err != nil {
-			keyEntry := &SRecord{Key: key, Values: []string{}}
-			_, err := col.InsertOne(context.TODO(), keyEntry)
+		if force {
+			filter = bson.D{{Key: "key", Value: key}}
+			err = col.FindOne(context.TODO(), filter).Decode(&dbResult)
 			if err != nil {
-				PrintErr(who, "IV-S:"+key+":"+value+" [find]", err)
+				keyEntry := &SRecord{Key: key, Values: []string{}}
+				_, err := col.InsertOne(context.TODO(), keyEntry)
+				if err != nil {
+					PrintErr(who, "IV-S:"+key+":"+value+" [find]", err)
+				}
 			}
 		}
 

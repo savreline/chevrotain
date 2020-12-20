@@ -48,6 +48,7 @@ func main() {
 		mongotest = true
 		dbClient, _ := util.ConnectDb("1", "localhost", "27018")
 		db = dbClient.Database("chev")
+		util.CreateCollection(db, "CLIENT", sCollection)
 		util.PrintMsg("CLIENT", "Connected to DB")
 	}
 	if os.Args[4] == "y" {
@@ -111,7 +112,7 @@ func sendCmd(key string, val string, cmdType util.OpCode, conn *rpc.Client) {
 	} else if cmdType == util.IK {
 		util.InsertSKey(db.Collection(sCollection), "CLIENT", key)
 	} else if cmdType == util.IV {
-		util.InsertSValue(db.Collection(sCollection), "CLIENT", key, val)
+		util.InsertSValue(db.Collection(sCollection), "CLIENT", key, val, false)
 	} else if cmdType == util.RK {
 		util.RemoveSKey(db.Collection(sCollection), "CLIENT", key)
 	} else {

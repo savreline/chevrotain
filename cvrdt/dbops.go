@@ -89,7 +89,7 @@ func insertKey(key string) {
 
 // insert value into the static collection
 func insertValue(key string, value string) {
-	util.InsertSValue(db.Collection(sCollection), noStr, key, value)
+	util.InsertSValue(db.Collection(sCollection), noStr, key, value, true)
 }
 
 // removes key from the static collection

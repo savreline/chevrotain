@@ -102,7 +102,7 @@ func (t *RPCExt) Lookup(args *util.RPCExtArgs, reply *int) error {
 	for _, doc := range state {
 		for _, record := range doc.Values {
 			if util.CheckMembership(keysDoc.Values, doc.Key) {
-				util.InsertSValue(db.Collection(sCollection), noStr, doc.Key, record.Value)
+				util.InsertSValue(db.Collection(sCollection), noStr, doc.Key, record.Value, true)
 			}
 		}
 	}
