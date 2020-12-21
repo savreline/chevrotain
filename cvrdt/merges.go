@@ -176,7 +176,7 @@ func deleteDRecord(key string, record util.DRecord, collection string) {
 		{Key: "values", Value: bson.D{{
 			Key: "value", Value: bson.D{{Key: "$eq", Value: record.Value}}}, {
 			Key: "id", Value: bson.D{{Key: "$lte", Value: curSafeTick}}}}}}}}
-	_, err := db.Collection(collection).UpdateOne(context.TODO(), filter, update)
+	_, err := db.Collection(collection).UpdateMany(context.TODO(), filter, update)
 	if err != nil {
 		util.PrintErr(noStr, "Del-D:"+key+":"+record.Value, err)
 	}
