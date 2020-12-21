@@ -15,11 +15,13 @@ import (
 )
 
 // Constants
+// https://stackoverflow.com/questions/6878590/the-maximum-value-for-an-int-type-in-go
 const (
 	posCollection = "kvsp"
 	negCollection = "kvsn"
 	sCollection   = "kvs"
 	TOTALOPS      = 1523
+	MAXTICK       = int(^uint(0) >> 1)
 )
 
 // Global variables

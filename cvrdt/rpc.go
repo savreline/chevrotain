@@ -56,13 +56,16 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 	mergeState(args.PosState, posCollection)
 	mergeState(args.NegState, negCollection)
 
-	/* If notified by the main replica about the current safe tick, accept it,
-	merge collections, reply with own clock and broadcast own state */
+	/* With gc: If notified by the main replica about the current safe tick, accept it,
+	merge collections, reply with own clock and broadcast own state. Without gc:
+	merge collections at the end, when curSafeTick has been set to MAXTICK */
 	if no != 1 && args.Tick != -1 {
 		if gc {
 			curSafeTick = args.Tick
 			mergeCollections()
 			*reply = mySafeTick
+		} else if curSafeTick == MAXTICK {
+			mergeCollections()
 		}
 		broadcast()
 	}
@@ -81,11 +84,14 @@ func runSU() {
 			calls, results := broadcast()
 			lock.Unlock()
 
-			/* Merge collections and wait for the calls to complete
-			to update the curSafeTick tick that way */
+			/* With gc: Merge collections and wait for the calls to complete
+			to update the curSafeTick tick that way. Without gc: merge
+			collections at the end, when curSafeTick has been set to MAXTICK */
 			if gc {
 				mergeCollections()
 				curSafeTick = waitForBroadcastToFinish(calls, results)
+			} else if curSafeTick == MAXTICK {
+				mergeCollections()
 			}
 		}
 	}
