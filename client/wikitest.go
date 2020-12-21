@@ -61,7 +61,7 @@ func wikiTest(startPage string, no int) {
 
 		/* Insert Key */
 		go sendCmd(curPage, "", util.IK, conn)
-		time.Sleep(time.Duration(delay) * time.Millisecond)
+		time.Sleep(time.Duration(delay) * time.Microsecond)
 
 		/* Add to Queue and Insert Value */
 		for j := 0; j < len(linkedPages)-1; j++ {
@@ -69,7 +69,7 @@ func wikiTest(startPage string, no int) {
 
 			/* Insert Value */
 			go sendCmd(curPage, linkedPages[j], util.IV, conn)
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			time.Sleep(time.Duration(delay) * time.Microsecond)
 		}
 	}
 

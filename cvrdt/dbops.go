@@ -13,7 +13,7 @@ import (
 func insertLocalRecord(key string, value string, collection string, record *util.DRecord) {
 	/* In no ready to go record is supplied, tick the clock and make one,
 	otherwise check if an exact identical entry already exists */
-	if record == nil {
+	if record == nil { // lastRPC is set when the last RPC call came in from the client
 		record = &util.DRecord{Value: value, ID: clock}
 		lastRPC = time.Now().UnixNano()
 		printTime = true

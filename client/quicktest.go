@@ -20,11 +20,11 @@ func quicktest(no int) {
 	/* Inserts */
 	for i := 0; i < noKeys; i++ {
 		go sendCmd(strconv.Itoa((no+1)*100+i), "", util.IK, conn)
-		time.Sleep(time.Duration(delay) * time.Millisecond)
+		time.Sleep(time.Duration(delay) * time.Microsecond)
 
 		for j := 0; j < noVals; j++ {
 			go sendCmd(strconv.Itoa((no+1)*100+i), strconv.Itoa((no+1)*1000+j), util.IV, conn)
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			time.Sleep(time.Duration(delay) * time.Microsecond)
 		}
 	}
 
@@ -33,14 +33,14 @@ func quicktest(no int) {
 		for i := noKeys / 2; i < noKeys; i++ {
 			for j := noVals / 2; j < noVals; j++ {
 				go sendCmd(strconv.Itoa((no+1)*100+i), strconv.Itoa((no+1)*1000+j), util.RV, conn)
-				time.Sleep(time.Duration(delay) * time.Millisecond)
+				time.Sleep(time.Duration(delay) * time.Microsecond)
 			}
 		}
 
 		/* Remove Keys: remove the last quater of the keys */
 		for i := 3 * noKeys / 4; i < noKeys; i++ {
 			go sendCmd(strconv.Itoa((no+1)*100+i), "", util.RK, conn)
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			time.Sleep(time.Duration(delay) * time.Microsecond)
 		}
 	}
 

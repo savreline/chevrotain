@@ -38,15 +38,8 @@ func mergeCollections() {
 			posLen++
 		}
 
-		/* Look for the corresponding doc in the negative collection */
-		var negDoc util.DDoc
-		var found = false
-		for _, doc := range negState {
-			if posDoc.Key == doc.Key {
-				negDoc = doc
-				found = true
-			}
-		}
+		/* Look for the corresponding doc(s) in the negative collection */
+		var negDoc, found = locateNegDoc(negState, posDoc.Key)
 
 		/* If negative doc not found, just go ahead and insert all records */
 		if !found {
@@ -159,6 +152,21 @@ func getMaxTimestamp(arr []util.DRecord, val string) int {
 		}
 	}
 	return res
+}
+
+// locates all entries in the negative state corresponding to the given key
+func locateNegDoc(negState []util.DDoc, key string) (util.DDoc, bool) {
+	negDoc := util.DDoc{Key: key, Values: []util.DRecord{}}
+	found := false
+	for _, doc := range negState {
+		if key == doc.Key {
+			found = true
+			for _, val := range doc.Values {
+				negDoc.Values = append(negDoc.Values, val)
+			}
+		}
+	}
+	return negDoc, found
 }
 
 // deletes a processed recored from the dynamic database

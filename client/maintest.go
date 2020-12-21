@@ -24,11 +24,11 @@ func maintest(no int) {
 	/* Inserts */
 	for i := no * noPerRepl; i < (no+1)*noPerRepl; i++ {
 		go sendCmd(strconv.Itoa(i+100), "", util.IK, conn)
-		time.Sleep(time.Duration(delay) * time.Millisecond)
+		time.Sleep(time.Duration(delay) * time.Microsecond)
 
 		for j := 0; j < noVals; j++ {
 			go sendCmd(strconv.Itoa(i+100), strconv.Itoa(j+1000), util.IV, conn)
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			time.Sleep(time.Duration(delay) * time.Microsecond)
 		}
 	}
 
@@ -41,7 +41,7 @@ func maintest(no int) {
 
 			for j := 0; j < noVals/2; j++ {
 				go sendCmd(strconv.Itoa(i+100), strconv.Itoa(j+1000), util.RV, conn)
-				time.Sleep(time.Duration(delay) * time.Millisecond)
+				time.Sleep(time.Duration(delay) * time.Microsecond)
 			}
 		}
 
@@ -52,7 +52,7 @@ func maintest(no int) {
 			}
 
 			go sendCmd(strconv.Itoa(i+100), "", util.RK, conn)
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			time.Sleep(time.Duration(delay) * time.Microsecond)
 		}
 	}
 
