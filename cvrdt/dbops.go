@@ -73,6 +73,9 @@ func insertLocalRecord(key string, value string, collection string, record *util
 
 	count++
 	if !gc && count == TOTALOPS {
+		if no != 1 {
+			broadcast()
+		}
 		curSafeTick = MAXTICK
 		fCount = count
 		util.PrintMsg(noStr, "Received all operations after (s): "+
