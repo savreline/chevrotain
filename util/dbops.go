@@ -82,6 +82,20 @@ func DownloadSState(db *mongo.Database, who string, drop string) []SRecord {
 	return result
 }
 
+// DownloadTime downloads merge times submitted by individual databases
+func DownloadTime(db *mongo.Database, who string, name string, drop string) float64 {
+	var dbResult bson.D
+	err := db.Collection(name).FindOne(context.TODO(), bson.D{}).Decode(&dbResult)
+	if err != nil {
+		PrintErr(who, "DownloadTime", err)
+	}
+
+	if drop == "1" {
+		db.Collection(name).Drop(context.TODO())
+	}
+	return dbResult[1].Value.(float64)
+}
+
 // PrintDState prints a dynamic state to the console
 func PrintDState(state []DDoc) {
 	for _, doc := range state {

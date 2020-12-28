@@ -7,6 +7,7 @@ import (
 
 	"../util"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // merge either the positive or the negative collection during state updates
@@ -130,8 +131,15 @@ func mergeCollections() {
 	}
 
 	if posLen == 0 && negLen == 0 && printTime {
+		delta := float32(time.Now().UnixNano()-lastRPC) / float32(1000000000)
 		util.PrintMsg(noStr, "mergeCollections reached zero dynamic state after (s): "+
-			fmt.Sprint(float32(time.Now().UnixNano()-lastRPC)/float32(1000000000)))
+			fmt.Sprint(delta))
+		opts := options.Update().SetUpsert(true)
+		db.Collection("time").UpdateOne(
+			context.TODO(),
+			bson.D{},
+			bson.D{{Key: "$set", Value: bson.D{{Key: "time", Value: delta}}}},
+			opts)
 		printTime = false
 	}
 	if verbose > 0 {

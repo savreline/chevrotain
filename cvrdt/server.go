@@ -148,6 +148,10 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
 	if !gc {
 		util.PrintMsg(noStr, "Counts are "+fmt.Sprint(count)+":"+fmt.Sprint(fCount))
+		count = 0
+		fCount = 0
+		curSafeTick = 0
+		mySafeTick = 0
 	}
 	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)

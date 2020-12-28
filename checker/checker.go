@@ -14,6 +14,7 @@ const (
 	posCollection = "kvsp"
 	negCollection = "kvsn"
 	dCollection   = "kvsd"
+	tCollection   = "time"
 )
 
 // Global variables
@@ -51,12 +52,14 @@ func main() {
 	}
 
 	/* Download results and save */
+	var times float64
 	if impl == "cv" { // cv: need to download pos and neg collections
 		for i, db := range dbs {
 			result := util.DownloadDState(db, "CHECKER", posCollection, drop)
 			util.SaveDStateToCSV(result, i, "P")
 			result = util.DownloadDState(db, "CHECKER", negCollection, drop)
 			util.SaveDStateToCSV(result, i, "N")
+			times += util.DownloadTime(db, "CHECKER", tCollection, drop)
 			conn := util.RPCClient("CHECKER", ips[i], ports[i])
 			util.TerminateReplica(ports[i], conn, 1)
 		}
@@ -110,6 +113,11 @@ func main() {
 	/* Print overall consistencies to console */
 	util.PrintMsg("CHECKER", "Overall consistency against each other is "+fmt.Sprint(sum1/float32(noReplicas)))
 	util.PrintMsg("CHECKER", "Overall consistency against ref is "+fmt.Sprint(sum2/float32(noReplicas)))
+
+	/* Print average time required to merge (cv) */
+	if impl == "cv" {
+		util.PrintMsg("CHECKER", "Average time required to merge "+fmt.Sprintf("%.4f", times/float64(noReplicas)))
+	}
 }
 
 // check databases for equality
