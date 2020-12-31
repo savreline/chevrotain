@@ -58,7 +58,7 @@ func maintest(no int) {
 
 	/* Done sending commands, record time */
 	delta := time.Now().UnixNano() - t
-	util.PrintMsg("CLIENT", "Done Sending Calls, Waiting, Delta: "+fmt.Sprint(delta/1000000))
+	util.PrintMsg("CLIENT", "Done Sending Calls, Waiting, Delta: "+fmt.Sprint(delta/1000))
 	wg.Wait()
 
 	/* Terminate */
