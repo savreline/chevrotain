@@ -62,18 +62,18 @@ func TestStateMerges(t *testing.T) {
 			insertLocalRecord(pair[0], pair[1], posCollection2, nil)
 		}
 	}
-	posState1 := util.DownloadDState(db.Collection(posCollection1), "TESTER", "0")
-	negState1 := util.DownloadDState(db.Collection(negCollection1), "TESTER", "0")
-	posState2 := util.DownloadDState(db.Collection(posCollection2), "TESTER", "1")
-	negState2 := util.DownloadDState(db.Collection(negCollection2), "TESTER", "1")
+	posState1 := util.DownloadDState(db, "TESTER", posCollection1, "0")
+	negState1 := util.DownloadDState(db, "TESTER", negCollection1, "0")
+	posState2 := util.DownloadDState(db, "TESTER", posCollection2, "1")
+	negState2 := util.DownloadDState(db, "TESTER", negCollection2, "1")
 	mergeState(posState2, posCollection1)
 	mergeState(negState2, negCollection1)
 	util.PrintDState(posState1)
 	util.PrintDState(posState2)
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection1), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection1, "1"))
 	util.PrintDState(negState1)
 	util.PrintDState(negState2)
-	util.PrintDState(util.DownloadDState(db.Collection(negCollection1), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", negCollection1, "1"))
 }
 
 func TestColMerges1A(t *testing.T) {
@@ -90,8 +90,8 @@ func TestColMerges1A(t *testing.T) {
 	insertLocalRecord("100", "1001", posCollection, nil)
 	insertLocalRecord("200", "2000", posCollection, nil)
 	mergeCollections()
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "1"))
+	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
 }
 
 func TestColMerges1B(t *testing.T) {
@@ -109,9 +109,9 @@ func TestColMerges1B(t *testing.T) {
 	insertLocalRecord("200", "2000", posCollection, nil)
 	insertLocalRecord("Keys", "300", negCollection, nil)
 	mergeCollections()
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
-	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "1"))
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", negCollection, "1"))
+	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
 }
 
 func TestColMerges1C(t *testing.T) {
@@ -130,9 +130,9 @@ func TestColMerges1C(t *testing.T) {
 	insertLocalRecord("Keys", "300", negCollection, nil)
 	insertLocalRecord("100", "1001", negCollection, nil)
 	mergeCollections()
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
-	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "1"))
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", negCollection, "1"))
+	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
 }
 
 func TestColMerges1D(t *testing.T) {
@@ -159,9 +159,9 @@ func TestColMerges1D(t *testing.T) {
 	insertLocalRecord("300", "3000", negCollection, nil)
 	insertLocalRecord("Keys", "300", negCollection, nil)
 	mergeCollections()
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "1"))
-	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "1"))
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", negCollection, "1"))
+	util.PrintSState(util.DownloadSState(db, "TESTER", "0"))
 }
 
 func TestColMerges2(t *testing.T) {
@@ -176,12 +176,12 @@ func TestColMerges2(t *testing.T) {
 	insertLocalRecord("Keys", "100", negCollection, nil)
 	insertLocalRecord("Keys", "200", negCollection, nil)
 	insertLocalRecord("Keys", "200", posCollection, nil)
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "0"))
-	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", negCollection, "0"))
 	mergeCollections()
-	util.DownloadDState(db.Collection(posCollection), "TESTER", "1")
-	util.DownloadDState(db.Collection(negCollection), "TESTER", "1")
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "0"))
+	util.DownloadDState(db, "TESTER", posCollection, "1")
+	util.DownloadDState(db, "TESTER", negCollection, "1")
+	util.PrintSState(util.DownloadSState(db, "TESTER", "0"))
 }
 
 func TestColMerges3(t *testing.T) {
@@ -196,7 +196,7 @@ func TestColMerges3(t *testing.T) {
 	insertLocalRecord("Keys", "100", negCollection, nil)
 	insertLocalRecord("Keys", "100", posCollection, nil)
 	mergeCollections()
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
 }
 
 func TestColMerges4(t *testing.T) {
@@ -213,12 +213,12 @@ func TestColMerges4(t *testing.T) {
 	insertLocalRecord("Keys", "200", posCollection, nil)
 	insertLocalRecord("200", "2000", negCollection, nil)
 	insertLocalRecord("200", "2000", posCollection, nil)
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "0"))
-	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", negCollection, "0"))
 	mergeCollections()
-	util.DownloadDState(db.Collection(posCollection), "TESTER", "1")
-	util.DownloadDState(db.Collection(negCollection), "TESTER", "1")
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+	util.DownloadDState(db, "TESTER", posCollection, "1")
+	util.DownloadDState(db, "TESTER", negCollection, "1")
+	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
 }
 
 func TestColMerges5(t *testing.T) {
@@ -233,12 +233,31 @@ func TestColMerges5(t *testing.T) {
 	insertLocalRecord("100", "1000", negCollection, nil)
 	insertLocalRecord("100", "1000", negCollection, nil)
 	insertLocalRecord("100", "1000", posCollection, nil)
-	util.PrintDState(util.DownloadDState(db.Collection(posCollection), "TESTER", "0"))
-	util.PrintDState(util.DownloadDState(db.Collection(negCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", negCollection, "0"))
 	mergeCollections()
-	util.DownloadDState(db.Collection(posCollection), "TESTER", "1")
-	util.DownloadDState(db.Collection(negCollection), "TESTER", "1")
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
+	util.DownloadDState(db, "TESTER", posCollection, "1")
+	util.DownloadDState(db, "TESTER", negCollection, "1")
+	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
+}
+
+func TestSelectDeletes(t *testing.T) {
+	db = util.ConnectLocalDb()
+	noStr = "1"
+	clock = 1
+	curSafeTick = 3
+
+	insertLocalRecord("Keys", "100", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	insertLocalRecord("100", "1000", posCollection, nil)
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "0"))
+
+	record := util.DRecord{Value: "1000", ID: 3}
+	deleteDRecord("100", record, posCollection)
+	util.PrintDState(util.DownloadDState(db, "TESTER", posCollection, "1"))
 }
 
 func TestArrayShifts(t *testing.T) {

@@ -1,10 +1,12 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/rpc"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
 
@@ -27,16 +29,16 @@ var ports []string
 var ips []string
 var eLog string
 var iLog string
-var verbose bool        // print to info console?
+var verbose int         // print to info console?
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var logger *govec.GoLog
 var id int    // unique ids associated with elements
 var delay int // emulated link delay
 
-// Map of channels that are used for communication with waiting RPC Calls
+// Slice of channels that are used for communication with waiting RPC Calls
 // and the associated lock
-var chans map[chan bool]chan bool
+var chans []chan bool
 var lock sync.Mutex
 
 // RPCExt is the RPC object that receives commands from the client
@@ -49,40 +51,37 @@ type RPCInt int
 func main() {
 	var err error
 
-	/* Parse command link arguments */
+	/* Parse command line arguments */
 	no, err = strconv.Atoi(os.Args[1])
 	noStr = os.Args[1]
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
-	if os.Args[5] == "v" {
-		verbose = true
-	} else {
-		verbose = false
-	}
+	verbose, err = strconv.Atoi(os.Args[5])
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CmdLine", err)
 	}
 
 	/* Parse group member information */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "GroupInfo", err)
 	}
 	noReplicas := len(ports) + 1
 
 	/* Init data structures */
 	conns = make([]*rpc.Client, noReplicas)
-	chans = make(map[chan bool]chan bool)
 	id = no * 100000
 
 	/* Init vector clocks */
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
-	/* Connect to MongoDB */
+	/* Connect to MongoDB, Init collections (for performance) */
 	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
+	util.CreateCollection(db, noStr, dCollection)
+	util.CreateCollection(db, noStr, sCollection)
 
 	/* Init RPC */
 	rpcext := new(RPCExt)
@@ -91,12 +90,22 @@ func main() {
 	rpc.Register(rpcext)
 	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "RPCInit", err)
 	}
 
 	/* Start server */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
+
+	/* Save logs in case of Ctrl+C */
+	go func() { // https://stackoverflow.com/questions/8403862/do-actions-on-end-of-execution
+		channel := make(chan os.Signal)
+		signal.Notify(channel, os.Interrupt)
+		<-channel
+		var result int
+		rpcext.TerminateReplica(&util.RPCExtArgs{}, &result)
+		os.Exit(0)
+	}()
 	select {}
 }
 
@@ -111,17 +120,17 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 // TerminateReplica generates the "lookup" view collection of the database
 // and saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	lookup()
-	if verbose {
+	if verbose > 0 {
+		eLog = eLog + "\nFinal Clock:\n" + fmt.Sprint(logger.GetCurrentVC())
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "WriteELog", err)
 		}
 	}
-	if verbose {
+	if verbose > 0 {
 		err := ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "WriteILog", err)
 		}
 	}
 	return nil

@@ -1,72 +1,68 @@
 package main
 
 import (
+	"fmt"
+	"net/rpc"
 	"strconv"
-	"sync"
 	"time"
 
 	"../util"
 )
 
-func test1(no int, noKeys int, noVals int, removes bool) {
-	/* Connect to the replica and Connect the replica */
-	conn := util.ConnectClient(ips[no], ports[no], timeInt)
-	cnt := 0
+func maintest(no int) {
+	defer wgMain.Done()
 
-	/* init map of latencies, associated wait group and lock */
-	latencies := make(map[int]int64)
-	var lock sync.Mutex
-	var wg sync.WaitGroup
+	/* Connect to the replica and Connect the replica */
+	var conn *rpc.Client
+	if !mongotest {
+		conn = util.ConnectClient(ips[no], ports[no], timeInt)
+	}
 
 	/* Record starting time */
 	t := time.Now().UnixNano()
 
 	/* Inserts */
-	for i := 0; i < noKeys; i++ {
-		key := (no+1)*100 + i
-		cnt++
-		go sendCmd(strconv.Itoa(key), "", cnt, util.IK, conn, latencies, &lock, &wg)
-		time.Sleep(time.Duration(delay) * time.Millisecond)
+	for i := no * noPerRepl; i < (no+1)*noPerRepl; i++ {
+		go sendCmd(strconv.Itoa(i+100), "", util.IK, conn)
+		time.Sleep(time.Duration(delay) * time.Microsecond)
 
 		for j := 0; j < noVals; j++ {
-			val := (no+1)*1000 + j
-			cnt++
-			go sendCmd(strconv.Itoa(key), strconv.Itoa(val), cnt, util.IV, conn, latencies, &lock, &wg)
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			go sendCmd(strconv.Itoa(i+100), strconv.Itoa(j+1000), util.IV, conn)
+			time.Sleep(time.Duration(delay) * time.Microsecond)
 		}
 	}
 
 	if removes {
-		/* Remove Values: remove the latter half of the values from the latter half of the keys */
-		for i := noKeys / 2; i < noKeys; i++ {
-			key := (no+1)*100 + i
+		/* Remove Values */
+		for i := no * noPerRepl; i < (no+1)*noPerRepl; i++ {
+			if i%2 != 0 {
+				continue
+			}
 
-			for j := noVals / 2; j < noVals; j++ {
-				val := (no+1)*1000 + j
-				cnt++
-				go sendCmd(strconv.Itoa(key), strconv.Itoa(val), cnt, util.RV, conn, latencies, &lock, &wg)
-				time.Sleep(time.Duration(delay) * time.Millisecond)
+			for j := 0; j < noVals/2; j++ {
+				go sendCmd(strconv.Itoa(i+100), strconv.Itoa(j+1000), util.RV, conn)
+				time.Sleep(time.Duration(delay) * time.Microsecond)
 			}
 		}
 
-		/* Remove Keys: remove the last quater of the keys */
-		for i := 3 * noKeys / 4; i < noKeys; i++ {
-			key := (no+1)*100 + i
+		/* Remove Keys */
+		for i := no * noPerRepl; i < (no+1)*noPerRepl; i++ {
+			if i%4 != 0 {
+				continue
+			}
 
-			cnt++
-			go sendCmd(strconv.Itoa(key), "", cnt, util.RK, conn, latencies, &lock, &wg)
-			time.Sleep(time.Duration(delay) * time.Millisecond)
+			go sendCmd(strconv.Itoa(i+100), "", util.RK, conn)
+			time.Sleep(time.Duration(delay) * time.Microsecond)
 		}
 	}
 
 	/* Done sending commands, record time */
 	delta := time.Now().UnixNano() - t
-	util.PrintMsg("CLIENT", "Done Sending Calls, Waiting")
+	util.PrintMsg("CLIENT", "Done Sending Calls, Waiting, Delta: "+fmt.Sprint(delta/1000))
 	wg.Wait()
 
 	/* Terminate */
-	util.TerminateReplica(ports[no], conn, 5)
-
-	/* Process collected performance data */
-	calcPerf(delta, cnt, no, latencies)
+	if !mongotest && term {
+		util.TerminateReplica(ports[no], conn, 5)
+	}
 }

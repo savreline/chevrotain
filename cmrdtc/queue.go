@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"time"
 
 	"../util"
 )
@@ -96,7 +97,9 @@ func addToQueue(node OpNode) {
 
 finish: // update the length, process the queue if its length is greater than max len and release the lock
 	queueLen++
-	if queueLen > MAXQUEUELEN {
+	updateTimes(int((time.Now().UnixNano() - lastT) / 1000000))
+	lastT = time.Now().UnixNano()
+	if queueLen > maxQueueLen {
 		eLog = eLog + "\nAn Iteration via max length\n"
 		processQueue()
 	}
@@ -167,11 +170,11 @@ func updateCurTick() {
 
 	/* Add information about min picks to the log */
 	for i := 0; i < noReplicas; i++ {
-		if verbose && len(ticks[i]) > 0 {
+		if verbose > 0 && len(ticks[i]) > 0 {
 			eLog = eLog + fmt.Sprintln(ticks[i])
 		}
 	}
-	if verbose {
+	if verbose > 0 {
 		eLog = eLog + fmt.Sprintln(b) + "=======\n"
 		eLog = eLog + ":" + fmt.Sprintln(curSafeTick)
 	}
@@ -374,4 +377,27 @@ func orderBlock(ops []map[string]int) {
 
 	/* Set prev to point to the last node */
 	prev = n
+}
+
+func updateTimes(newDelta int) {
+	/* Append the new value */
+	times = append([]int{newDelta}, times...)
+
+	/* Compute average */
+	var sum int
+	for _, T := range times {
+		sum += T
+	}
+	avg := sum / len(times)
+
+	/* Update timeInt */
+	timeInt = 6 * avg
+	if timeInt > minTimeInt {
+		timeInt = minTimeInt
+	}
+
+	/* Delete last element if the slice is too big */
+	if len(times) > 10 {
+		times = times[:len(times)-1]
+	}
 }

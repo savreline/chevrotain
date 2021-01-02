@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/rpc"
@@ -14,10 +15,13 @@ import (
 )
 
 // Constants
+// https://stackoverflow.com/questions/6878590/the-maximum-value-for-an-int-type-in-go
 const (
 	posCollection = "kvsp"
 	negCollection = "kvsn"
 	sCollection   = "kvs"
+	TOTALOPS      = 1523
+	MAXTICK       = int(^uint(0) >> 1)
 )
 
 // Global variables
@@ -26,9 +30,10 @@ var noStr string
 var ports []string
 var ips []string
 var eLog string
-var verbose bool        // print to info console?
-var gc bool             // run with garbage collection?
-var clock = 0           // lamport clock: tick on broadcast and every local db op
+var iLog string
+var verbose int         // print to info console?
+var gc = false          // run with garbage collection?
+var clock = 0           // Lamport clock: tick on broadcast and every local db op
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var delay int // emulated link delay
@@ -38,14 +43,28 @@ var delay int // emulated link delay
 var bias [2]bool
 var timeInt int
 
-// Channel that activates the state updates processes once
-// the replica has been initialized, along with the lock that must
+// Flag that activates the state update processes on the main replica
+// once it has been initialized, along with the lock that must
 // be acquired while merging states and/or merging collections
-var chanSU = make(chan bool)
+var flagSU = false
 var lock sync.Mutex
 
-// Current safe clock tick agreed upon by all replicas
+// Current safe clock tick agreed upon by all replicas and
+// the current safe clock tick on this replica
 var curSafeTick = 0
+var mySafeTick = 0
+
+// time of the last incoming RPCExt call along with the flag which indicates
+// whether to print time since last RPC call to console, and is reset to false
+// once the lengths of positive and negative collections reach zero
+var lastRPC int64
+var printTime bool
+
+// variables that keep count of total number of database operations for
+// statistical purposes in the non-garbage collected version, fCount
+// fixes the count once the last incoming RPC call has been received
+var count int
+var fCount int
 
 // RPCExt is the RPC object that receives commands from the client
 type RPCExt int
@@ -57,40 +76,37 @@ type RPCInt int
 func main() {
 	var err error
 
-	/* Parse command link arguments */
+	/* Parse command line arguments */
 	no, err = strconv.Atoi(os.Args[1])
 	noStr = os.Args[1]
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
-	if os.Args[5] == "v" {
-		verbose = true
-	} else {
-		verbose = false
-	}
+	verbose, err = strconv.Atoi(os.Args[5])
 	if os.Args[6] == "y" {
 		gc = true
-	} else {
-		gc = false
 	}
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CmdLine", err)
 	}
 
 	/* Parse group member information */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "GroupInfo", err)
 	}
 	noReplicas := len(ports) + 1
 
 	/* Init data structures */
 	conns = make([]*rpc.Client, noReplicas)
 
-	/* Connect to MongoDB */
+	/* Connect to MongoDB, Init collections (for performance) */
 	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
+	util.CreateCollection(db, noStr, posCollection)
+	util.CreateCollection(db, noStr, negCollection)
+	util.CreateCollection(db, noStr, sCollection)
 
 	/* Init RPC */
 	rpcext := new(RPCExt)
@@ -99,13 +115,15 @@ func main() {
 	rpc.Register(rpcext)
 	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "InitRPC", err)
 	}
 
 	/* Start server and background processes */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
-	go runSU()
+	if no == 1 {
+		go runSU()
+	}
 	select {}
 }
 
@@ -117,7 +135,7 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	timeInt = args.TimeInt
 
 	/* Activate background process */
-	chanSU <- true
+	flagSU = true
 
 	/* Make RPC Connections */
 	for i, port := range ports {
@@ -128,13 +146,23 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 
 // TerminateReplica saves the logs to disk
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	// https://stackoverflow.com/questions/6878590/the-maximum-value-for-an-int-type-in-go
-	// curSafeTick = int(^uint(0) >> 1)
-	// mergeCollections()
-	if verbose {
+	if !gc {
+		util.PrintMsg(noStr, "Counts are "+fmt.Sprint(count)+":"+fmt.Sprint(fCount))
+		count = 0
+		fCount = 0
+		curSafeTick = 0
+		mySafeTick = 0
+	}
+	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "WriteELog", err)
+		}
+	}
+	if verbose > 0 {
+		err := ioutil.WriteFile("iRepl"+noStr+".txt", []byte(iLog), 0644)
+		if err != nil {
+			util.PrintErr(noStr, "WriteELog", err)
 		}
 	}
 	return nil

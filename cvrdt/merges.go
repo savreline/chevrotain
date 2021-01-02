@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"../util"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 // merge either the positive or the negative collection during state updates
@@ -18,22 +21,26 @@ func mergeState(state []util.DDoc, collection string) {
 
 // merge positive and negative collections during garbage collection
 func mergeCollections() {
+	var posLen, negLen int
+	if verbose > 0 {
+		iLog = iLog + "\n\nMerging Collections on Tick: " + fmt.Sprint(curSafeTick) + "\n"
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
+		iLog = iLog + printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
+	}
+
 	/* Download the positive collection and negative collections (for efficiency) */
-	posState := util.DownloadDState(db.Collection(posCollection), "REPLICA "+noStr, "0")
-	negState := util.DownloadDState(db.Collection(negCollection), "REPLICA "+noStr, "0")
+	posState := util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0")
+	negState := util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
 
 	/* Iterate over documents in the positive collection */
 	for _, posDoc := range posState { // util.DDoc
-
-		/* Look for the corresponding doc in the negative collection */
-		var negDoc util.DDoc
-		var found = false
-		for _, doc := range negState {
-			if posDoc.Key == doc.Key {
-				negDoc = doc
-				found = true
-			}
+		if len(posDoc.Values) > 0 {
+			posLen++
 		}
+
+		/* Look for the corresponding doc(s) in the negative collection */
+		var negDoc, found = locateNegDoc(negState, posDoc.Key)
 
 		/* If negative doc not found, just go ahead and insert all records */
 		if !found {
@@ -42,8 +49,10 @@ func mergeCollections() {
 					continue
 				}
 				if posDoc.Key == "Keys" {
+					printToLog("IK:" + record.Value + ":" + "NoNeg")
 					insertKey(record.Value)
 				} else {
+					printToLog("IV:" + posDoc.Key + ":" + record.Value + ":" + "NoNeg")
 					insertValue(posDoc.Key, record.Value)
 				}
 				deleteDRecord(posDoc.Key, record, posCollection)
@@ -78,32 +87,67 @@ func mergeCollections() {
 
 			/* Insert or delete into static collection as required */
 			if insert && posDoc.Key == "Keys" {
+				printToLog("IK:" + record.Value + ":" +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				insertKey(record.Value)
 			} else if insert && posDoc.Key != "Keys" {
+				printToLog("IV:" + posDoc.Key + ":" + record.Value + ":" +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				insertValue(posDoc.Key, record.Value)
 			} else if !insert && posDoc.Key == "Keys" {
+				printToLog("RK:" + record.Value + ":" +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				removeKey(record.Value)
 			} else {
+				printToLog("RV:" + posDoc.Key + ":" + record.Value + ":" +
+					fmt.Sprint(posTimestamp) + ":" + fmt.Sprint(negTimestamp))
 				removeValue(posDoc.Key, record.Value)
 			}
 		}
+	}
 
-		/* Iterate over documents in the negative collection:
-		those documents didn't have a corresponding positve entry
-		and must be removed */
-		for _, negDoc := range negState { // util.DDoc
-			for _, record := range negDoc.Values {
-				if record.ID > curSafeTick {
-					continue
-				}
-				if negDoc.Key == "Keys" {
-					removeKey(record.Value)
-				} else {
-					removeValue(record.Value, negDoc.Key)
-				}
-				deleteDRecord(negDoc.Key, record, negCollection)
-			}
+	/* Iterate over documents in the negative collection:
+	those documents didn't have a corresponding positve entry
+	and must be removed */
+	negState = util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
+	for _, negDoc := range negState { // util.DDoc
+		if len(negDoc.Values) > 0 {
+			negLen++
 		}
+
+		for _, record := range negDoc.Values {
+			if record.ID > curSafeTick {
+				continue
+			}
+			if negDoc.Key == "Keys" {
+				printToLog("RK:" + record.Value + ":" + "NoPos")
+				removeKey(record.Value)
+			} else {
+				printToLog("RV:" + negDoc.Key + ":" + record.Value + ":" + "NoPos")
+				removeValue(negDoc.Key, record.Value)
+			}
+			deleteDRecord(negDoc.Key, record, negCollection)
+		}
+	}
+
+	if posLen == 0 && negLen == 0 && printTime {
+		delta := float32(time.Now().UnixNano()-lastRPC) / float32(1000000000)
+		util.PrintMsg(noStr, "mergeCollections reached zero dynamic state after (s): "+
+			fmt.Sprint(delta))
+		opts := options.Update().SetUpsert(true)
+		db.Collection("time").UpdateOne(
+			context.TODO(),
+			bson.D{},
+			bson.D{{Key: "$set", Value: bson.D{{Key: "time", Value: delta}}}},
+			opts)
+		printTime = false
+	}
+	if verbose > 0 {
+		util.PrintMsg(noStr, "state lengths are "+fmt.Sprint(posLen)+":"+fmt.Sprint(negLen))
+		iLog = iLog + "States After Merge on Tick: " + fmt.Sprint(curSafeTick) + "\n"
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0"), "POSITIVE")
+		iLog = iLog + printDState(util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0"), "NEGATIVE")
+		iLog = iLog + printSState(util.DownloadSState(db, "REPLICA "+noStr, "0"))
 	}
 }
 
@@ -111,11 +155,26 @@ func mergeCollections() {
 func getMaxTimestamp(arr []util.DRecord, val string) int {
 	res := -1
 	for _, record := range arr {
-		if record.Value == val && record.ID > res {
+		if record.Value == val && record.ID <= curSafeTick && record.ID > res {
 			res = record.ID
 		}
 	}
 	return res
+}
+
+// locates all entries in the negative state corresponding to the given key
+func locateNegDoc(negState []util.DDoc, key string) (util.DDoc, bool) {
+	negDoc := util.DDoc{Key: key, Values: []util.DRecord{}}
+	found := false
+	for _, doc := range negState {
+		if key == doc.Key {
+			found = true
+			for _, val := range doc.Values {
+				negDoc.Values = append(negDoc.Values, val)
+			}
+		}
+	}
+	return negDoc, found
 }
 
 // deletes a processed recored from the dynamic database
@@ -123,10 +182,10 @@ func deleteDRecord(key string, record util.DRecord, collection string) {
 	filter := bson.D{{Key: "key", Value: key}}
 	update := bson.D{{Key: "$pull", Value: bson.D{
 		{Key: "values", Value: bson.D{{
-			Key: "value", Value: bson.D{{
-				Key: "$eq", Value: record.Value}}}}}}}}
-	_, err := db.Collection(collection).UpdateOne(context.TODO(), filter, update)
+			Key: "value", Value: bson.D{{Key: "$eq", Value: record.Value}}}, {
+			Key: "id", Value: bson.D{{Key: "$lte", Value: curSafeTick}}}}}}}}
+	_, err := db.Collection(collection).UpdateMany(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "Del-D:"+key+":"+record.Value, err)
 	}
 }

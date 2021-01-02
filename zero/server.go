@@ -40,7 +40,7 @@ var rpcint RPCInt
 func main() {
 	var err error
 
-	/* Parse command link arguments */
+	/* Parse command line arguments */
 	no, err = strconv.Atoi(os.Args[1])
 	noStr = os.Args[1]
 	port := os.Args[2]
@@ -52,23 +52,24 @@ func main() {
 		verbose = false
 	}
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CmdLine", err)
 	}
 
 	/* Parse group member information */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "GroupInfo", err)
 	}
 	noReplicas := len(ports) + 1
 
 	/* Init data structures */
 	conns = make([]*rpc.Client, noReplicas)
 
-	/* Connect to MongoDB */
+	/* Connect to MongoDB, Init collections (for performance) */
 	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
+	util.CreateCollection(db, noStr, sCollection)
 
 	/* Init RPC */
 	rpcext := new(RPCExt)
@@ -77,7 +78,7 @@ func main() {
 	rpc.Register(rpcext)
 	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "InitRPC", err)
 	}
 
 	/* Start server */

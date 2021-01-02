@@ -5,8 +5,10 @@ import (
 	"net"
 	"net/rpc"
 	"os"
+	"os/signal"
 	"strconv"
 	"sync"
+	"time"
 
 	"../util"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -17,7 +19,6 @@ import (
 // Constants
 const (
 	sCollection = "kvs"
-	MAXQUEUELEN = 20
 )
 
 // Global variables
@@ -27,29 +28,33 @@ var noReplicas int
 var ports []string
 var ips []string
 var eLog string
-var verbose bool        // print to info console?
+var verbose int         // print info console and to logs?
 var conns []*rpc.Client // RPC connections to other replicas
 var db *mongo.Database
 var logger *govec.GoLog
 var delay int // emulated link delay
 
 // Settings: bias towards add or removes for keys and values
-// Settings: time interval between state updates
+// Settings: minimum time interval between calls to process the queue
 var bias [2]bool
-var timeInt int
+var minTimeInt int
 
-// Channel that activates the background process that periodically
+// Flag that activates the background process that periodically
 // sends no-ops to other replicass once the replica has been initialized,
 // along with a flag which indicates if a no-op has been sent
-var chanNO = make(chan bool)
+var flagNO = false
 var sent = false
 
-// Head of the operation queue, the associated lock and channel
+// Head of the operation queue, the associated lock and flag
 // that activates periodic processing of the queue
 var queue *ListNode
 var lock sync.Mutex
+var flagPQ = false
 var queueLen = 0
-var chanPr = make(chan bool)
+var maxQueueLen int
+var timeInt int
+var times []int // slice of last 10 time intervals between queue processings
+var lastT int64 // last time the queue was processed
 
 // Lists of clock ticks seen thus far from other replicas and
 // the current safe clock tick
@@ -66,25 +71,22 @@ type RPCInt int
 func main() {
 	var err error
 
-	/* Parse command link arguments */
+	/* Parse command line arguments */
 	no, err = strconv.Atoi(os.Args[1])
 	noStr = os.Args[1]
 	port := os.Args[2]
 	dbPort := os.Args[3]
 	delay, err = strconv.Atoi(os.Args[4])
-	if os.Args[5] == "v" {
-		verbose = true
-	} else {
-		verbose = false
-	}
+	verbose, err = strconv.Atoi(os.Args[5])
+	maxQueueLen, err = strconv.Atoi(os.Args[6])
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CmdLine", err)
 	}
 
 	/* Parse group member information */
 	ips, ports, _, err = util.ParseGroupMembersCVS("../ports.csv", port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "GroupInfo", err)
 	}
 	noReplicas = len(ports) + 1
 
@@ -95,10 +97,11 @@ func main() {
 	/* Init vector clocks */
 	logger = govec.InitGoVector("R"+noStr, "R"+noStr, govec.GetDefaultConfig())
 
-	/* Connect to MongoDB */
+	/* Connect to MongoDB, Init collections (for performance) */
 	dbClient, _ := util.ConnectDb(noStr, "localhost", dbPort)
 	db = dbClient.Database("chev")
 	util.PrintMsg(noStr, "Connected to DB on "+dbPort)
+	util.CreateCollection(db, noStr, sCollection)
 
 	/* Init RPC */
 	rpcext := new(RPCExt)
@@ -107,14 +110,24 @@ func main() {
 	rpc.Register(rpcext)
 	l, err := net.Listen("tcp", ":"+port)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "InitRPC", err)
 	}
 
 	/* Start server and background processes */
 	util.PrintMsg(noStr, "RPC Server Listening on "+port)
 	go rpc.Accept(l)
-	go runNoOps()
-	go runPr()
+	go runNO()
+	go runPQ()
+
+	/* Save logs in case of Ctrl+C */
+	go func() { // https://stackoverflow.com/questions/8403862/do-actions-on-end-of-execution
+		channel := make(chan os.Signal)
+		signal.Notify(channel, os.Interrupt)
+		<-channel
+		var result int
+		rpcext.TerminateReplica(&util.RPCExtArgs{}, &result)
+		os.Exit(0)
+	}()
 	select {}
 }
 
@@ -123,11 +136,13 @@ func main() {
 func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	/* Set up args */
 	bias = args.Bias
-	timeInt = args.TimeInt
+	minTimeInt = args.TimeInt
+	timeInt = minTimeInt
+	lastT = time.Now().UnixNano()
 
 	/* Activate background processes */
-	chanNO <- true
-	chanPr <- true
+	flagNO = true
+	flagPQ = true
 
 	/* Make RPC Connections */
 	for i, port := range ports {
@@ -136,13 +151,18 @@ func (t *RPCExt) InitReplica(args *util.InitArgs, reply *int) error {
 	return nil
 }
 
-// TerminateReplica saves the logs to disk
+// TerminateReplica saves the logs to disk and stops background processes
 func (t *RPCExt) TerminateReplica(args *util.RPCExtArgs, reply *int) error {
-	if verbose {
+	if verbose > 0 {
 		err := ioutil.WriteFile("Repl"+noStr+".txt", []byte(eLog), 0644)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "WriteELog", err)
 		}
 	}
+	eLog = ""
+
+	/* Stop background processes */
+	flagNO = false
+	flagPQ = false
 	return nil
 }

@@ -12,7 +12,7 @@ func (t *RPCInt) InsertKey(args *util.RPCExtArgs, reply *int) error {
 	record := util.SRecord{Key: args.Key, Values: []string{}}
 	_, err := db.Collection(sCollection).InsertOne(context.TODO(), record)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "IK:"+args.Key, err)
 	}
 	if verbose {
 		util.PrintMsg(noStr, "Inserted Key "+args.Key)
@@ -30,7 +30,7 @@ func (t *RPCInt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 	/* Do the update */
 	_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "IV:"+args.Key+":"+args.Value, err)
 	}
 	if verbose {
 		util.PrintMsg(noStr, "Inserted Value "+args.Value)
@@ -43,7 +43,7 @@ func (t *RPCInt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 	filter := bson.D{{Key: "key", Value: args.Key}}
 	_, err := db.Collection(sCollection).DeleteOne(context.TODO(), filter)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "RK:"+args.Key, err)
 	}
 	if verbose {
 		util.PrintMsg(noStr, "Deleted Key "+args.Key)
@@ -61,7 +61,7 @@ func (t *RPCInt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 	/* Do the delete */
 	_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "RV:"+args.Key+":"+args.Value, err)
 	}
 	if verbose {
 		util.PrintMsg(noStr, "Deleted Value "+args.Value)

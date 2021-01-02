@@ -34,19 +34,19 @@ func TestInserts(t *testing.T) {
 	db = util.ConnectLocalDb()
 	/* Can we insert a key? */
 	insert("Keys", "100", 1)
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	/* Can we insert a value? */
 	insert("100", "1000", 2)
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	/* Can we insert a value without a key? */
 	insert("200", "2000", 3)
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	/* Can we insert a value into pre-exisitng key? */
 	insert("200", "2001", 4)
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	/* What about insering the same key again? */
 	insert("Keys", "100", 5)
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "1"))
 }
 
 func TestDeletes(t *testing.T) {
@@ -56,21 +56,21 @@ func TestDeletes(t *testing.T) {
 		insert(pair[0], pair[1], id)
 		id++
 	}
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 
 	/* Now remove those one-by-one */
 	remove("Keys", "100", computeRemovalSet("Keys", "100"))
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	remove("Keys", "200", computeRemovalSet("Keys", "200"))
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	remove("100", "1000", computeRemovalSet("100", "1000"))
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	remove("200", "2000", computeRemovalSet("200", "2000"))
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	remove("300", "3000", computeRemovalSet("300", "3000"))
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "0"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	remove("100", "1001", computeRemovalSet("100", "1001"))
-	util.PrintDState(util.DownloadDState(db.Collection(dCollection), "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "1"))
 }
 
 func TestLookup(t *testing.T) {
@@ -80,7 +80,9 @@ func TestLookup(t *testing.T) {
 		insert(pair[0], pair[1], id)
 		id++
 	}
-	lookup()
-	util.PrintSState(util.DownloadSState(db.Collection(sCollection), "TESTER", "1"))
-	util.DownloadDState(db.Collection(dCollection), "TESTER", "1")
+	var res int
+	rpcext := new(RPCExt)
+	rpcext.Lookup(&util.RPCExtArgs{}, &res)
+	util.PrintSState(util.DownloadSState(db, "TESTER", "1"))
+	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "1"))
 }

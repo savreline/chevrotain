@@ -46,7 +46,7 @@ func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 
 // MergeState merges incoming state with the current state at the replica
 func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
-	if verbose {
+	if verbose > 1 {
 		util.PrintMsg(noStr, "Merging state from "+args.SrcPid)
 	}
 
@@ -55,33 +55,44 @@ func (t *RPCInt) MergeState(args *StateArgs, reply *int) error {
 	clock = util.Max(clock, args.Timestamp)
 	mergeState(args.PosState, posCollection)
 	mergeState(args.NegState, negCollection)
-	lock.Unlock()
 
-	/* If notified by the main replica about the current safe tick, accept it
-	and reply with own clock (this will never run on the main replicas as it
-	cannot notify itself) */
-	if args.Tick != -1 && gc {
-		lock.Lock()
-		curSafeTick = args.Tick
-		mergeCollections()
-		*reply = clock
-		lock.Unlock()
+	/* With gc: If notified by the main replica about the current safe tick, accept it,
+	merge collections, reply with own clock and broadcast own state. Without gc:
+	merge collections at the end, when curSafeTick has been set to MAXTICK */
+	if no != 1 && args.Tick != -1 {
+		if gc {
+			curSafeTick = args.Tick
+			mergeCollections()
+			*reply = mySafeTick
+		} else if curSafeTick == MAXTICK {
+			mergeCollections()
+		}
+		broadcast()
 	}
+
+	lock.Unlock()
 	util.EmulateDelay(delay)
 	return nil
 }
 
-// broadcasts state to all other replicas at intervals specified by timeInt
+// primary replica broadcasts state to all other replicas at intervals specified by timeInt
 func runSU() {
-	<-chanSU
 	for {
 		time.Sleep(time.Duration(timeInt) * time.Millisecond)
-		calls, results := broadcast()
+		if flagSU {
+			lock.Lock()
+			calls, results := broadcast()
+			lock.Unlock()
 
-		/* If this is the main replica, wait for the calls to complete
-		and update the curSafeTick tick that way */
-		if no == 1 && gc {
-			curSafeTick = waitForBroadcastToFinish(calls, results)
+			/* With gc: Merge collections and wait for the calls to complete
+			to update the curSafeTick tick that way. Without gc: merge
+			collections at the end, when curSafeTick has been set to MAXTICK */
+			if gc {
+				mergeCollections()
+				curSafeTick = waitForBroadcastToFinish(calls, results)
+			} else if curSafeTick == MAXTICK {
+				mergeCollections()
+			}
 		}
 	}
 }
@@ -96,21 +107,31 @@ func broadcast() ([]*rpc.Call, []int) {
 	/* Tick the clock */
 	clock++
 
-	/* If the main replica, broadcast the current safe tick */
+	/* Fix own safe tick right prior to the broadcast,
+	this way can only merge elements that been sent out */
+	mySafeTick = clock
+
+	/* If this is the main replica, broadcast the current safe tick */
 	tick := -1
 	if no == 1 {
 		tick = curSafeTick
 	}
 
 	/* Download current state */
-	posState := util.DownloadDState(db.Collection(posCollection), "REPLICA "+noStr, "0")
-	negState := util.DownloadDState(db.Collection(negCollection), "REPLICA "+noStr, "0")
+	posState := util.DownloadDState(db, "REPLICA "+noStr, posCollection, "0")
+	negState := util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
 	state := StateArgs{
 		PosState:  posState,
 		NegState:  negState,
 		SrcPid:    noStr,
 		Timestamp: clock,
 		Tick:      tick}
+
+	if verbose > 0 {
+		iLog = iLog + "\n\nSending State " + fmt.Sprint(mySafeTick) + ":" + fmt.Sprint(curSafeTick) + "\n"
+		iLog = iLog + printDState(posState, "POSITIVE")
+		iLog = iLog + printDState(negState, "NEGATIVE")
+	}
 
 	/* Broadcast */
 	for i, client := range conns {
@@ -123,29 +144,23 @@ func broadcast() ([]*rpc.Call, []int) {
 			} else {
 				destNo = i + 1
 			}
-			if verbose {
+			if verbose > 1 {
 				fmt.Println("RPC Merge State", no, "->", destNo)
 			}
 			calls[i] = client.Go("RPCInt.MergeState", state, &results[i], nil)
 		}
 	}
 
-	/* If the main replica, merge at this tick */
-	if no == 1 && gc {
-		lock.Lock()
-		mergeCollections()
-		lock.Unlock()
-	}
 	return calls, results
 }
 
 // ensure broadcast completes
 func waitForBroadcastToFinish(calls []*rpc.Call, results []int) int {
-	result := -1
+	result := mySafeTick
 	for i, call := range calls {
 		if call != nil {
 			<-call.Done
-			if results[i] > result {
+			if results[i] < result {
 				result = results[i]
 			}
 		}

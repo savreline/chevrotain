@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"fmt"
+	"time"
 
 	"../util"
 	"go.mongodb.org/mongo-driver/bson"
@@ -11,8 +13,10 @@ import (
 func insertLocalRecord(key string, value string, collection string, record *util.DRecord) {
 	/* In no ready to go record is supplied, tick the clock and make one,
 	otherwise check if an exact identical entry already exists */
-	if record == nil {
+	if record == nil { // lastRPC is set when the last RPC call came in from the client
 		record = &util.DRecord{Value: value, ID: clock}
+		lastRPC = time.Now().UnixNano()
+		printTime = true
 	} else {
 		var res util.DDoc
 		filter := bson.D{{Key: "key", Value: key},
@@ -37,7 +41,7 @@ func insertLocalRecord(key string, value string, collection string, record *util
 		keyEntry := &util.DDoc{Key: key, Values: []util.DRecord{}}
 		_, err := db.Collection(collection).InsertOne(context.TODO(), keyEntry)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "I-L:"+key+":"+value+" [Find]", err)
 		}
 	}
 
@@ -46,11 +50,11 @@ func insertLocalRecord(key string, value string, collection string, record *util
 		{Key: "values", Value: record}}}}
 	_, err = db.Collection(collection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "I-L:"+key+":"+value+" [Update]", err)
 	}
 
 	/* Print to console */
-	if verbose {
+	if verbose > 1 {
 		if collection == posCollection && key == "Keys" {
 			util.PrintMsg(noStr, "Inserted Key "+value)
 		} else if collection == negCollection && key == "Keys" {
@@ -61,6 +65,22 @@ func insertLocalRecord(key string, value string, collection string, record *util
 			util.PrintMsg(noStr, "Removed Value "+value+" on key "+key)
 		}
 	}
+
+	/* Log this operation */
+	if verbose > 0 {
+		iLog = iLog + collection + ":" + key + ":" + value + ":" + fmt.Sprint(record.ID) + "\t"
+	}
+
+	count++
+	if !gc && count == TOTALOPS {
+		if no != 1 {
+			broadcast()
+		}
+		curSafeTick = MAXTICK
+		fCount = count
+		util.PrintMsg(noStr, "Received all operations after (s): "+
+			fmt.Sprint(float32(time.Now().UnixNano()-lastRPC)/float32(1000000000))+":"+fmt.Sprint(count))
+	}
 }
 
 // insert key into the static collection
@@ -70,25 +90,42 @@ func insertKey(key string) {
 
 // insert value into the static collection
 func insertValue(key string, value string) {
-	util.InsertSValue(db.Collection(sCollection), noStr, key, value)
+	util.InsertSValue(db.Collection(sCollection), noStr, key, value, true)
 }
 
 // removes key from the static collection
 func removeKey(key string) {
-	filter := bson.D{{Key: "key", Value: key}}
-	_, err := db.Collection(sCollection).DeleteOne(context.TODO(), filter)
-	if err != nil {
-		util.PrintErr(noStr, err)
-	}
+	util.RemoveSKey(db.Collection(sCollection), noStr, key)
 }
 
 // removes value from the static collection
-func removeValue(value string, key string) {
-	filter := bson.D{{Key: "key", Value: key}}
-	update := bson.D{{Key: "$pull", Value: bson.D{
-		{Key: "values", Value: value}}}}
-	_, err := db.Collection(sCollection).UpdateOne(context.TODO(), filter, update)
-	if err != nil {
-		util.PrintErr(noStr, err)
+func removeValue(key string, value string) {
+	util.RemoveSValue(db.Collection(sCollection), noStr, key, value)
+}
+
+// prints a dynamic state to the log
+func printDState(state []util.DDoc, name string) string {
+	res := name + "\n"
+	for _, doc := range state {
+		res = res + fmt.Sprint(doc) + "\n"
+	}
+	res = res + "\n"
+	return res
+}
+
+// prints a static state to the log
+func printSState(state []util.SRecord) string {
+	res := "STATIC\n"
+	for _, record := range state {
+		res = res + fmt.Sprint(record) + "\n"
+	}
+	res = res + "\n"
+	return res
+}
+
+// log an insertion or a removal
+func printToLog(msg string) {
+	if verbose > 0 {
+		iLog = iLog + msg + "\n"
 	}
 }

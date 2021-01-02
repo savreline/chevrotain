@@ -2,8 +2,11 @@ package util
 
 import (
 	"context"
+	"encoding/csv"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"os"
 	"sort"
 	"strconv"
 
@@ -31,44 +34,66 @@ type DRecord struct {
 }
 
 // DownloadDState downloads the contents of any dynamic collection
-func DownloadDState(col *mongo.Collection, who string, drop string) []DDoc {
+func DownloadDState(db *mongo.Database, who string, name string, drop string) []DDoc {
 	var res []DDoc
 
 	/* Download all key docs */
 	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
-	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	cursor, err := db.Collection(name).Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadD[Find]", err)
 	}
 
 	/* Save downloaded info into res */
 	if err = cursor.All(context.TODO(), &res); err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadD[Cursor]", err)
 	}
 
-	/* Drop the collection if asked */
+	/* Drop the collection if asked and initialize a new one */
 	if drop == "1" {
-		col.Drop(context.TODO())
+		db.Collection(name).Drop(context.TODO())
+		CreateCollection(db, who, name)
 	}
 	return res
 }
 
 // DownloadSState downloads the contents of any static collection
-func DownloadSState(col *mongo.Collection, who string, drop string) []SRecord {
+func DownloadSState(db *mongo.Database, who string, drop string) []SRecord {
 	var result []SRecord
+	name := "kvs"
 
+	/* Download all key docs */
 	opts := options.Find().SetSort(bson.D{{Key: "key", Value: 1}})
-	cursor, err := col.Find(context.TODO(), bson.D{}, opts)
+	cursor, err := db.Collection(name).Find(context.TODO(), bson.D{}, opts)
 	if err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadS[Find]", err)
 	}
+
+	/* Save downloaded info into res */
 	if err = cursor.All(context.TODO(), &result); err != nil {
-		PrintErr(who, err)
+		PrintErr(who, "DownloadS[Cursor]", err)
 	}
+
+	/* Drop the collection if asked and initialize a new one */
 	if drop == "1" {
-		col.Drop(context.TODO())
+		db.Collection(name).Drop(context.TODO())
+		CreateCollection(db, who, name)
 	}
 	return result
+}
+
+// DownloadTime downloads merge times submitted by individual databases
+func DownloadTime(db *mongo.Database, who string, name string, drop string) float64 {
+	var dbResult bson.D
+	err := db.Collection(name).FindOne(context.TODO(), bson.D{}).Decode(&dbResult)
+	if err != nil {
+		PrintErr(who, "DownloadTime", err)
+	}
+
+	if drop == "1" {
+		db.Collection(name).Drop(context.TODO())
+	}
+	return dbResult[1].Value.(float64)
 }
 
 // PrintDState prints a dynamic state to the console
@@ -103,7 +128,7 @@ func SaveDStateToCSV(state []DDoc, no int, pn string) {
 	/* Write to CSV */
 	err := ioutil.WriteFile("Repl"+pn+strconv.Itoa(no)+".csv", []byte(str), 0644)
 	if err != nil {
-		PrintErr("CHECKER", err)
+		PrintErr("TESTER", "WriteDToCSV", err)
 	}
 }
 
@@ -123,7 +148,38 @@ func SaveSStateToCSV(state []SRecord, no int) {
 	/* Write to CSV */
 	err := ioutil.WriteFile("Repl"+strconv.Itoa(no)+".csv", []byte(str), 0644)
 	if err != nil {
-		PrintErr("CHECKER", err)
+		PrintErr("TESTER", "WriteSToCSV", err)
+	}
+}
+
+// DownloadMainTestRef returns the data contained in the CSV reference file as an
+// array of SRecords https://stackoverflow.com/questions/24999079/reading-csv-file-in-go
+func DownloadMainTestRef() []SRecord {
+	f, err := os.Open("MainTestRef.csv")
+	if err != nil {
+		fmt.Println(err)
+		return nil
+	}
+	defer f.Close()
+
+	csvr := csv.NewReader(f)
+	res := []SRecord{}
+
+	for {
+		row, err := csvr.Read()
+		if err != nil {
+			if err == io.EOF {
+				return res
+			}
+		}
+
+		var record = SRecord{Key: row[0], Values: []string{}}
+		for i, element := range row {
+			if i != 0 {
+				record.Values = append(record.Values, element)
+			}
+		}
+		res = append(res, record)
 	}
 }
 
@@ -139,13 +195,16 @@ func InsertSKey(col *mongo.Collection, who string, key string) {
 		record := SRecord{Key: key, Values: []string{}}
 		_, err := col.InsertOne(context.TODO(), record)
 		if err != nil {
-			PrintErr(who, err)
+			PrintErr(who, "IK-S:"+key, err)
 		}
 	}
 }
 
-// InsertSValue inserts the given value into the static collection
-func InsertSValue(col *mongo.Collection, who string, key string, value string) {
+// InsertSValue inserts the given value into the static collection,
+// the force flag indicates if the value should be forced into the collection even
+// when the corresponding key doesn't exist (true when being used with the CvRDT and
+// CmRDT-O implementations, false otherwise)
+func InsertSValue(col *mongo.Collection, who string, key string, value string, force bool) {
 	/* Check if the record exists */
 	var dbResult SRecord
 	filter := bson.D{{Key: "key", Value: key},
@@ -153,14 +212,17 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 	err := col.FindOne(context.TODO(), filter).Decode(&dbResult)
 
 	if err != nil { // error exists, so didn't find it, so insert
+
 		/* Check if the document to be updated exists, if not, make one */
-		filter = bson.D{{Key: "key", Value: key}}
-		err = col.FindOne(context.TODO(), filter).Decode(&dbResult)
-		if err != nil {
-			keyEntry := &SRecord{Key: key, Values: []string{}}
-			_, err := col.InsertOne(context.TODO(), keyEntry)
+		if force {
+			filter = bson.D{{Key: "key", Value: key}}
+			err = col.FindOne(context.TODO(), filter).Decode(&dbResult)
 			if err != nil {
-				PrintErr(who, err)
+				keyEntry := &SRecord{Key: key, Values: []string{}}
+				_, err := col.InsertOne(context.TODO(), keyEntry)
+				if err != nil {
+					PrintErr(who, "IV-S:"+key+":"+value+" [find]", err)
+				}
 			}
 		}
 
@@ -170,8 +232,28 @@ func InsertSValue(col *mongo.Collection, who string, key string, value string) {
 			{Key: "values", Value: value}}}}
 		_, err := col.UpdateOne(context.TODO(), filter, update)
 		if err != nil {
-			PrintErr(who, err)
+			PrintErr(who, "IV-S:"+key+":"+value+" [update]", err)
 		}
+	}
+}
+
+// RemoveSKey removes the given key from the static collection
+func RemoveSKey(col *mongo.Collection, who string, key string) {
+	filter := bson.D{{Key: "key", Value: key}}
+	_, err := col.DeleteOne(context.TODO(), filter)
+	if err != nil {
+		PrintErr(who, "RK-S:"+key, err)
+	}
+}
+
+// RemoveSValue removes the given value from the static collection
+func RemoveSValue(col *mongo.Collection, who string, key string, value string) {
+	filter := bson.D{{Key: "key", Value: key}}
+	update := bson.D{{Key: "$pull", Value: bson.D{
+		{Key: "values", Value: value}}}}
+	_, err := col.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		PrintErr(who, "RV-S:"+key+":"+value, err)
 	}
 }
 
@@ -183,4 +265,28 @@ func CheckMembership(arr []DRecord, value string) bool {
 		}
 	}
 	return false
+}
+
+// CreateCollection checks if the specified collection exists, and creates one if that is not
+// the case https://stackoverflow.com/questions/46293070/how-to-check-if-collection-exists-or-not-mongodb-golang
+func CreateCollection(db *mongo.Database, who string, name string) {
+	cols, err := db.ListCollectionNames(context.TODO(), bson.D{})
+	if err != nil {
+		PrintErr(who, "CreateCol:"+name+" [ListCol]", err)
+	}
+
+	found := false
+	for _, col := range cols {
+		if col == name {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		err = db.CreateCollection(context.TODO(), name)
+		if err != nil {
+			PrintErr(who, "CreateCol:"+name+" [Create]", err)
+		}
+	}
 }

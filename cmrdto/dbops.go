@@ -18,7 +18,7 @@ func insert(key string, value string, id int) {
 		doc := util.DDoc{Key: key, Values: []util.DRecord{}}
 		_, err = db.Collection(dCollection).InsertOne(context.TODO(), doc)
 		if err != nil {
-			util.PrintErr(noStr, err)
+			util.PrintErr(noStr, "I-D:"+key+":"+value+" [Find]", err)
 		}
 	}
 
@@ -28,13 +28,13 @@ func insert(key string, value string, id int) {
 		{Key: "values", Value: record}}}}
 	_, err = db.Collection(dCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "I-D:"+key+":"+value+" [Update]", err)
 	}
 
 	/* Print to console */
-	if verbose && key == "Keys" {
+	if verbose > 1 && key == "Keys" {
 		util.PrintMsg(noStr, "Inserted Key "+value)
-	} else if verbose {
+	} else if verbose > 1 {
 		util.PrintMsg(noStr, "Inserted Value "+value+" on key "+key)
 	}
 }
@@ -49,13 +49,13 @@ func remove(key string, value string, ids []int) {
 				{Key: "$in", Value: ids}}}}}}}}
 	_, err := db.Collection(dCollection).UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "R-D:"+key+":"+value, err)
 	}
 
 	/* Print to console */
-	if verbose && key == "Keys" {
+	if verbose > 1 && key == "Keys" {
 		util.PrintMsg(noStr, "Removed Key "+value)
-	} else if verbose {
+	} else if verbose > 1 {
 		util.PrintMsg(noStr, "Removed Value "+value+" on key "+key)
 	}
 }
@@ -67,7 +67,7 @@ func computeRemovalSet(key string, value string) []int {
 	filter := bson.D{{Key: "key", Value: key}}
 	err := db.Collection(dCollection).FindOne(context.TODO(), filter).Decode(&dbResult)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "CompRS:"+key+":"+value, err)
 	}
 
 	/* Extract ids from the mathcing document */
@@ -80,17 +80,17 @@ func computeRemovalSet(key string, value string) []int {
 	return results
 }
 
-// generates the "lookup" view collection of the database
-func lookup() {
+// Lookup generates the "lookup" view collection of the database
+func (t *RPCExt) Lookup(args *util.RPCExtArgs, reply *int) error {
 	/* Download state */
-	state := util.DownloadDState(db.Collection(dCollection), "TESTER", "0")
+	state := util.DownloadDState(db, "CHECKER", dCollection, "0")
 
 	/* Download the "keys" document */
 	var keysDoc util.DDoc
 	filter := bson.D{{Key: "key", Value: "Keys"}}
 	err := db.Collection(dCollection).FindOne(context.TODO(), filter).Decode(&keysDoc)
 	if err != nil {
-		util.PrintErr(noStr, err)
+		util.PrintErr(noStr, "LookupKeys", err)
 	}
 
 	/* Insert keys */
@@ -102,8 +102,10 @@ func lookup() {
 	for _, doc := range state {
 		for _, record := range doc.Values {
 			if util.CheckMembership(keysDoc.Values, doc.Key) {
-				util.InsertSValue(db.Collection(sCollection), noStr, doc.Key, record.Value)
+				util.InsertSValue(db.Collection(sCollection), noStr, doc.Key, record.Value, true)
 			}
 		}
 	}
+
+	return nil
 }

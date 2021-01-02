@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 
+	"golang.org/x/sys/windows"
+
 	"../util"
 	"github.com/savreline/GoVector/govec"
 )
@@ -25,41 +27,41 @@ func waitForTurn(args *BroadcastArgs) {
 	/* Check if this RPC call needs to wait */
 	myClock := logger.GetCurrentVCSafe()
 	ready := myClock.CompareBroadcastClock(args.Clock)
-	if verbose {
-		eLog = eLog + fmt.Sprint("K:", args.Key) + fmt.Sprint(" V:", args.Value) +
-			fmt.Sprint(" My clock ", myClock) + fmt.Sprint(" Incoming clock ", args.Clock) +
-			fmt.Sprint(" Comparison: ", ready) + "\n"
-	}
 
 	if !ready {
 		/* Make a channel to communicate on with this RPC call */
-		channel := make(chan bool, 100)
+		channel := make(chan bool, 100000)
 
 		/* Add the channel to the pool */
 		lock.Lock()
-		chans[channel] = channel
+		chans = append(chans, channel)
 		lock.Unlock()
 
 		/* Wait for the correct clock */
 		for i := 0; ; i++ {
-			// fmt.Println("waiting")
+			if verbose > 0 {
+				eLog = eLog + fmt.Sprint(windows.GetCurrentThreadId()) +
+					fmt.Sprint(" IC ", args.Clock) +
+					fmt.Sprint(" I: ", i) + "\n"
+			}
 			<-channel
 			myClock = logger.GetCurrentVCSafe()
 			ready = myClock.CompareBroadcastClock(args.Clock)
-			if verbose {
-				iLog = iLog + fmt.Sprint("K:", args.Key) + fmt.Sprint(" V:", args.Value) +
-					fmt.Sprint(" My clock: ", myClock) + fmt.Sprint(" Incoming clock: ", args.Clock) +
-					fmt.Sprint(" Comparison: ", ready) + fmt.Sprint(" Iteration: ", i) + "\n"
-			}
 			if ready {
-				// fmt.Println("!!! LEAVING !!!")
 				break
 			}
 		}
 
+		if verbose > 0 {
+			iLog = iLog + fmt.Sprint(windows.GetCurrentThreadId()) +
+				fmt.Sprint(" IC ", args.Clock) +
+				" Out of loop, waiting for lock\n"
+		}
+
 		/* Remove the channel from the pool */
 		lock.Lock()
-		delete(chans, channel)
+		close(channel)
+		removeChan(channel)
 		lock.Unlock()
 	}
 
@@ -77,4 +79,16 @@ func broadcastNewMerge() {
 		channel <- true
 	}
 	lock.Unlock()
+}
+
+// remove a channel from the pool
+// https://stackoverflow.com/questions/28699485/remove-elements-in-slice
+func removeChan(channel chan bool) {
+	for i := 0; i < len(chans); i++ {
+		if channel == chans[i] {
+			chans = append(chans[:i], chans[i+1:]...)
+			i--
+			break
+		}
+	}
 }

@@ -26,7 +26,7 @@ func ConnectDb(no string, ip string, port string) (*mongo.Client, context.Contex
 
 	client, err := mongo.NewClient(options.Client().ApplyURI(urlString))
 	if err != nil {
-		PrintErr(no, err)
+		PrintErr(no, "MongoConn[FindClient]", err)
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -34,13 +34,13 @@ func ConnectDb(no string, ip string, port string) (*mongo.Client, context.Contex
 
 	err = client.Connect(ctx)
 	if err != nil {
-		PrintErr(no, err)
+		PrintErr(no, "MongoConn[Connect]", err)
 	}
 
 	return client, ctx
 }
 
-// ConnectLocalDb connects a replica to the local Db for testing purposes
+// ConnectLocalDb connects a replica to the local Db for smoke test purposes
 func ConnectLocalDb() *mongo.Database {
 	noStr := "1"
 	dbPort := "27018"
@@ -58,7 +58,7 @@ func ConnectClient(ip string, port string, t int) *rpc.Client {
 	conn := RPCClient("CLIENT", ip, port)
 	err := conn.Call("RPCExt.InitReplica", InitArgs{Bias: [2]bool{true, true}, TimeInt: t}, &result)
 	if err != nil {
-		PrintErr("CLIENT", err)
+		PrintErr("CLIENT", "ConnTo:"+port+" [InitReplica]", err)
 	}
 	return conn
 }
@@ -68,7 +68,7 @@ func RPCClient(no string, ip string, port string) *rpc.Client {
 	dest := ip + ":" + port
 	client, err := rpc.Dial("tcp", dest)
 	if err != nil {
-		PrintErr(no, err)
+		PrintErr(no, "ConnTo:"+port+" [DialRPC]", err)
 	}
 
 	PrintMsg(no, "Connection made to "+dest)
@@ -81,7 +81,7 @@ func TerminateReplica(port string, conn *rpc.Client, delay int) {
 	var result int
 	err := conn.Call("RPCExt.TerminateReplica", RPCExtArgs{}, &result)
 	if err != nil {
-		PrintErr("CLIENT", err)
+		PrintErr("CLIENT", "ConnTo:"+port+" [Terminate]", err)
 	}
 	PrintMsg("CLIENT", "Done on "+port)
 }
