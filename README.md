@@ -1,64 +1,50 @@
-# Chevrotain
+# Chevrotain: a Replicated Key-Value Stores
 Chevrotain is a replicated key value store that achieves eventual consistency through the use of a conflict-free replicated data types (CRDTs). This project implements and evaluates performances of three different design approaches to the implementation of Chevrotain. One of the approaches is based on a state-based CRDT model (CvRDT), while the other two approaches are based on an operation-based CRDT model (CmRDT), either with or without limited synchronization.
 
-## CvRDT, CmRDTO, CmRDTC, Zero
-Those folders contain the server code for the three implemernations of CRDTs studied in this project, as well as the "zero" implementation which makes no attemps to achieve any consistency
+The author appreciates the insight and feedback received throughout this project from [Prof. Ivan Beschastnikh](https://www.cs.ubc.ca/~bestchai/) and ability to use Microsoft Azure Education credits.
 
-* **cvrdt**: implementation of cvrdt
-* **cmrdto**: implementation of cmrdt via standard casual broadcast (optimistic)
-* **cmrdtc**: implementation of cmrdt via queueing operations (conservative)
+**Main Golang Libraries:**
+[net/rpc](https://golang.org/pkg/net/rpc/), 
+[MongoDB](go.mongodb.org/mongo-driver/mongo),
+[BSON](go.mongodb.org/mongo-driver/bson),
+[GoVector](https://github.com/DistributedClocks/GoVector) \
+**Other Libraries Used**:
+[net/http](https://golang.org/pkg/net/http/), 
+[net/html](golang.org/x/net/html),
+[encoding/csv](https://golang.org/pkg/encoding/csv/),
+[os/signal](https://golang.org/pkg/os/signal/),
+[windows](https://pkg.go.dev/golang.org/x/sys/windows)
 
-### Starting the servers
-* `ports.csv` must list all ips addresses, ports and database ports for all replicas in the group (one line per replica, in this order, separated by commas)
-* then start any server by running `go run . [replicaNo] [communicationPort] [databasePort] [emulatedDelay] [verbose?]`
-for example `go run . 1 8001 27017 100 2` (the *databasePort* and *emulatedDelay* parameters are useful when running several servers on a single machine, an *emulatedDelay* value of greater than zero will add random delays of the given value +-20% in ms to all RPC calls; if the verbose parameter is set to **1**, then the server will collect debugging information in logs, if it is set to **2** then the server will print information to console in addition to writing to logs, otherwise, it should be set to **0** when running performance evals)
-* the CmRDT-C implementation takes the maximum queue length as an additional parameter for example `go run . 1 8001 27017 100 2 20` sets the maximum queue length to 20 OpNodes
-* the CVRDT implementation takes a y/n if garbage collection should run as an additional parameter, for example `go run . 1 8001 27017 100 2 y` indicates the CvRDT will run with garbage collection
+The key points of the [full fechnical report (PDF)](/docs/report/report.pdf) are summarized below.
 
-### Specific files
-* **server.go**: starts the server, initializes all variables and data structures; contains `InitReplica` and `TerminateReplica` methods for `RPCExt`
-* **rpcext.go**: all other `RPCExt` methods, in particular, the InsertKey/InsertValue/RemoveKey/RemoveValue APIs
-* **rpcint.go**: all `RPCInt` methods
-* **dbops.go**: contains all methods that work with the local database
-* **merges.go (CvRDT only)**: methods that
-    1. merge incoming states and
-    2. merge collections (i.e. positive and negative collection according to logical clocks)
-* **queue.go (CmRDTC only)**: all methods that manage and process the OpNode queue, including insertion of incoming OpNode and processing of blocks of concurrent operations
+---
 
-In some implementations **rpcext.go** and **rpcint.go** are combined into **rpc.go**. Files **dbops_test.go** and **queue_test.go** contain some smoke tests to test correctness of the database and queueing operations in isolation.
+Jump to [Background](#Background) | [Test Methodology](#Test-Methodology) 
+| [Results](#Results)
 
-## Client
-implementation of client that sends commands to cvrdt/cmrdt servers along with various test sets of commands
+## API
+All communication between the client and any one of the replicas is done via the RPCExt object. The following methods can be called on this object. The parameters passed to the `InitReplica` method are implementation dependent. For example, in the CvRDT implementation, the `timeInt` parameter sets the time intervals between garbage collection, while the `bias` parameter is a struct that sets the user-defined bias in case of simultaneous InsertKey\RemoveKey and InsertValue\RemoveValue calls. All communication between the replicas is done via the RPCInt object, and the APIs there are implementation dependent.
+* `InitReplica(timeInt int, bias Bias)`
+* `InsertKey(key string)`
+* `InsertValue(key string, value string)`
+* `RemoveKey(key string)`
+* `RemoveValue(key string, value string)`
+* `TerminateReplica()`
 
-start client by running `go run . [delayBetweenCommands] [timeSetting] [runMongoTest] [runRemoves] [terminateReplica]`
-* where *delayBetweenCommands* is the time interval between commands send by the client (in ms)
-* where *timeSetting* is the time interval between states exchanges by CvRDT replicas (in ms) or is the time interval between sending no-ops in the CmRDTC implementation
-* where *runMongoTest* set to **y** indicates that the client will run tests that test MongoDb's native replication framework
-* where *runRemoves* set to **y** indicates if the main test should test key/value removals as well (as opposed to just inserts)
-* where *terminateReplica* set to **y** indicates if the main test should terminate replica once it is done (which runs lookup in the case of CmRDT-O and writes logs to files in all implementations)
+## Background
+**CvRDT**
 
-specific tests packages are implemented in `maintest.go`, `quicktest.go` and `wikitest.go`
+[this](https://hal.inria.fr/inria-00555588/document)
 
-## Checker
-a program that checks consistency of replica's databases after a test run, downloads the database into CSV files labelled by replicas' numbers
+<img src="docs/report/Fig3CvRDT2.png" width="400">
 
-start client by running `go run . [drop] [cvrdt/cmrdt]`
-* if *drop* is equal to **y**, then tester will clear all databases to prepare the replicas for the following run
-* if *cvrdt/cmrdt* is equal to "cv", then tester will additionally download the positive and negative collections of the CvRDT servers and save those to CSV; otherwise, if it is equal to "cm" then tester will additionally download the CmRDT dynamic collection
+**CmRDT**
 
-## Crawler
-a program that downloads Wikipedia pages to be used as test sets
+[this](https://hal.inria.fr/inria-00609399v1/document)
 
-start crawler by running `go run . [maxNoLinks] [maxDepth]`
-* where *maxNoLinks* is the maximum number of outgoing links to follow from any given page
-* where *maxDepth* is the maximum depth of the graph
+## Test Methodology
 
-## Util
-methods that are believed to be common to all implementations, perhaps more could be extracted into this package; however, it might start to obscure the code's readability
+## Results
 
-* **util.go**: generic methods, such as parsing the group memberhship CSV file, finding max/mins, etc.
-* **connops.go**: connection operations (e.g. connect one replica to another, connect a replica to a local database) that are common to all implementations
-* **dbsops.go**: basic database operations that are common to all implementations
-
-## Docs
-MATLAB code that is used to generate figures, LaTeX report code, random notes, etc.
+## Additional Information
+[Package Specific Information](/docs/packages.md)
