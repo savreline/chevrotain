@@ -40,6 +40,9 @@ chevrotain.createCollection("kvs")
 db.kvs.find()
 db.kvs.count()
 db.dropDatabase()
+db.system.replset.remove({})
+replication: 
+  replSetName: "smm"
 ```
 
 Save vs. Insert vs. Update \
