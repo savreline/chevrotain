@@ -20,6 +20,8 @@ This was an individual project completed in the fall of 2020 for the *Distribute
 [os/signal](https://golang.org/pkg/os/signal/),
 [windows](https://pkg.go.dev/golang.org/x/sys/windows)
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/savreline/chevrotain)](https://goreportcard.com/report/github.com/savreline/chevrotain)
+
 ---
 
 Jump to [Background](#Background) | [Test Methodology](#Test-Methodology) 
