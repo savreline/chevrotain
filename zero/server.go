@@ -38,21 +38,24 @@ var rpcint RPCInt
 
 // Makes connection to the database, starts up the RPC server
 func main() {
-	var err error
+	var err, err1, err4 error
 
 	/* Parse command line arguments */
-	no, err = strconv.Atoi(os.Args[1])
+	no, err1 = strconv.Atoi(os.Args[1])
 	noStr = os.Args[1]
 	port := os.Args[2]
 	dbPort := os.Args[3]
-	delay, err = strconv.Atoi(os.Args[4])
+	delay, err4 = strconv.Atoi(os.Args[4])
 	if os.Args[5] == "v" {
 		verbose = true
 	} else {
 		verbose = false
 	}
-	if err != nil {
-		util.PrintErr(noStr, "CmdLine", err)
+	if err1 != nil {
+		util.PrintErr(noStr, "CmdLine: no conversion", err)
+	}
+	if err4 != nil {
+		util.PrintErr(noStr, "CmdLine: delay conversion", err)
 	}
 
 	/* Parse group member information */

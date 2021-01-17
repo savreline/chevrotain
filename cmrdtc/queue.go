@@ -10,7 +10,7 @@ import (
 	"../util"
 )
 
-// Global variables: the prev pointer refers to the immediately preceeding block
+// Global variables: the prev pointer refers to the immediately preceding block
 // of the queue when re-linking the queue blocks while processing the queue
 var prev *ListNode
 
@@ -315,7 +315,7 @@ func elimOps(first *ListNode) []map[string]int {
 	}
 
 	/* Eliminate as per bias: other loop loops around key (=1) and val (=2) ops.
-	The inner loop loops aroud ops with a specific key and value pair */
+	The inner loop loops around ops with a specific key and value pair */
 	for _, id := range []int{1, 2} {
 		for k := range ops[id] {
 			if ops[id+2][k] > 0 { // if exist removes for this operation

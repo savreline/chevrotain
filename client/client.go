@@ -41,9 +41,9 @@ var wgMain sync.WaitGroup
 
 func main() {
 	/* Parse command line arguments */
-	var err error
-	delay, err = strconv.Atoi(os.Args[1])
-	timeInt, err = strconv.Atoi(os.Args[2])
+	var err, err1, err2 error
+	delay, err1 = strconv.Atoi(os.Args[1])
+	timeInt, err2 = strconv.Atoi(os.Args[2])
 	if os.Args[3] == "y" {
 		mongotest = true
 		dbClient, _ := util.ConnectDb("1", "localhost", "27018")
@@ -57,8 +57,11 @@ func main() {
 	if os.Args[5] == "y" {
 		term = true
 	}
-	if err != nil {
-		util.PrintErr("CLIENT", "CmdLine", err)
+	if err1 != nil {
+		util.PrintErr("CLIENT", "CmdLine: delay conversion", err)
+	}
+	if err2 != nil {
+		util.PrintErr("CLIENT", "CmdLine: timeInt conversion", err)
 	}
 
 	/* Init data structures */

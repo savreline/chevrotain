@@ -30,14 +30,14 @@ func (t *RPCExt) RemoveKey(args *util.RPCExtArgs, reply *int) error {
 	return nil
 }
 
-// InsertValue inserts value into the given key's record in the positive colleciton
+// InsertValue inserts value into the given key's record in the positive collection
 func (t *RPCExt) InsertValue(args *util.RPCExtArgs, reply *int) error {
 	insertLocalRecord(args.Key, args.Value, posCollection, nil)
 	util.EmulateDelay(delay)
 	return nil
 }
 
-// RemoveValue inserts value into the given key's record in the negative colleciton
+// RemoveValue inserts value into the given key's record in the negative collection
 func (t *RPCExt) RemoveValue(args *util.RPCExtArgs, reply *int) error {
 	insertLocalRecord(args.Key, args.Value, negCollection, nil)
 	util.EmulateDelay(delay)

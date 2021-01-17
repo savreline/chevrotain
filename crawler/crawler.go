@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"../util"
 	"golang.org/x/net/html"
 )
 
@@ -91,10 +92,16 @@ func main() {
 
 		/* Download the page */
 		resp, err := http.Get("https://en.wikipedia.org/wiki/" + curPage)
+		if err != nil {
+			util.PrintErr("Crawler", "http.Get", err)
+		}
 		body, err := ioutil.ReadAll(resp.Body)
+		if err != nil {
+			util.PrintErr("Crawler", "ioutil.ReadAll", err)
+		}
 		doc, err := html.Parse(strings.NewReader(string(body[:])))
 		if err != nil {
-			panic(err)
+			util.PrintErr("Crawler", "html.Parse", err)
 		}
 
 		/* Flush str and set */

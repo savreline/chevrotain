@@ -41,7 +41,7 @@ func TestInserts(t *testing.T) {
 	/* Can we insert a value without a key? */
 	insert("200", "2000", 3)
 	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
-	/* Can we insert a value into pre-exisitng key? */
+	/* Can we insert a value into pre-existing key? */
 	insert("200", "2001", 4)
 	util.PrintDState(util.DownloadDState(db, "TESTER", dCollection, "0"))
 	/* What about insering the same key again? */

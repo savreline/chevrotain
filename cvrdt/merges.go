@@ -107,7 +107,7 @@ func mergeCollections() {
 	}
 
 	/* Iterate over documents in the negative collection:
-	those documents didn't have a corresponding positve entry
+	those documents didn't have a corresponding positive entry
 	and must be removed */
 	negState = util.DownloadDState(db, "REPLICA "+noStr, negCollection, "0")
 	for _, negDoc := range negState { // util.DDoc
