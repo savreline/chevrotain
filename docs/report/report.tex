@@ -3,7 +3,7 @@
 \begin{document}
 \title{Chevrotain: A Conflict-free Replicated Data Type Key-Value Store}
 
-\author{Alexandre Avreline}
+\author{Sasha Avreline}
 \email{savrelin@students.cs.ubc.ca}
 \affiliation{%
   \institution{Univeristy of British Columbia}
@@ -13,7 +13,8 @@
 } 
 
 \begin{abstract}
-Chevrotain is a replicated key value store that achieves eventual consistency through the use of a conflict-free replicated data types (CRDTs). This paper describes the designs, evaluates performances, and compares three different approaches to the implementation of Chevrotain. One of the approaches is based on a state-based CRDT model (CvRDT), while the other two approaches are based on an operation-based CRDT model (CmRDT), that is either completely unsynchronized or makes limited use of synchronization. Latency of all implementations is measured as a function of throughput, and consistency of all implementations is compared to a simple replicated key-value store that only makes a minimal effort to maintain consistency. Scalability is also studied. Results shows that the unsynchronized CmRDT implementation of Chevrotain demonstrates the best performance. In particular, this implementation achieved sub-second latency under a throughput of 25 operations per second per replica while maintaining perfect eventual consistency in a five and seven-replica systems. It also achieved the same results at a throughout of 50 ops/s in a three-replica system. A proof-of-concept application to distributed web crawling is also presented.\end{abstract}
+Chevrotain is a multi-primary replicated key value store that achieves eventual consistency through the use of conflict-free replicated data types (CRDTs). This paper describes the designs, evaluates performances, and compares three different approaches to the implementation of Chevrotain. One of the approaches is based on the state-based CRDT model (CvRDT), while the other two approaches are based on the operation-based CRDT model (CmRDT), that is either completely unsynchronized or makes limited use of synchronization. Latency and consistency of all implementations are measured as a function of throughput, and are compared to a simple replicated key-value store that only makes a minimal effort to maintain consistency. Results are also compared with the performance of MongoDB's built-in primary-backup replication system. Scalability is also studied. Results show that the CvRDT implementation of Chevrotain demonstrates the best performance. In particular, this implementation achieved sub-second latency under a throughput of 10 000 operations per second while maintaining perfect eventual consistency in three, five, seven and ten-replica systems. Moreover, this implementation, from an end-user's perspective, was able to sustain higher throughput than MongoDB's built-in replication system. A proof-of-concept application to distributed web crawling is also presented.
+\end{abstract}
 
 \keywords{eventual consistency, conflict-free replicated data types, key-value stores}
 
@@ -150,7 +151,7 @@ Fixation of the removal set by the prepare-update method addresses the type II c
 Type I conflicts are resolved by allowing an InsertValue to proceed to the local database even if the corresponding InsertKey has not arrived yet. Whenever an end-user wishes to start looking up keys or values in the database, the dynamic collection is transformed into what is referred to as the static collection by the lookup method. This method presents a simple view of the data without the unique ids and it also hides any inconsistencies. In particular, should the InsertKey method never arrive, the inserted value will not be copied over to the static collection and will not be displayed whenever a user looks it up in the database. RemoveKey and RemoveValue conflict is addressed in a similar way.
 
 \subsection{CmRDT-C: Conservative Approach}
-In the CmRDT-C implementation, a queue is used to order operations at each replica and to resolve any conflicts that arise between concurrent operations in a pre-determined, systematic way. A typical workflow of the CmRDT-C implementation is shown in figure \ref{fig:cmrdtq1}. When a replica receives a command from the client, it immediately timestamps the command with the current vector clock and packages the command into an OpNode struct. The OpNode struct, along with the timestamp, contains all necessary information to process the command. The OpNode struct is then inserted into the local queue of OpNodes, where the OpNodes are ordered according to vector clocks. Finally, the OpNode struct is also broadcast to all other replicas, where upon arrival, it is likewise inserted into the local OpNodes queues. The queue insertion mechanism first tries to locate an OpNode whose timestamp is either ahead or behind the timestamp of the incoming OpNode. If such an OpNode does not exist, then the incoming OpNode is placed next to an OpNode with a concurrent timestamp. Therefore, the queue may have one or more blocks of one of more concurrent operations, as is shown in figure \ref{fig:cmrdtq2}.
+In the CmRDT-C implementation, a queue is used to order operations at each replica and to resolve any conflicts that arise between concurrent operations in a pre-determined, systematic way. This implementation is perhaps an example of how \emph{not} to approach CmRDTs and was explored for the sake of comparison. A typical workflow of the CmRDT-C implementation is shown in figure \ref{fig:cmrdtq1}. When a replica receives a command from the client, it immediately timestamps the command with the current vector clock and packages the command into an OpNode struct. The OpNode struct, along with the timestamp, contains all necessary information to process the command. The OpNode struct is then inserted into the local queue of OpNodes, where the OpNodes are ordered according to vector clocks. Finally, the OpNode struct is also broadcast to all other replicas, where upon arrival, it is likewise inserted into the local OpNodes queues. The queue insertion mechanism first tries to locate an OpNode whose timestamp is either ahead or behind the timestamp of the incoming OpNode. If such an OpNode does not exist, then the incoming OpNode is placed next to an OpNode with a concurrent timestamp. Therefore, the queue may have one or more blocks of one of more concurrent operations, as is shown in figure \ref{fig:cmrdtq2}.
 
 \begin{figure*}[h]
   \centering
@@ -191,16 +192,16 @@ If a block of concurrent operations falls into either of the above categories, i
 
 \section{Evaluation}
 \subsection{Methodology}
-The initial evaluation of throughput, latency and consistency of all implementations was carried out using three Microsoft Azure Standard DS1 VMs running Windows 2019 Datacenter Server with 1 vCPUs, 4GB of RAM and a separate premium SSD drive dedicated to Chevrotain. The initial VMs were geographically distributed and situated in Central Canada, Southern UK and Japan East.
+The initial evaluation of throughput, latency and consistency of all implementations was carried out using three Microsoft Azure Standard D4s v3 VMs running Windows 2019 Datacenter Server with 4 vCPUs, 16GB of RAM and a separate premium P30 SSD drive supporting 5000IOPS, 200MBps dedicated to Chevrotain. The initial VMs were geographically distributed and situated in Central Canada, Southern UK and Japan East.
 
-A standard test set suite was used to collect all measurements: at the beginning of the test, 50 key insertion commands were sent to each replica, immediately followed by 20 value insertion commands on each key. In the middle of the test, some additional keys and key-value pairs were repeatedly inserted and removed. Finally, at the end of test, half of the values from each key and one-fourth of the keys were removed. In total, given this test suite, a client would send 1,400 commands to each replica on each run. The beginning and end portions of the test were meant to introduce type I conflicts, while the middle portion was meant to introduce type II conflicts. In all experiments, each test was done three times and reported results are the average of the three runs.
+A standard test set suite was used to collect all measurements: at the beginning of the test, 210 key insertion commands were distributed among the three replicas, immediately followed by five value insertion commands on each key. At the end of the test, two of the values from each key and 52 of the keys were removed. In total, given this test suite, a client would send 1,723 commands to the replicas on each run. The order of operations in the test was meant to introduce type I conflicts. In all experiments, each test was done five times and reported results are the average of the five runs.
 
 The client sent all commands asynchronously and was responsible for recording round trip latencies of each RPCExt call. The client introduced set delays between subsequent sends to emulate various levels of throughput. A ``zero'' implementation was used as a baseline reference. This implementation still followed the system layout outlined in figure \ref{fig:sys}; however, once operations were received by the replicas, they were immediately applied to the local databases, without any additional processing to improve consistency.
 
-A checker package was also used. This package connected to the local copies of the databases at each replica and cross-checked them for consistency. The consistency results are reported as a percentage of entries that matched across the databases.
+A checker package was also used. This package connected to the local copies of the databases at each replica and cross-checked them for consistency. The consistency results are reported as a percentage of entries that matched across the databases and matched the reference of the intended view of the database at the end of the test.
 
 \subsection{Initial Results}
-Measurements of latency as a function of throughput for different implementations, except the CmRDT-C implementation are presented in figure \ref{fig:eval1}. Measurements of consistency as a function of throughput for the same implementations are shown in figure \ref{fig:eval2}. Those measurements were taken \emph{immediately} after the client received responses to all of its commands. The CmRDT-C implementation will be discussed in the following section.
+Measurements of latency as a function of throughput for different implementations, except the CmRDT-C implementation are presented in figure \ref{fig:eval1}. Measurements of consistency as a function of throughput for the same implementations are shown in figure \ref{fig:eval2}. In all figures, CvRDT-GC stands for the CvRDT implementation with garbage collection while CvRDT represents the CvRDT implementation without any garbage collection. All measurements were taken \emph{immediately} after the client received responses to all of its commands. The CmRDT-C implementation will be discussed in the following section.
 
 \begin{figure}[h]
   \centering
@@ -216,43 +217,60 @@ Measurements of latency as a function of throughput for different implementation
   \label{fig:eval2}
 \end{figure}
 
-Surprisingly, the CmRDT-O implementation achieved better latency at lower throughput than the "zero" implementation. The root cause of this phenomena hasn't been determined at this time. The latency of the CvRDT implementation remains fairly steady as throughput is increased; however, this is misleading. The commands sent to the CvRDT implementation from the client return immediately and the round-trip times recorded by the client don't reflect the actual time needed to exchange and merge states. To address this shortcoming, whenever a client received a response from the CvRDT replicas to all of its commands, the local databases were queried until their consistencies converged to 100\%. Approximate times required to reach this point are reported in table \ref{tbl}. The reported times are rather unexpectedly large at higher throughput.
+Surprisingly, the CvRDT implementations achieved better latency at lower throughput than the "zero" implementation. In fact, the latency of the CvRDT-GC implementation remains fairly steady as throughput is increased; however, this is only strictly from the end-user's perspective. The commands sent to the CvRDT implementation from the client return immediately and the round-trip times recorded by the client don't reflect the actual time needed to exchange and merge states. To address this, whenever a client received a response from the CvRDT replicas to all of its commands, the local databases were queried until their consistencies converged to 100\%. Approximate times required to reach this point are shown in figure \ref{fig:eval3}. Those delays are a strong function of the time interval between state exchanges specified at initialization of each replica.
 
-\begin{table}
-  \caption{Time Required to Reach Perfect Consistency in CvRDT}
-  \label{tbl}
-  \begin{tabular}{cc}
-    \toprule
-    Throughput (ops/s) &Time per 1000ops (s)\\
-    \midrule
-    10 & 0 \\
-    25 & 1.2 \\
-    50 & 10.7 \\
-    75 & 66.1 \\
-    100 & 36.9 \\
-  \bottomrule
-\end{tabular}
-\end{table}
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{Fig9CvRDTMerge3}
+  \caption{Merge Delays for CvRDT as Function of Time Between State Exchanges at 10 000 ops/s}
+  \label{fig:eval3}
+\end{figure}
 
-While the CvRDT implementations did eventually converge and achieved perfect consistency, even at higher throughput, this wasn't the case in the CmRDT-O implementation. The consistency achieved by the CmRDT-O implementation rapidly dropped off once throughput went above 50 ops/s. The exact cause of this behaviour hasn't been determined at this time.
+While the CvRDT implementations did eventually converge and achieved perfect consistency, even at higher throughput, this wasn't the case in the CmRDT-O implementation. The consistency achieved by the CmRDT-O implementation rapidly dropped off once throughput went above 175 ops/s. The exact cause of this behaviour hasn't been determined at this time, but it is suspected there is a problem in the implementation of CBCAST.
 
 \subsection{CmRDT-C Results}
-The CmRDT-C implementation demonstrated a latency of 323 ms at 5 ops/s and below, while always exhibiting perfect consistency. Beyond 5 ops/s its performance degraded rapidly and latencies in the tens of seconds were recorded. Therefore, no further evaluation of this implementation was undertaken.
+The CmRDT-C implementation demonstrated a latency of about 330 ms at 10 ops/s and below. Beyond 10 ops/s its performance degraded rapidly and implementation often deadlocked. Therefore, no further evaluation of this implementation was undertaken.
 
-However, it is worth noting that a particular problem with achieving consistency in the CmRDT-C implementation is the maximum length of the queue. Ordering of OpNodes in the queue according to vector clocks is not unique and as the queue grows in size, this non-uniqueness becomes more problematic. On the other hand, should the queue be too small, concurrent operations are not resolved in the same queue processing run. Through experiments conducted on a local machine, it was established that the length of the queue should be less than 20 OpNodes for any chance of achieving consistency.
+The particular problem with achieving consistency and any reasonable performance in the CmRDT-C implementation is the maximum length of the queue. Ordering of OpNodes on the queue according to vector clocks is not unique and as the queue grows in size, this non-uniqueness becomes more problematic. On the other hand, should the queue be too small, concurrent operations are not resolved in the same queue processing run. Through experiments conducted on a local machine, it was established that the length of the queue should be less than 20 OpNodes for any chance of achieving consistency.
 
 \subsection{Scalability Results}
-As the CvRDT and CmRDT-C implementations already showed poor performance in a three-replica system, only the CmRDT-O implementation was evaluated for scalability. To evaluate the performance of a five-replica system, two identical Microsoft Azure VMs were added in the Australia East and Brazil South regions. To evaluate the performance of a five-replica system, two more machines were added in the Japan East and UK South regions. Results are presented in figure \ref{fig:eval3}.
+As the CmRDT-C implementation demonstrated poor performance in a three-replica system, it was not evaluated for scalability. To evaluate the performance of a five-replica system, two identical Microsoft Azure VMs were added in the Australia East and Brazil South regions. To evaluate the performance of a seven-replica system, two more machines were added in the Central Canada and UK South regions. Finally, to create a ten-replica system, three more machines in Japan East, Australia East and Brazil South regions were added. The same set of 1,723 operations was evenly distributed between all replicas in all runs. Results are presented in figures \ref{fig:eval4}, \ref{fig:eval5} and \ref{fig:eval6} for CvRDT-GC, CvRDT and CmRDT-O respectively.
 
-Overall, the latency did not significantly increase once the additional replicas were added. Perfect consistency in both, the five and the seven-replica systems was achieved up to and including a throughput of 25 ops/s (c.f. 50 ops/s for the three-replica system). In the five-replica system, consistency was still about 95 \% at 50 ops/s, but this was not the case in the seven replica system. 
+Overall, in the case of the CvRDT implementations the latency did not significantly increase once the additional replicas were added. For the most part, from the end-user's perspective, latencies of all systems hovered in the range of 100-150ms under all throughputs. It should be noted that end-to-end latencies are of course influenced by the geographic distribution of VMs and are skewed by the addition of VMs in distant regions. Perfect eventual consistency was achieved in all cases.
 
-The high latency of a one-replica system is rather surprising, and the root cause hasn't been established at this point in time. Perhaps the one-replica system overwhelms the database all at once, as there is not much else to do.
+The performance of the CmRDT-O implementation decreased at lower throughput thresholds as more machines were added. In particular, while the three-replica system demonstrated acceptable latency at 175 ops/s, this was less so the case for the five and seven-replica systems and was certainly not the case for the ten-replica system. The ten-replica system demonstrated acceptable latency only up to and including the throughput of 100 ops/s.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{Fig10SCvRDTGC}
+  \caption{Scalability of the CvRDT-GC Implementation}
+  \label{fig:eval4}
+\end{figure}
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{Fig11SCvRDT}
+  \caption{Scalability of the CvRDT Implementation}
+  \label{fig:eval5}
+\end{figure}
 
 \begin{figure}[h]
   \centering
   \includegraphics[width=\linewidth]{Fig12SCmRDTO}
   \caption{Scalability of the CmRDT-O Implementation}
-  \label{fig:eval3}
+  \label{fig:eval6}
+\end{figure}
+
+\subsection{Comparison with MongoDB}
+MongoDB's built-in replication system was setup in three, five, seven and ten-replica configurations. The VMs in the Central Canada region was always designated as the primary and all other replicas were secondaries. Reads from secondaries were enabled. Chevortain client send the same set of 1,723 commands to the primary replica and the checker package queried the database copies of all replicas in the system. The systems were subjected to the same throughputs as Chevortain's replicas and end-to-end latencies were measured in all cases. Results are shown in \ref{fig:eval7}. 
+
+The results exhibited an interesting phenomena. At first, latencies started out at 150ms at a throughput of 10 ops/s and, as expected, gradually increased to about 2s at a throughput of 1000 ops/s. However, beyond 1000 ops/s, latencies remained steady and while the client did try to emulate throughputs of up to 10 000 ops/s, the actual measured throughput stayed fixed at 1000 ops/s. Therefore, MongoDB's built-in replication system wasn't able to accept throughputs greater than 1000 ops/s. Therefore, Chevortain's CvRDT implementations were able to sustain higher throughputs in this case, at the expense of the additional merge delays.
+
+\begin{figure}[h]
+  \centering
+  \includegraphics[width=\linewidth]{Fig13SMongo}
+  \caption{Scalability of MongoDB's built-in Replication System}
+  \label{fig:eval7}
 \end{figure}
 
 \section{Applications and Use Cases}
@@ -277,19 +295,19 @@ Any graph could be represented as a key-value store with the keys being vertices
 The web page link DG framework was built a as an application proof-of-concept to Chevrotain. A client communicating with a certain replica is given a starting Wikipedia page (for example ``Java'') and crawls any webpages originating from that page up to a certain depth, sending commands to Chevrotain to insert keys and values as pages are traversed. Other clients are given other starting webpages and send commands to their respective Chevrotain replicas. Chevrotain replicas then replicate the commands or exchange state to arrive at a uniform view of the Wikipedia page DG. The Chevrotain implementations were tested using this framework and achieved perfect eventual consistency; however, this framework was not used for any benchmark measurements at this time.
 
 \section{Future Work}
-Future work on this project would involve making Chevrotain more robust to failures and more optimized for performance. One of the goals would be to equip the CvRDT implementation with a better protocol for reaching agreement on the current safe tick among all replicas and responding to leader failures. In particular, Golang Paxos implementations \cite{paxos} could be explored to address this. Another goal would be to have CmRDT implementations be better suited to handle lengthy replica failures: should a replica be offline for an extended period of time, it would receive the entire state update as a single message, rather than receiving a series of messages containing individual operations.
+Future work on this project would involve making Chevrotain more robust to failures and more optimized for performance. One of the goals would be to equip the CvRDT implementation with a better protocol for reaching agreement on the current safe tick among all replicas and responding to leader failures. In particular, Golang Paxos implementations \cite{paxos} could be explored to address this. The implementation of CBCAST used in CmRDT would need to be revised. Another goal would be to have CmRDT implementations be better suited to handle lengthy replica failures: should a replica be offline for an extended period of time, it would receive the entire state update as a single message, rather than receiving a series of messages containing individual operations.
 
 Other test suites should be explored to gather performance measurements and evaluate robustness of Chevrotain. In particular, it would be interesting to discover test suites that perform very well with some implementation of Chevrotain and poorly with others.
 
 A more interesting web crawling experiment would be to have Chevrotain replicas situated in different geographical regions crawl web pages located in those regions and only occasionally exchange states between themselves. In particular, it would be interesting to see if there would be a performance gain in comparison to a web crawler situated in a single region crawling pages from all over the globe from there.
 
-\section{Related Work} %MongoDB!!!
+\section{Related Work}
 The use of CRDTs is very widespread and there are several excellent CRDT libraries, most of them are written in JavaScript \cite{crdt}. Many of those are domain specific and not directly related to key-value stores, such as the \textbf{Automerge} library for JSON files \cite{automerge}. However, many modern databases either support or are adapted to support CRDT frameworks. One example is the \textbf{Microsoft Azure CosmosDB} that supports CRDTs and either uses a LWW policy to resolve conflicts or requires users to supply a custom JavaScript file that specifies conflict resolution semantics \cite{cosmosdb}. 
 
 Perhaps the closest work to this project is \textbf{Roshi}, which is a Golang implementation of an event store based on a CRDT LWW-element-set with limited inline garbage collection \cite{roshi}. Moreover, Roshi is built on top of \textbf{Redis}, a distributed key-value store \cite{redis}. Roshi originated from the need to manage social media events in SoundCloud (for example, reposts of music tracks).
 
 \section{Conclusion}
-Chevrotain is a replicated key value store that achieves eventual consistency through the use of a conflict-free replicated data types (CRDTs). In this paper, we studied three different implementations of Chevrotain, one of which was state-based and the other two were operation-based, either with or without limited synchronization. The unsynchronized operation-based implementation (CmRDT-O) performed best and was perhaps the easiest to work with. This is the only implementation that did not require any synchronization between replicas and did not require the end-user to specify a bias towards either the adds or removes of keys or values. The CmRDT-C implementation was the least performant; however, still achieved perfect eventual consistency under low throughput. The CmRDT-C implementation suffered from both, the logical and computational complexities of ordering OpNodes according to vector clocks on the queue. The CvRDT implementation achieved perfect eventual consistency under similar conditions as the CmRDT-O implementation; however, in some cases it took significant time for the states of replicas to converge. Also, while being easiest to understand as a concept, came out to be surprisingly difficult to implement properly. 
+Chevrotain is a replicated key value store that achieves eventual consistency through the use of conflict-free replicated data types (CRDTs). In this paper, we studied three different implementations of Chevrotain, one of which was state-based and the other two were operation-based, either with or without limited synchronization. The state-based implementation (CvRDT) performed best. This implementation, from an end-user's perspective, maintained a latency in the range of 100-150ms under throughputs of up to 10 000 ops/s and systems with up to ten geographically distributed replicas. From that perspective it was able to maintain throughput higher than that of MongoDB's built-in replication system. However, this was at the expense of additional 7-22s server-side delays needed to merge the states. Those delays were directly a function of the specified time interval between state exchanges. The CmRDT-O implementation demonstrated acceptable performance for throughputs of up to 175 ops/s in a three-replica system and for throughputs of up to 100 ops/s in a ten-replica system. It is hypothesized that the implementation of CBCAST would need to be further explored to achieve better results with this implementation. The CmRDT-C implementation was the least performant and suffered from both the logical and computational complexities of ordering OpNodes according to vector clocks on the queue. 
 
 \section*{Acknowledgements}
 The author thanks Prof. Ivan Beschastnikh for his insight and feedback throughout this project and the permission to adopt the GoVector package for this project's needs. The author also appreciates the Microsoft Azure Education credit received from Prof. Beschastnikh and Microsoft Azure. Finally, the author acknowledges the use of UBC's MATLAB student license for constructing the figures for this paper.
